@@ -1,0 +1,17 @@
+{
+  "rewrites": [
+    {
+      "source": "/pong",
+      "destination": "https://pong-gold-omega.vercel.app"
+    },
+    {
+      "source": "/pong/(.*)",
+      "destination": "https://pong-gold-omega.vercel.app/$1"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
+
