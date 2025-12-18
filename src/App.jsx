@@ -11,47 +11,46 @@ const games = [
     platform: "desktop", // "desktop" or "mobile"
     aspectRatio: "4 / 3", // width / height - common: "16 / 9", "4 / 3", "1 / 1"
     controls: {
-      up: "ArrowUp",
-      down: "ArrowDown",
-      left: "ArrowLeft",
-      right: "ArrowRight",
-      a: "z",
-      b: "x",
+      dpad: { up: "ArrowUp", down: "ArrowDown", left: "ArrowLeft", right: "ArrowRight" },
+      actions: [
+        { key: "z", label: "A" },
+        { key: "x", label: "B" },
+      ],
     },
   },
   {
     id: 2,
-    slug: "crypto-tax-nightmare",
+    slug: "ctn",
     title: "Crypto Tax Nightmare",
     image: "/nes-game-images/crypto-tax-nightmare.png",
     gameUrl: "https://game.songaday.world/",
     platform: "desktop",
     aspectRatio: "16 / 9",
     controls: {
-      up: "ArrowUp",
-      down: "ArrowDown",
-      left: "ArrowLeft",
-      right: "ArrowRight",
-      a: "z",
-      b: "x",
+      dpad: { up: "ArrowUp", down: "ArrowDown", left: "ArrowLeft", right: "ArrowRight" },
+      actions: [
+        { key: "ArrowUp", label: "JUMP" },
+        { key: "x", label: "B" },
+      ],
     },
   },
   {
     id: 3,
-    slug: "windows-didnt-load",
+    slug: "windows",
     title: "Windows Didn't Load Correctly",
     image: "/nes-game-images/windows-didn't-load.png",
-    gameUrl:
-      "https://windows-git-main-jonathan-manns-projects-fcbebd01.vercel.app/",
+    gameUrl: "https://windows-ruddy.vercel.app",
     platform: "desktop",
-    aspectRatio: "4 / 3",
+    aspectRatio: "3 / 2",
     controls: {
-      up: "ArrowUp",
-      down: "ArrowDown",
-      left: "ArrowLeft",
-      right: "ArrowRight",
-      a: "z",
-      b: "x",
+      dpad: { up: "w", down: "s", left: "a", right: "d" },
+      actions: [
+        { key: " ", label: "JUMP" },
+        { key: "click", label: "ATTACK", isClick: true },
+        { key: "f", label: "DASH" },
+        { key: "e", label: "POUND" },
+        { key: "q", label: "CROUCH" },
+      ],
     },
   },
   {
@@ -84,8 +83,6 @@ function useIsMobile() {
 
 // PICO-8 style console for desktop games on mobile
 function PicoConsole({ game, onClose }) {
-  const iframeRef = useState(null);
-
   const sendKey = (key, type) => {
     // Try to send key event via postMessage
     // Games need to listen for this - see docs
@@ -98,8 +95,36 @@ function PicoConsole({ game, onClose }) {
     }
   };
 
-  const handleButtonDown = (key) => sendKey(key, "keydown");
-  const handleButtonUp = (key) => sendKey(key, "keyup");
+  const sendClick = (type) => {
+    // Send mouse click event for games that use click
+    const iframe = document.querySelector(".pico-game-iframe");
+    if (iframe && iframe.contentWindow) {
+      iframe.contentWindow.postMessage(
+        { type: "clickEvent", eventType: type },
+        "*"
+      );
+    }
+  };
+
+  const handleButtonDown = (key, isClick) => {
+    if (isClick) {
+      sendClick("mousedown");
+    } else {
+      sendKey(key, "keydown");
+    }
+  };
+
+  const handleButtonUp = (key, isClick) => {
+    if (isClick) {
+      sendClick("mouseup");
+    } else {
+      sendKey(key, "keyup");
+    }
+  };
+
+  const dpad = game.controls?.dpad || {};
+  const actions = game.controls?.actions || [];
+  const hasMany = actions.length > 2;
 
   return (
     <div className="pico-fullscreen">
@@ -107,7 +132,7 @@ function PicoConsole({ game, onClose }) {
         ✕
       </button>
 
-      <div className="pico-console">
+      <div className={`pico-console ${hasMany ? "pico-console-expanded" : ""}`}>
         <div className="pico-bezel">
           <div className="pico-screen-area">
             <div className="pico-screen-label">{game.title}</div>
@@ -116,7 +141,6 @@ function PicoConsole({ game, onClose }) {
               style={{ aspectRatio: game.aspectRatio || "1 / 1" }}
             >
               <iframe
-                ref={iframeRef}
                 src={game.gameUrl}
                 title={game.title}
                 className="pico-game-iframe"
@@ -125,68 +149,62 @@ function PicoConsole({ game, onClose }) {
             </div>
           </div>
 
-          <div className="pico-controls">
+          <div className={`pico-controls ${hasMany ? "pico-controls-expanded" : ""}`}>
             {/* D-Pad */}
             <div className="pico-dpad">
               <button
                 className="pico-btn pico-up"
-                onTouchStart={() => handleButtonDown(game.controls?.up)}
-                onTouchEnd={() => handleButtonUp(game.controls?.up)}
-                onMouseDown={() => handleButtonDown(game.controls?.up)}
-                onMouseUp={() => handleButtonUp(game.controls?.up)}
+                onTouchStart={(e) => { e.preventDefault(); handleButtonDown(dpad.up); }}
+                onTouchEnd={(e) => { e.preventDefault(); handleButtonUp(dpad.up); }}
+                onMouseDown={() => handleButtonDown(dpad.up)}
+                onMouseUp={() => handleButtonUp(dpad.up)}
               >
                 ▲
               </button>
               <button
                 className="pico-btn pico-left"
-                onTouchStart={() => handleButtonDown(game.controls?.left)}
-                onTouchEnd={() => handleButtonUp(game.controls?.left)}
-                onMouseDown={() => handleButtonDown(game.controls?.left)}
-                onMouseUp={() => handleButtonUp(game.controls?.left)}
+                onTouchStart={(e) => { e.preventDefault(); handleButtonDown(dpad.left); }}
+                onTouchEnd={(e) => { e.preventDefault(); handleButtonUp(dpad.left); }}
+                onMouseDown={() => handleButtonDown(dpad.left)}
+                onMouseUp={() => handleButtonUp(dpad.left)}
               >
                 ◀
               </button>
               <div className="pico-dpad-center"></div>
               <button
                 className="pico-btn pico-right"
-                onTouchStart={() => handleButtonDown(game.controls?.right)}
-                onTouchEnd={() => handleButtonUp(game.controls?.right)}
-                onMouseDown={() => handleButtonDown(game.controls?.right)}
-                onMouseUp={() => handleButtonUp(game.controls?.right)}
+                onTouchStart={(e) => { e.preventDefault(); handleButtonDown(dpad.right); }}
+                onTouchEnd={(e) => { e.preventDefault(); handleButtonUp(dpad.right); }}
+                onMouseDown={() => handleButtonDown(dpad.right)}
+                onMouseUp={() => handleButtonUp(dpad.right)}
               >
                 ▶
               </button>
               <button
                 className="pico-btn pico-down"
-                onTouchStart={() => handleButtonDown(game.controls?.down)}
-                onTouchEnd={() => handleButtonUp(game.controls?.down)}
-                onMouseDown={() => handleButtonDown(game.controls?.down)}
-                onMouseUp={() => handleButtonUp(game.controls?.down)}
+                onTouchStart={(e) => { e.preventDefault(); handleButtonDown(dpad.down); }}
+                onTouchEnd={(e) => { e.preventDefault(); handleButtonUp(dpad.down); }}
+                onMouseDown={() => handleButtonDown(dpad.down)}
+                onMouseUp={() => handleButtonUp(dpad.down)}
               >
                 ▼
               </button>
             </div>
 
-            {/* Action Buttons */}
-            <div className="pico-action-buttons">
-              <button
-                className="pico-btn pico-btn-b"
-                onTouchStart={() => handleButtonDown(game.controls?.b)}
-                onTouchEnd={() => handleButtonUp(game.controls?.b)}
-                onMouseDown={() => handleButtonDown(game.controls?.b)}
-                onMouseUp={() => handleButtonUp(game.controls?.b)}
-              >
-                B
-              </button>
-              <button
-                className="pico-btn pico-btn-a"
-                onTouchStart={() => handleButtonDown(game.controls?.a)}
-                onTouchEnd={() => handleButtonUp(game.controls?.a)}
-                onMouseDown={() => handleButtonDown(game.controls?.a)}
-                onMouseUp={() => handleButtonUp(game.controls?.a)}
-              >
-                A
-              </button>
+            {/* Action Buttons - dynamically rendered */}
+            <div className={`pico-action-buttons ${hasMany ? "pico-action-grid" : ""}`}>
+              {actions.map((action, index) => (
+                <button
+                  key={index}
+                  className={`pico-btn pico-btn-action pico-btn-${index}`}
+                  onTouchStart={(e) => { e.preventDefault(); handleButtonDown(action.key, action.isClick); }}
+                  onTouchEnd={(e) => { e.preventDefault(); handleButtonUp(action.key, action.isClick); }}
+                  onMouseDown={() => handleButtonDown(action.key, action.isClick)}
+                  onMouseUp={() => handleButtonUp(action.key, action.isClick)}
+                >
+                  {action.label}
+                </button>
+              ))}
             </div>
           </div>
         </div>

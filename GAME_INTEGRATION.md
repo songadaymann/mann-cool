@@ -46,41 +46,81 @@ window.addEventListener('message', (event) => {
 ## Message Format
 
 ```typescript
-interface ControlMessage {
+// For keyboard controls
+interface KeyMessage {
   type: 'keyEvent';
-  key: string;      // The key identifier (e.g., 'ArrowUp', 'z', 'x')
+  key: string;      // The key identifier (e.g., 'ArrowUp', 'z', 'x', ' ' for space)
   eventType: string; // 'keydown' or 'keyup'
+}
+
+// For mouse click controls (e.g., attack button)
+interface ClickMessage {
+  type: 'clickEvent';
+  eventType: string; // 'mousedown' or 'mouseup'
 }
 ```
 
-## Default Key Mappings
+### Handling Click Events
 
-The mann.cool game config specifies which keys each button sends:
+If your game uses mouse clicks (e.g., for attacking), add this listener:
 
-| Button | Default Key | Description |
-|--------|-------------|-------------|
-| D-pad Up | `ArrowUp` | Move up |
-| D-pad Down | `ArrowDown` | Move down |
-| D-pad Left | `ArrowLeft` | Move left |
-| D-pad Right | `ArrowRight` | Move right |
-| A Button | `z` | Primary action |
-| B Button | `x` | Secondary action |
+```javascript
+window.addEventListener('message', (event) => {
+  const { type, eventType } = event.data || {};
+  
+  if (type === 'clickEvent' && eventType) {
+    // Create and dispatch a mouse event to your game canvas
+    const canvas = document.querySelector('canvas'); // adjust selector as needed
+    if (canvas) {
+      const mouseEvent = new MouseEvent(eventType, {
+        bubbles: true,
+        cancelable: true,
+        view: window,
+      });
+      canvas.dispatchEvent(mouseEvent);
+    }
+  }
+});
+```
 
-These can be customized per-game in the mann.cool config. If your game uses different keys (e.g., WASD), update the `controls` object in `App.jsx`:
+## Control Configuration
+
+The mann.cool game config specifies which keys each button sends. The controller is flexible and can have 2-6+ action buttons depending on the game's needs.
+
+### Simple 2-Button Game (Classic NES style)
 
 ```javascript
 {
   slug: "your-game",
   controls: {
-    up: "w",      // or "ArrowUp"
-    down: "s",    // or "ArrowDown"
-    left: "a",    // or "ArrowLeft"
-    right: "d",   // or "ArrowRight"
-    a: "Space",   // primary action
-    b: "Shift",   // secondary action
+    dpad: { up: "ArrowUp", down: "ArrowDown", left: "ArrowLeft", right: "ArrowRight" },
+    actions: [
+      { key: "z", label: "A" },
+      { key: "x", label: "B" },
+    ],
   },
 }
 ```
+
+### Complex Game with Many Controls
+
+```javascript
+{
+  slug: "your-platformer",
+  controls: {
+    dpad: { up: "w", down: "s", left: "a", right: "d" },  // WASD movement
+    actions: [
+      { key: " ", label: "JUMP" },           // Space bar
+      { key: "click", label: "ATTACK", isClick: true },  // Mouse click
+      { key: "f", label: "DASH" },
+      { key: "e", label: "POUND" },
+      { key: "q", label: "CROUCH" },
+    ],
+  },
+}
+```
+
+The controller UI automatically expands to a grid layout when there are more than 2 action buttons.
 
 ## Framework-Specific Examples
 
@@ -215,4 +255,5 @@ In the mann.cool repo (`src/App.jsx`), add your game to the `games` array:
 
 **Keys are wrong?**
 - Update the `controls` object in mann.cool's `App.jsx` to match your game's expected keys
+
 

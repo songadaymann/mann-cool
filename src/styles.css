@@ -533,45 +533,113 @@ body::before {
   align-items: center;
 }
 
-.pico-btn-a,
-.pico-btn-b {
+/* Grid layout for many buttons */
+.pico-action-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: auto;
+  gap: 8px;
+}
+
+/* Expanded console for games with many controls */
+.pico-console-expanded {
+  max-width: 100%;
+}
+
+.pico-controls-expanded {
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.pico-controls-expanded .pico-dpad {
+  align-self: flex-start;
+}
+
+.pico-controls-expanded .pico-action-grid {
+  width: 100%;
+  grid-template-columns: repeat(3, 1fr);
+}
+
+/* Base action button style */
+.pico-btn-action {
+  min-width: 50px;
+  min-height: 50px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-size: 0.5rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #fff;
+}
+
+/* Simple 2-button layout (A/B style) */
+.pico-action-buttons:not(.pico-action-grid) .pico-btn-action {
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  font-size: 0.8rem;
-  font-weight: bold;
 }
 
-.pico-btn-a {
+/* Color variations for action buttons */
+.pico-btn-0 {
   background: linear-gradient(180deg, #ff6b6b 0%, #c92a2a 100%);
   border-color: #ff8787;
-  color: #fff;
-  box-shadow:
-    0 4px 0 #8b0000,
-    0 6px 10px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 0 #8b0000, 0 6px 10px rgba(0, 0, 0, 0.3);
 }
-
-.pico-btn-a:active {
+.pico-btn-0:active {
   background: linear-gradient(180deg, #e85555 0%, #b02525 100%);
-  box-shadow:
-    0 2px 0 #8b0000,
-    0 3px 5px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 2px 0 #8b0000, 0 3px 5px rgba(0, 0, 0, 0.3);
 }
 
-.pico-btn-b {
+.pico-btn-1 {
   background: linear-gradient(180deg, #ffd43b 0%, #fab005 100%);
   border-color: #ffe066;
   color: #333;
-  box-shadow:
-    0 4px 0 #b38600,
-    0 6px 10px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 0 #b38600, 0 6px 10px rgba(0, 0, 0, 0.3);
+}
+.pico-btn-1:active {
+  background: linear-gradient(180deg, #f0c830 0%, #e6a000 100%);
+  box-shadow: 0 2px 0 #b38600, 0 3px 5px rgba(0, 0, 0, 0.3);
 }
 
-.pico-btn-b:active {
-  background: linear-gradient(180deg, #f0c830 0%, #e6a000 100%);
-  box-shadow:
-    0 2px 0 #b38600,
-    0 3px 5px rgba(0, 0, 0, 0.3);
+.pico-btn-2 {
+  background: linear-gradient(180deg, #69db7c 0%, #2f9e44 100%);
+  border-color: #8ce99a;
+  box-shadow: 0 4px 0 #1e7b34, 0 6px 10px rgba(0, 0, 0, 0.3);
+}
+.pico-btn-2:active {
+  background: linear-gradient(180deg, #51cf66 0%, #2b8a3e 100%);
+  box-shadow: 0 2px 0 #1e7b34, 0 3px 5px rgba(0, 0, 0, 0.3);
+}
+
+.pico-btn-3 {
+  background: linear-gradient(180deg, #74c0fc 0%, #1c7ed6 100%);
+  border-color: #a5d8ff;
+  box-shadow: 0 4px 0 #1864ab, 0 6px 10px rgba(0, 0, 0, 0.3);
+}
+.pico-btn-3:active {
+  background: linear-gradient(180deg, #4dabf7 0%, #1971c2 100%);
+  box-shadow: 0 2px 0 #1864ab, 0 3px 5px rgba(0, 0, 0, 0.3);
+}
+
+.pico-btn-4 {
+  background: linear-gradient(180deg, #e599f7 0%, #ae3ec9 100%);
+  border-color: #eebefa;
+  box-shadow: 0 4px 0 #862e9c, 0 6px 10px rgba(0, 0, 0, 0.3);
+}
+.pico-btn-4:active {
+  background: linear-gradient(180deg, #da77f2 0%, #9c36b5 100%);
+  box-shadow: 0 2px 0 #862e9c, 0 3px 5px rgba(0, 0, 0, 0.3);
+}
+
+.pico-btn-5 {
+  background: linear-gradient(180deg, #ffa94d 0%, #e8590c 100%);
+  border-color: #ffc078;
+  box-shadow: 0 4px 0 #c92a2a, 0 6px 10px rgba(0, 0, 0, 0.3);
+}
+.pico-btn-5:active {
+  background: linear-gradient(180deg, #ff922b 0%, #d9480f 100%);
+  box-shadow: 0 2px 0 #c92a2a, 0 3px 5px rgba(0, 0, 0, 0.3);
 }
 
 /* Selection styling */
