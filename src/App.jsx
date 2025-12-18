@@ -23,6 +23,13 @@ const games = [
     image: "/nes-game-images/windows-didn't-load.png",
     gameUrl: "https://gamejew.itch.io/windowshttps://windows-git-main-jonathan-manns-projects-fcbebd01.vercel.app/", // Update with actual URL
   },
+  {
+    id: 4,
+    slug: "oil",
+    title: "It's About Oil",
+    image: "/nes-game-images/its-about-oil-pre.png",
+    gameUrl: "https://oil-ruddy.vercel.app",
+  },
 ];
 
 function GameModal() {
