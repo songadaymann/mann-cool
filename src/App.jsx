@@ -90,9 +90,9 @@ function VirtualJoystick({ onMove, onEnd, label }) {
   const stickRef = useRef(null);
   const centerRef = useRef({ x: 0, y: 0 });
   const animationRef = useRef(null);
+  const positionRef = useRef({ x: 0, y: 0 }); // Use ref for animation loop
 
   const handleStart = (e) => {
-    e.preventDefault();
     const rect = stickRef.current.getBoundingClientRect();
     centerRef.current = {
       x: rect.left + rect.width / 2,
@@ -100,10 +100,11 @@ function VirtualJoystick({ onMove, onEnd, label }) {
     };
     setIsActive(true);
     
-    // Start continuous movement updates
+    // Start continuous movement updates using ref (not stale state)
     const sendMovement = () => {
-      if (position.x !== 0 || position.y !== 0) {
-        onMove(position.x * 8, position.y * 8); // Scale for sensitivity
+      const pos = positionRef.current;
+      if (pos.x !== 0 || pos.y !== 0) {
+        onMove(pos.x * 10, pos.y * 10); // Scale for sensitivity
       }
       animationRef.current = requestAnimationFrame(sendMovement);
     };
@@ -112,7 +113,6 @@ function VirtualJoystick({ onMove, onEnd, label }) {
 
   const handleMove = (e) => {
     if (!isActive) return;
-    e.preventDefault();
     
     const touch = e.touches ? e.touches[0] : e;
     const dx = touch.clientX - centerRef.current.x;
@@ -127,12 +127,15 @@ function VirtualJoystick({ onMove, onEnd, label }) {
     const clampedX = (Math.cos(angle) * clampedDistance) / maxRadius;
     const clampedY = (Math.sin(angle) * clampedDistance) / maxRadius;
     
+    // Update both state (for visual) and ref (for animation loop)
     setPosition({ x: clampedX, y: clampedY });
+    positionRef.current = { x: clampedX, y: clampedY };
   };
 
   const handleEnd = () => {
     setIsActive(false);
     setPosition({ x: 0, y: 0 });
+    positionRef.current = { x: 0, y: 0 };
     if (animationRef.current) {
       cancelAnimationFrame(animationRef.current);
     }
@@ -214,7 +217,7 @@ function PicoConsole({ game, onClose }) {
 
   const dpad = game.controls?.dpad || {};
   const actions = game.controls?.actions || [];
-  const hasLookStick = game.controls?.hasLookStick || false;
+  const hasLookStick = game.hasLookStick || false;
   const hasMany = actions.length > 2 || hasLookStick;
 
   return (
