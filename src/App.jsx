@@ -1,3 +1,4 @@
+import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { Routes, Route, Link, useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 
@@ -87,6 +88,7 @@ function PicoConsole({ game, onClose }) {
     // Try to send key event via postMessage
     // Games need to listen for this - see docs
     const iframe = document.querySelector(".pico-game-iframe");
+    console.log("🎮 Sending key:", key, type, "iframe found:", !!iframe);
     if (iframe && iframe.contentWindow) {
       iframe.contentWindow.postMessage(
         { type: "keyEvent", key, eventType: type },
@@ -154,8 +156,8 @@ function PicoConsole({ game, onClose }) {
             <div className="pico-dpad">
               <button
                 className="pico-btn pico-up"
-                onTouchStart={(e) => { e.preventDefault(); handleButtonDown(dpad.up); }}
-                onTouchEnd={(e) => { e.preventDefault(); handleButtonUp(dpad.up); }}
+                onTouchStart={() => handleButtonDown(dpad.up)}
+                onTouchEnd={() => handleButtonUp(dpad.up)}
                 onMouseDown={() => handleButtonDown(dpad.up)}
                 onMouseUp={() => handleButtonUp(dpad.up)}
               >
@@ -163,8 +165,8 @@ function PicoConsole({ game, onClose }) {
               </button>
               <button
                 className="pico-btn pico-left"
-                onTouchStart={(e) => { e.preventDefault(); handleButtonDown(dpad.left); }}
-                onTouchEnd={(e) => { e.preventDefault(); handleButtonUp(dpad.left); }}
+                onTouchStart={() => handleButtonDown(dpad.left)}
+                onTouchEnd={() => handleButtonUp(dpad.left)}
                 onMouseDown={() => handleButtonDown(dpad.left)}
                 onMouseUp={() => handleButtonUp(dpad.left)}
               >
@@ -173,8 +175,8 @@ function PicoConsole({ game, onClose }) {
               <div className="pico-dpad-center"></div>
               <button
                 className="pico-btn pico-right"
-                onTouchStart={(e) => { e.preventDefault(); handleButtonDown(dpad.right); }}
-                onTouchEnd={(e) => { e.preventDefault(); handleButtonUp(dpad.right); }}
+                onTouchStart={() => handleButtonDown(dpad.right)}
+                onTouchEnd={() => handleButtonUp(dpad.right)}
                 onMouseDown={() => handleButtonDown(dpad.right)}
                 onMouseUp={() => handleButtonUp(dpad.right)}
               >
@@ -182,8 +184,8 @@ function PicoConsole({ game, onClose }) {
               </button>
               <button
                 className="pico-btn pico-down"
-                onTouchStart={(e) => { e.preventDefault(); handleButtonDown(dpad.down); }}
-                onTouchEnd={(e) => { e.preventDefault(); handleButtonUp(dpad.down); }}
+                onTouchStart={() => handleButtonDown(dpad.down)}
+                onTouchEnd={() => handleButtonUp(dpad.down)}
                 onMouseDown={() => handleButtonDown(dpad.down)}
                 onMouseUp={() => handleButtonUp(dpad.down)}
               >
@@ -197,8 +199,8 @@ function PicoConsole({ game, onClose }) {
                 <button
                   key={index}
                   className={`pico-btn pico-btn-action pico-btn-${index}`}
-                  onTouchStart={(e) => { e.preventDefault(); handleButtonDown(action.key, action.isClick); }}
-                  onTouchEnd={(e) => { e.preventDefault(); handleButtonUp(action.key, action.isClick); }}
+                  onTouchStart={() => handleButtonDown(action.key, action.isClick)}
+                  onTouchEnd={() => handleButtonUp(action.key, action.isClick)}
                   onMouseDown={() => handleButtonDown(action.key, action.isClick)}
                   onMouseUp={() => handleButtonUp(action.key, action.isClick)}
                 >
@@ -362,9 +364,14 @@ export default function App() {
   return (
     <main className="page">
       <header className="header">
-        <Link to="/" className="header-link">
-          <h1 className="title">mann.cool</h1>
-        </Link>
+        <div className="header-top">
+          <Link to="/" className="header-link">
+            <h1 className="title">mann.cool</h1>
+          </Link>
+          <div className="wallet-connect">
+            <ConnectButton />
+          </div>
+        </div>
         <p className="subtitle">games by jonathan mann</p>
       </header>
 

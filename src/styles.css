@@ -60,6 +60,32 @@ body::before {
   padding: 2rem 0;
 }
 
+.header-top {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.wallet-connect {
+  position: absolute;
+  right: 2rem;
+  top: 2rem;
+}
+
+@media (max-width: 768px) {
+  .wallet-connect {
+    position: static;
+    margin-top: 1rem;
+  }
+  
+  .header-top {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}
+
 .title {
   margin: 0 0 1rem 0;
   font-size: clamp(1.5rem, 5vw, 3rem);
@@ -463,6 +489,7 @@ body::before {
   justify-content: space-between;
   align-items: center;
   padding: 0.5rem;
+  touch-action: none; /* Prevent scroll/zoom in control area */
 }
 
 /* D-Pad */
@@ -489,6 +516,7 @@ body::before {
     0 6px 10px rgba(0, 0, 0, 0.3);
   -webkit-tap-highlight-color: transparent;
   user-select: none;
+  touch-action: none; /* Prevent scroll/zoom on touch */
 }
 
 .pico-btn:active {
