@@ -1,6 +1,6 @@
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { Routes, Route, Link, useParams, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 const games = [
   {
@@ -87,9 +87,9 @@ function useIsMobile() {
 function VirtualJoystick({ onMove, onEnd, label }) {
   const [isActive, setIsActive] = useState(false);
   const [position, setPosition] = useState({ x: 0, y: 0 });
-  const stickRef = React.useRef(null);
-  const centerRef = React.useRef({ x: 0, y: 0 });
-  const animationRef = React.useRef(null);
+  const stickRef = useRef(null);
+  const centerRef = useRef({ x: 0, y: 0 });
+  const animationRef = useRef(null);
 
   const handleStart = (e) => {
     e.preventDefault();
