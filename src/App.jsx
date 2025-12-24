@@ -31,7 +31,7 @@ const games = [
       dpad: { up: "ArrowUp", down: "ArrowDown", left: "ArrowLeft", right: "ArrowRight" },
       actions: [
         { key: "ArrowUp", label: "JUMP" },
-        { key: "x", label: "B" },
+        { key: "click", label: "ATTACK", isClick: true },
       ],
     },
   },
