@@ -45,12 +45,13 @@ const games = [
     aspectRatio: "3 / 2",
     controls: {
       dpad: { up: "w", down: "s", left: "a", right: "d" },
+      hasLookStick: true, // 3D game with camera controls
       actions: [
         { key: " ", label: "JUMP" },
         { key: "click", label: "ATTACK", isClick: true },
-        { key: "c", label: "CROUCH" },
-        { key: "e", label: "INTERACT" },
-        { key: "Shift", label: "SPRINT" },
+        { key: "q", label: "CROUCH" },
+        { key: "e", label: "POUND" },
+        { key: "f", label: "DASH" },
       ],
     },
   },
@@ -82,13 +83,91 @@ function useIsMobile() {
   return isMobile;
 }
 
+// Virtual Joystick component for camera/look controls
+function VirtualJoystick({ onMove, onEnd, label }) {
+  const [isActive, setIsActive] = useState(false);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const stickRef = React.useRef(null);
+  const centerRef = React.useRef({ x: 0, y: 0 });
+  const animationRef = React.useRef(null);
+
+  const handleStart = (e) => {
+    e.preventDefault();
+    const rect = stickRef.current.getBoundingClientRect();
+    centerRef.current = {
+      x: rect.left + rect.width / 2,
+      y: rect.top + rect.height / 2,
+    };
+    setIsActive(true);
+    
+    // Start continuous movement updates
+    const sendMovement = () => {
+      if (position.x !== 0 || position.y !== 0) {
+        onMove(position.x * 8, position.y * 8); // Scale for sensitivity
+      }
+      animationRef.current = requestAnimationFrame(sendMovement);
+    };
+    animationRef.current = requestAnimationFrame(sendMovement);
+  };
+
+  const handleMove = (e) => {
+    if (!isActive) return;
+    e.preventDefault();
+    
+    const touch = e.touches ? e.touches[0] : e;
+    const dx = touch.clientX - centerRef.current.x;
+    const dy = touch.clientY - centerRef.current.y;
+    
+    // Clamp to joystick radius
+    const maxRadius = 40;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    const clampedDistance = Math.min(distance, maxRadius);
+    const angle = Math.atan2(dy, dx);
+    
+    const clampedX = (Math.cos(angle) * clampedDistance) / maxRadius;
+    const clampedY = (Math.sin(angle) * clampedDistance) / maxRadius;
+    
+    setPosition({ x: clampedX, y: clampedY });
+  };
+
+  const handleEnd = () => {
+    setIsActive(false);
+    setPosition({ x: 0, y: 0 });
+    if (animationRef.current) {
+      cancelAnimationFrame(animationRef.current);
+    }
+    onEnd && onEnd();
+  };
+
+  return (
+    <div
+      ref={stickRef}
+      className="virtual-joystick"
+      onTouchStart={handleStart}
+      onTouchMove={handleMove}
+      onTouchEnd={handleEnd}
+      onMouseDown={handleStart}
+      onMouseMove={handleMove}
+      onMouseUp={handleEnd}
+      onMouseLeave={handleEnd}
+    >
+      <div className="joystick-base">
+        <div
+          className="joystick-knob"
+          style={{
+            transform: `translate(${position.x * 30}px, ${position.y * 30}px)`,
+          }}
+        />
+      </div>
+      <div className="joystick-label">{label || "LOOK"}</div>
+    </div>
+  );
+}
+
 // PICO-8 style console for desktop games on mobile
 function PicoConsole({ game, onClose }) {
   const sendKey = (key, type) => {
-    // Try to send key event via postMessage
-    // Games need to listen for this - see docs
     const iframe = document.querySelector(".pico-game-iframe");
-    console.log("🎮 Sending key:", key, type, "iframe found:", !!iframe);
     if (iframe && iframe.contentWindow) {
       iframe.contentWindow.postMessage(
         { type: "keyEvent", key, eventType: type },
@@ -98,11 +177,20 @@ function PicoConsole({ game, onClose }) {
   };
 
   const sendClick = (type) => {
-    // Send mouse click event for games that use click
     const iframe = document.querySelector(".pico-game-iframe");
     if (iframe && iframe.contentWindow) {
       iframe.contentWindow.postMessage(
         { type: "clickEvent", eventType: type },
+        "*"
+      );
+    }
+  };
+
+  const sendMouseMove = (deltaX, deltaY) => {
+    const iframe = document.querySelector(".pico-game-iframe");
+    if (iframe && iframe.contentWindow) {
+      iframe.contentWindow.postMessage(
+        { type: "mouseMoveEvent", deltaX, deltaY },
         "*"
       );
     }
@@ -126,7 +214,8 @@ function PicoConsole({ game, onClose }) {
 
   const dpad = game.controls?.dpad || {};
   const actions = game.controls?.actions || [];
-  const hasMany = actions.length > 2;
+  const hasLookStick = game.controls?.hasLookStick || false;
+  const hasMany = actions.length > 2 || hasLookStick;
 
   return (
     <div className="pico-fullscreen">
@@ -151,7 +240,7 @@ function PicoConsole({ game, onClose }) {
             </div>
           </div>
 
-          <div className={`pico-controls ${hasMany ? "pico-controls-expanded" : ""}`}>
+          <div className={`pico-controls ${hasMany ? "pico-controls-expanded" : ""} ${hasLookStick ? "pico-controls-3d" : ""}`}>
             {/* D-Pad */}
             <div className="pico-dpad">
               <button
@@ -193,8 +282,16 @@ function PicoConsole({ game, onClose }) {
               </button>
             </div>
 
+            {/* Look Stick for 3D games */}
+            {hasLookStick && (
+              <VirtualJoystick
+                onMove={(dx, dy) => sendMouseMove(dx, dy)}
+                label="LOOK"
+              />
+            )}
+
             {/* Action Buttons - dynamically rendered */}
-            <div className={`pico-action-buttons ${hasMany ? "pico-action-grid" : ""}`}>
+            <div className={`pico-action-buttons ${hasMany && !hasLookStick ? "pico-action-grid" : ""}`}>
               {actions.map((action, index) => (
                 <button
                   key={index}
