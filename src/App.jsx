@@ -48,9 +48,9 @@ const games = [
       actions: [
         { key: " ", label: "JUMP" },
         { key: "click", label: "ATTACK", isClick: true },
-        { key: "f", label: "DASH" },
-        { key: "e", label: "POUND" },
-        { key: "q", label: "CROUCH" },
+        { key: "c", label: "CROUCH" },
+        { key: "e", label: "INTERACT" },
+        { key: "Shift", label: "SPRINT" },
       ],
     },
   },
