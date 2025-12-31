@@ -60,17 +60,6 @@ const games = [
       ],
     },
   },
-  {
-    id: 4,
-    tokenId: null, // Not minted yet
-    slug: "oil",
-    title: "It's About Oil",
-    image: "/nes-game-images/its-about-oil-pre.png",
-    gameUrl: "https://oil-ruddy.vercel.app",
-    platform: "mobile",
-    aspectRatio: "9 / 16", // portrait for mobile games
-    controls: null, // mobile games don't need virtual controls
-  },
 ];
 
 // Hook to detect mobile
@@ -533,19 +522,50 @@ function GamesGrid() {
   );
 }
 
+// Social links configuration
+const socialLinks = [
+  { name: "Twitter", url: "https://x.com/songadaymann", icon: "𝕏" },
+  { name: "YouTube", url: "https://youtube.com/jonathanmann", icon: "▶" },
+  { name: "Instagram", url: "https://instagram.com/jonathanmann", icon: "📷" },
+  { name: "Threads", url: "https://threads.net/jonathanmann", icon: "@" },
+  { name: "Bluesky", url: "https://bsky.app/profile/songadaymann.bsky.social", icon: "🦋" },
+  { name: "LinkedIn", url: "https://linkedin.com/in/jonathanmann", icon: "in" },
+  { name: "Warpcast", url: "https://warpcast.com/jmann.eth", icon: "🟪" },
+  { name: "GitHub", url: "https://github.com/songadaymann", icon: "⌨" },
+  { name: "Email", url: "mailto:jonathan@jonathanmann.net", icon: "✉" },
+];
+
+function SocialLinks() {
+  return (
+    <div className="social-links">
+      {socialLinks.map((link) => (
+        <a
+          key={link.name}
+          href={link.url}
+          target={link.url.startsWith("mailto:") ? undefined : "_blank"}
+          rel="noopener noreferrer"
+          className="social-link"
+          title={link.name}
+        >
+          <span className="social-icon">{link.icon}</span>
+        </a>
+      ))}
+    </div>
+  );
+}
+
 export default function App() {
   return (
     <main className="page">
       <header className="header">
-        <div className="header-top">
-          <Link to="/" className="header-link">
-            <h1 className="title">mann.cool</h1>
-          </Link>
-          <div className="wallet-connect">
-            <ConnectButton />
-          </div>
+        <div className="wallet-connect">
+          <ConnectButton />
         </div>
+        <Link to="/" className="header-link">
+          <h1 className="title">mann.cool</h1>
+        </Link>
         <p className="subtitle">games by jonathan mann</p>
+        <SocialLinks />
       </header>
 
       <GamesGrid />
