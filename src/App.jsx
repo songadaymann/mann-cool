@@ -1,10 +1,12 @@
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { Routes, Route, Link, useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState, useRef } from "react";
+import { AuctionBar } from "./components/auction/AuctionBar";
 
 const games = [
   {
     id: 1,
+    tokenId: 1, // NFT token ID for auction
     slug: "coldplay-canoodle",
     title: "Coldplay Canoodle",
     image: "/nes-game-images/coldplay-canoodle.png",
@@ -21,6 +23,7 @@ const games = [
   },
   {
     id: 2,
+    tokenId: 2, // NFT token ID for auction
     slug: "ctn",
     title: "Crypto Tax Nightmare",
     image: "/nes-game-images/crypto-tax-nightmare.png",
@@ -37,6 +40,7 @@ const games = [
   },
   {
     id: 3,
+    tokenId: null, // Not minted yet
     slug: "windows",
     title: "Windows Didn't Load Correctly",
     image: "/nes-game-images/windows-didn't-load.png",
@@ -49,14 +53,16 @@ const games = [
       actions: [
         { key: " ", label: "JUMP" },
         { key: "click", label: "ATTACK", isClick: true },
+        { key: "f", label: "DASH" },
         { key: "q", label: "CROUCH" },
         { key: "e", label: "POUND" },
-        { key: "f", label: "DASH" },
+        { keys: ["Tab", "g"], label: "TAB" }, // Skip tutorial, general action (sends both Tab and G)
       ],
     },
   },
   {
     id: 4,
+    tokenId: null, // Not minted yet
     slug: "oil",
     title: "It's About Oil",
     image: "/nes-game-images/its-about-oil-pre.png",
@@ -168,7 +174,7 @@ function VirtualJoystick({ onMove, onEnd, label }) {
 }
 
 // PICO-8 style console for desktop games on mobile
-function PicoConsole({ game, onClose }) {
+function PicoConsole({ game, onClose, showAuction = true }) {
   const sendKey = (key, type) => {
     const iframe = document.querySelector(".pico-game-iframe");
     if (iframe && iframe.contentWindow) {
@@ -199,17 +205,23 @@ function PicoConsole({ game, onClose }) {
     }
   };
 
-  const handleButtonDown = (key, isClick) => {
+  const handleButtonDown = (key, isClick, keys) => {
     if (isClick) {
       sendClick("mousedown");
+    } else if (keys && Array.isArray(keys)) {
+      // Send multiple keys
+      keys.forEach(k => sendKey(k, "keydown"));
     } else {
       sendKey(key, "keydown");
     }
   };
 
-  const handleButtonUp = (key, isClick) => {
+  const handleButtonUp = (key, isClick, keys) => {
     if (isClick) {
       sendClick("mouseup");
+    } else if (keys && Array.isArray(keys)) {
+      // Release multiple keys
+      keys.forEach(k => sendKey(k, "keyup"));
     } else {
       sendKey(key, "keyup");
     }
@@ -217,7 +229,7 @@ function PicoConsole({ game, onClose }) {
 
   const dpad = game.controls?.dpad || {};
   const actions = game.controls?.actions || [];
-  const hasLookStick = game.hasLookStick || false;
+  const hasLookStick = game.controls?.hasLookStick || false;
   const hasMany = actions.length > 2 || hasLookStick;
 
   return (
@@ -244,53 +256,97 @@ function PicoConsole({ game, onClose }) {
           </div>
 
           <div className={`pico-controls ${hasMany ? "pico-controls-expanded" : ""} ${hasLookStick ? "pico-controls-3d" : ""}`}>
-            {/* D-Pad */}
-            <div className="pico-dpad">
-              <button
-                className="pico-btn pico-up"
-                onTouchStart={() => handleButtonDown(dpad.up)}
-                onTouchEnd={() => handleButtonUp(dpad.up)}
-                onMouseDown={() => handleButtonDown(dpad.up)}
-                onMouseUp={() => handleButtonUp(dpad.up)}
-              >
-                ▲
-              </button>
-              <button
-                className="pico-btn pico-left"
-                onTouchStart={() => handleButtonDown(dpad.left)}
-                onTouchEnd={() => handleButtonUp(dpad.left)}
-                onMouseDown={() => handleButtonDown(dpad.left)}
-                onMouseUp={() => handleButtonUp(dpad.left)}
-              >
-                ◀
-              </button>
-              <div className="pico-dpad-center"></div>
-              <button
-                className="pico-btn pico-right"
-                onTouchStart={() => handleButtonDown(dpad.right)}
-                onTouchEnd={() => handleButtonUp(dpad.right)}
-                onMouseDown={() => handleButtonDown(dpad.right)}
-                onMouseUp={() => handleButtonUp(dpad.right)}
-              >
-                ▶
-              </button>
-              <button
-                className="pico-btn pico-down"
-                onTouchStart={() => handleButtonDown(dpad.down)}
-                onTouchEnd={() => handleButtonUp(dpad.down)}
-                onMouseDown={() => handleButtonDown(dpad.down)}
-                onMouseUp={() => handleButtonUp(dpad.down)}
-              >
-                ▼
-              </button>
-            </div>
+            {/* For 3D games: D-Pad and Look Stick side by side */}
+            {hasLookStick ? (
+              <div className="pico-sticks-row">
+                {/* D-Pad */}
+                <div className="pico-dpad">
+                  <button
+                    className="pico-btn pico-up"
+                    onTouchStart={() => handleButtonDown(dpad.up)}
+                    onTouchEnd={() => handleButtonUp(dpad.up)}
+                    onMouseDown={() => handleButtonDown(dpad.up)}
+                    onMouseUp={() => handleButtonUp(dpad.up)}
+                  >
+                    ▲
+                  </button>
+                  <button
+                    className="pico-btn pico-left"
+                    onTouchStart={() => handleButtonDown(dpad.left)}
+                    onTouchEnd={() => handleButtonUp(dpad.left)}
+                    onMouseDown={() => handleButtonDown(dpad.left)}
+                    onMouseUp={() => handleButtonUp(dpad.left)}
+                  >
+                    ◀
+                  </button>
+                  <div className="pico-dpad-center"></div>
+                  <button
+                    className="pico-btn pico-right"
+                    onTouchStart={() => handleButtonDown(dpad.right)}
+                    onTouchEnd={() => handleButtonUp(dpad.right)}
+                    onMouseDown={() => handleButtonDown(dpad.right)}
+                    onMouseUp={() => handleButtonUp(dpad.right)}
+                  >
+                    ▶
+                  </button>
+                  <button
+                    className="pico-btn pico-down"
+                    onTouchStart={() => handleButtonDown(dpad.down)}
+                    onTouchEnd={() => handleButtonUp(dpad.down)}
+                    onMouseDown={() => handleButtonDown(dpad.down)}
+                    onMouseUp={() => handleButtonUp(dpad.down)}
+                  >
+                    ▼
+                  </button>
+                </div>
 
-            {/* Look Stick for 3D games */}
-            {hasLookStick && (
-              <VirtualJoystick
-                onMove={(dx, dy) => sendMouseMove(dx, dy)}
-                label="LOOK"
-              />
+                {/* Look Stick */}
+                <VirtualJoystick
+                  onMove={(dx, dy) => sendMouseMove(dx, dy)}
+                  label="LOOK"
+                />
+              </div>
+            ) : (
+              /* For non-3D games: just the D-Pad */
+              <div className="pico-dpad">
+                <button
+                  className="pico-btn pico-up"
+                  onTouchStart={() => handleButtonDown(dpad.up)}
+                  onTouchEnd={() => handleButtonUp(dpad.up)}
+                  onMouseDown={() => handleButtonDown(dpad.up)}
+                  onMouseUp={() => handleButtonUp(dpad.up)}
+                >
+                  ▲
+                </button>
+                <button
+                  className="pico-btn pico-left"
+                  onTouchStart={() => handleButtonDown(dpad.left)}
+                  onTouchEnd={() => handleButtonUp(dpad.left)}
+                  onMouseDown={() => handleButtonDown(dpad.left)}
+                  onMouseUp={() => handleButtonUp(dpad.left)}
+                >
+                  ◀
+                </button>
+                <div className="pico-dpad-center"></div>
+                <button
+                  className="pico-btn pico-right"
+                  onTouchStart={() => handleButtonDown(dpad.right)}
+                  onTouchEnd={() => handleButtonUp(dpad.right)}
+                  onMouseDown={() => handleButtonDown(dpad.right)}
+                  onMouseUp={() => handleButtonUp(dpad.right)}
+                >
+                  ▶
+                </button>
+                <button
+                  className="pico-btn pico-down"
+                  onTouchStart={() => handleButtonDown(dpad.down)}
+                  onTouchEnd={() => handleButtonUp(dpad.down)}
+                  onMouseDown={() => handleButtonDown(dpad.down)}
+                  onMouseUp={() => handleButtonUp(dpad.down)}
+                >
+                  ▼
+                </button>
+              </div>
             )}
 
             {/* Action Buttons - dynamically rendered */}
@@ -299,10 +355,10 @@ function PicoConsole({ game, onClose }) {
                 <button
                   key={index}
                   className={`pico-btn pico-btn-action pico-btn-${index}`}
-                  onTouchStart={() => handleButtonDown(action.key, action.isClick)}
-                  onTouchEnd={() => handleButtonUp(action.key, action.isClick)}
-                  onMouseDown={() => handleButtonDown(action.key, action.isClick)}
-                  onMouseUp={() => handleButtonUp(action.key, action.isClick)}
+                  onTouchStart={() => handleButtonDown(action.key, action.isClick, action.keys)}
+                  onTouchEnd={() => handleButtonUp(action.key, action.isClick, action.keys)}
+                  onMouseDown={() => handleButtonDown(action.key, action.isClick, action.keys)}
+                  onMouseUp={() => handleButtonUp(action.key, action.isClick, action.keys)}
                 >
                   {action.label}
                 </button>
@@ -355,6 +411,12 @@ function DesktopModal({ game, onClose, isMobileGame }) {
             allow="autoplay; fullscreen"
           />
         </div>
+        
+        {/* Auction Bar - shows if game has a tokenId */}
+        {game.tokenId && (
+          <AuctionBar tokenId={game.tokenId} gameTitle={game.title} />
+        )}
+        
         <a
           href={game.gameUrl}
           target="_blank"
@@ -438,23 +500,34 @@ function GameModal() {
   );
 }
 
+function GameCard({ game }) {
+  return (
+    <article className="game-card">
+      <Link to={`/${game.slug}`} className="game-card-link">
+        <div className="game-image-wrapper">
+          <img
+            src={game.image}
+            alt={game.title}
+            className="game-image"
+            loading="lazy"
+          />
+        </div>
+        <h2 className="game-title">{game.title}</h2>
+      </Link>
+      
+      {/* Auction Bar - shows beneath each game card if it has a tokenId */}
+      {game.tokenId && (
+        <AuctionBar tokenId={game.tokenId} gameTitle={game.title} />
+      )}
+    </article>
+  );
+}
+
 function GamesGrid() {
   return (
     <section className="games-grid">
       {games.map((game) => (
-        <Link to={`/${game.slug}`} key={game.id} className="game-card-link">
-          <article className="game-card">
-            <div className="game-image-wrapper">
-              <img
-                src={game.image}
-                alt={game.title}
-                className="game-image"
-                loading="lazy"
-              />
-            </div>
-            <h2 className="game-title">{game.title}</h2>
-          </article>
-        </Link>
+        <GameCard key={game.id} game={game} />
       ))}
     </section>
   );

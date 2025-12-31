@@ -2,15 +2,13 @@
 // Game NFT Contract
 // =============================================================================
 
-// Your minting contract (update with actual address when ready)
-export const GAME_NFT_CONTRACT_ADDRESS = "0x...";
+export const GAME_NFT_CONTRACT_ADDRESS = "0x734842b5431A926dB23A99feFbBe4B100c8A8cE6";
 
 // =============================================================================
 // GBM Auction Contract (Mainnet)
 // =============================================================================
 
-// Deploy this later - placeholder for now
-export const GBM_CONTRACT_ADDRESS = "0x...";
+export const GBM_CONTRACT_ADDRESS = "0x06c85C9Df7a5A4b4f2bC7fB4eE2F7894BEBd277c";
 
 // Subgraph URL (set up later if needed)
 export const GBM_SUBGRAPH_URL = "";
