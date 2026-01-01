@@ -67,7 +67,7 @@
       "aspectRatio": "16 / 9",
       "controls": {
         "dpad": { "up": "ArrowUp", "down": "ArrowDown", "left": "ArrowLeft", "right": "ArrowRight" },
-        "hasLookStick": true,
+        "lookHint": "Swipe on game to look around",
         "actions": [
           { "key": "f", "label": "COLLECT" },
           { "key": "click", "label": "SWORD", "isClick": true },

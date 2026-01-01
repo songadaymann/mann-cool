@@ -164,7 +164,8 @@ function PicoConsole({ game, onClose, showAuction = true }) {
   const dpad = game.controls?.dpad || {};
   const actions = game.controls?.actions || [];
   const hasLookStick = game.controls?.hasLookStick || false;
-  const hasMany = actions.length > 2 || hasLookStick;
+  const lookHint = game.controls?.lookHint || null;
+  const hasMany = actions.length > 2 || hasLookStick || lookHint;
 
   return (
     <div className="pico-fullscreen">
@@ -298,6 +299,13 @@ function PicoConsole({ game, onClose, showAuction = true }) {
                 </button>
               ))}
             </div>
+
+            {/* Look hint for games that use swipe-to-look */}
+            {lookHint && (
+              <div className="pico-look-hint">
+                👆 {lookHint}
+              </div>
+            )}
           </div>
         </div>
       </div>

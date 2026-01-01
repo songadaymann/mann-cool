@@ -942,6 +942,24 @@ body::before {
   letter-spacing: 0.1em;
 }
 
+/* Look hint for swipe-to-look games */
+.pico-look-hint {
+  text-align: center;
+  font-size: 0.45rem;
+  color: var(--accent-cyan);
+  padding: 0.5rem;
+  margin-top: 0.25rem;
+  background: rgba(0, 255, 247, 0.1);
+  border: 1px solid rgba(0, 255, 247, 0.3);
+  border-radius: 6px;
+  animation: hintPulse 2s ease-in-out infinite;
+}
+
+@keyframes hintPulse {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
 /* Base action button style */
 .pico-btn-action {
   min-width: 50px;
