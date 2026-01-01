@@ -639,6 +639,15 @@ body::before {
   grid-template-columns: repeat(3, 1fr);
 }
 
+/* Expanded controls: action buttons wrap nicely */
+.pico-controls-expanded .pico-action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+}
+
 /* 3D game layout with look stick */
 .pico-controls-3d {
   display: flex;
@@ -804,6 +813,36 @@ body::before {
     padding: 0.25rem 0.5rem;
   }
   
+  /* Expanded controls (many buttons, no look stick) */
+  .pico-controls-expanded {
+    gap: 0.5rem;
+  }
+  
+  .pico-controls-expanded .pico-dpad {
+    grid-template-columns: repeat(3, 36px);
+    grid-template-rows: repeat(3, 36px);
+  }
+  
+  .pico-controls-expanded .pico-action-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+  }
+  
+  .pico-controls-expanded .pico-btn-action {
+    min-width: 80px;
+    min-height: 36px;
+    padding: 8px 14px;
+    font-size: 0.45rem;
+  }
+  
+  .pico-look-hint {
+    font-size: 0.4rem;
+    padding: 0.3rem 0.6rem;
+    margin-top: 0.25rem;
+  }
+  
   /* 3D controls: 2 rows - sticks on top, buttons below */
   .pico-controls-3d {
     flex-direction: column;
@@ -841,24 +880,28 @@ body::before {
     margin-top: 2px;
   }
   
-  /* Action buttons: single row across full width */
+  /* Action buttons: wrap to fit */
   .pico-controls-3d .pico-action-buttons {
     display: flex;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     justify-content: center;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     width: 100%;
-    overflow-x: auto;
   }
   
   .pico-controls-3d .pico-btn-action {
-    min-width: auto;
-    width: auto;
-    padding: 8px 14px;
+    min-width: 70px;
+    padding: 8px 12px;
     min-height: 32px;
     font-size: 0.4rem;
-    flex-shrink: 0;
+  }
+  
+  /* Look hint in landscape */
+  .pico-look-hint {
+    font-size: 0.4rem;
+    padding: 0.4rem 0.75rem;
+    margin-top: 0.5rem;
   }
 }
 

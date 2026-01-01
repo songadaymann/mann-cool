@@ -70,7 +70,6 @@
         "lookHint": "Swipe on game to look around",
         "actions": [
           { "key": "f", "label": "COLLECT" },
-          { "key": "click", "label": "SWORD", "isClick": true },
           { "key": "i", "label": "INV" },
           { "key": "m", "label": "MAP" },
           { "key": "Shift", "label": "RUN" }
