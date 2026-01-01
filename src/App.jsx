@@ -60,6 +60,27 @@ const games = [
       ],
     },
   },
+  {
+    id: 4,
+    tokenId: null, // Not minted yet
+    slug: "tallgrass",
+    title: "Tall Grass",
+    image: "/nes-game-images/tall-grass.png",
+    gameUrl: "https://tallgrass-game.vercel.app",
+    platform: "desktop",
+    aspectRatio: "16 / 9",
+    controls: {
+      dpad: { up: "ArrowUp", down: "ArrowDown", left: "ArrowLeft", right: "ArrowRight" },
+      hasLookStick: true, // 3D game with camera controls
+      actions: [
+        { key: "f", label: "COLLECT" },
+        { key: "click", label: "SWORD", isClick: true },
+        { key: "i", label: "INV" },
+        { key: "m", label: "MAP" },
+        { key: "Shift", label: "RUN" },
+      ],
+    },
+  },
 ];
 
 // Hook to detect mobile

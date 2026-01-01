@@ -423,3 +423,70 @@ In the mann.cool repo (`src/App.jsx`), add your game to the `games` array:
   },
 }
 ```
+
+---
+
+## Tallgrass Godot Integration
+
+### Custom HTML Shell
+
+A custom HTML shell has been created at `godot/export/web_shell.html` that includes:
+
+1. **mann.cool message listener** - Receives virtual controller input
+2. **Audio context resume** - Prevents audio from stopping when using virtual controls
+3. **Keyboard event dispatching** - Sends key events to both canvas and document
+4. **Click event handling** - Supports attack button (left click)
+
+### How to Export with Custom Shell
+
+1. In Godot, go to **Project → Export**
+2. Select or create a **Web** export preset
+3. Under **HTML**, find **Custom HTML Shell**
+4. Browse to `export/web_shell.html`
+5. Export the project
+
+### Tallgrass Control Configuration for mann.cool
+
+Add this to the mann.cool `games` array:
+
+```javascript
+{
+  id: X,  // next available ID
+  slug: "tallgrass",
+  title: "Tallgrass",
+  image: "/nes-game-images/tallgrass.png",
+  gameUrl: "https://tallgrass.vercel.app",  // Update with actual URL
+  platform: "desktop",
+  aspectRatio: "16 / 9",
+  controls: {
+    dpad: { 
+      up: "ArrowUp",      // Move forward (W)
+      down: "ArrowDown",  // Move backward (S)
+      left: "ArrowLeft",  // Move left (A)
+      right: "ArrowRight" // Move right (D)
+    },
+    actions: [
+      { key: "f", label: "COLLECT" },           // Pick up items
+      { key: "click", label: "SWORD", isClick: true },  // Swing sword
+      { key: "i", label: "INV" },               // Open inventory
+      { key: "m", label: "MAP" },               // Open map
+      { key: "Shift", label: "RUN" },           // Sprint
+    ],
+  },
+}
+```
+
+### Tallgrass Controls Reference
+
+| Action | Keyboard | Virtual Button |
+|--------|----------|----------------|
+| Move | WASD / Arrows | D-pad |
+| Run | Shift | RUN button |
+| Collect item | F | COLLECT button |
+| Swing sword | Left Click / X | SWORD button |
+| Open inventory | I | INV button |
+| Open map | M | MAP button |
+| Accept trade | Y | (not mapped) |
+| Release mouse | ESC | (not needed on mobile) |
+
+NOTE WE ALSO NEED AN ANALOG STICK FOR LOOKING AROUND
