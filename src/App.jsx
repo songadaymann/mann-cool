@@ -40,7 +40,7 @@ const games = [
   },
   {
     id: 3,
-    tokenId: null, // Not minted yet
+    tokenId: 3, // NFT token ID for auction
     slug: "windows",
     title: "Windows Didn't Load Correctly",
     image: "/nes-game-images/windows-didn't-load.png",
