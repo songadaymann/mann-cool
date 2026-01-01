@@ -263,6 +263,52 @@ interface ClickMessage {
 
 ---
 
+## 3D Games: Virtual Joystick Camera Control
+
+For 3D games that need mouse-look controls, mann.cool provides a virtual joystick that sends continuous `mouseMoveEvent` messages. Your game must handle these to rotate the camera.
+
+### Enabling the Look Stick in mann.cool
+
+Add `hasLookStick: true` to your game's controls config:
+
+```javascript
+{
+  slug: "your-3d-game",
+  controls: {
+    dpad: { up: "w", down: "s", left: "a", right: "d" },
+    hasLookStick: true,  // Enables virtual joystick for camera
+    actions: [
+      { key: " ", label: "JUMP" },
+      // ... other actions
+    ],
+  },
+}
+```
+
+### Message Format
+
+When the player uses the look stick, your game receives continuous messages:
+
+```javascript
+{ type: 'mouseMoveEvent', deltaX: 5.2, deltaY: -3.1 }
+```
+
+- `deltaX`: Horizontal movement (positive = look right, negative = look left)
+- `deltaY`: Vertical movement (positive = look down, negative = look up)
+- Values typically range from -10 to 10 based on joystick position
+
+### Testing Mouse Movement
+
+```javascript
+// Simulate looking right and down
+window.postMessage({ type: 'mouseMoveEvent', deltaX: 5, deltaY: 3 }, '*');
+
+// Simulate looking left and up
+window.postMessage({ type: 'mouseMoveEvent', deltaX: -5, deltaY: -3 }, '*');
+```
+
+---
+
 ## Other Game Engines
 
 ### Unity WebGL
@@ -272,7 +318,7 @@ Unity WebGL has similar challenges with audio context and focus:
 ```javascript
 // Add to your index.html template
 window.addEventListener('message', (event) => {
-  const { type, key, eventType } = event.data || {};
+  const { type, key, eventType, deltaX, deltaY } = event.data || {};
   
   // Resume audio context
   if (window.unityInstance) {
@@ -282,6 +328,7 @@ window.addEventListener('message', (event) => {
     }
   }
   
+  // Handle keyboard events
   if (type === 'keyEvent' && key && eventType) {
     const canvas = document.querySelector('#unity-canvas');
     if (canvas) {
@@ -293,24 +340,69 @@ window.addEventListener('message', (event) => {
       }));
     }
   }
+  
+  // Handle mouse/camera movement from virtual joystick
+  if (type === 'mouseMoveEvent' && window.unityInstance) {
+    // Call a C# method to handle camera rotation
+    window.unityInstance.SendMessage('GameManager', 'OnVirtualMouseMove', JSON.stringify({ deltaX, deltaY }));
+  }
 });
+```
+
+**Unity C# Script for Camera Control:**
+
+```csharp
+using UnityEngine;
+
+public class GameManager : MonoBehaviour
+{
+    public Transform cameraTransform;
+    public float sensitivity = 0.5f;
+    
+    private float rotationX = 0f;
+    private float rotationY = 0f;
+
+    // Called from JavaScript
+    public void OnVirtualMouseMove(string jsonData)
+    {
+        var data = JsonUtility.FromJson<MouseMoveData>(jsonData);
+        
+        rotationY += data.deltaX * sensitivity;
+        rotationX -= data.deltaY * sensitivity;
+        rotationX = Mathf.Clamp(rotationX, -90f, 90f);
+        
+        cameraTransform.localRotation = Quaternion.Euler(rotationX, rotationY, 0f);
+    }
+}
+
+[System.Serializable]
+public class MouseMoveData
+{
+    public float deltaX;
+    public float deltaY;
+}
 ```
 
 You may also need to:
 - Set `WebGLInput.captureAllKeyboardInput = false;` in Unity
 - Handle focus management in your Unity C# scripts
+- Disable Unity's default mouse look when running in iframe
 
 ### Babylon.js
 
 ```javascript
+// Store camera reference globally for virtual joystick access
+window.gameCamera = null;
+
 window.addEventListener('message', (event) => {
-  const { type, key, eventType } = event.data || {};
+  const { type, key, eventType, deltaX, deltaY } = event.data || {};
   
   // Resume audio
   if (BABYLON.Engine.audioEngine) {
     BABYLON.Engine.audioEngine.unlock();
   }
   
+  // Handle keyboard events
   if (type === 'keyEvent' && key && eventType) {
     const canvas = document.querySelector('canvas');
     if (canvas) {
@@ -322,15 +414,67 @@ window.addEventListener('message', (event) => {
       }));
     }
   }
+  
+  // Handle mouse/camera movement from virtual joystick
+  if (type === 'mouseMoveEvent' && window.gameCamera) {
+    const sensitivity = 0.005;
+    
+    // For FreeCamera or UniversalCamera
+    if (window.gameCamera.rotation) {
+      window.gameCamera.rotation.y += deltaX * sensitivity;
+      window.gameCamera.rotation.x += deltaY * sensitivity;
+      
+      // Clamp vertical rotation
+      window.gameCamera.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, window.gameCamera.rotation.x));
+    }
+    
+    // For ArcRotateCamera
+    if (window.gameCamera.alpha !== undefined) {
+      window.gameCamera.alpha -= deltaX * sensitivity;
+      window.gameCamera.beta += deltaY * sensitivity;
+      
+      // Clamp beta to prevent flipping
+      window.gameCamera.beta = Math.max(0.1, Math.min(Math.PI - 0.1, window.gameCamera.beta));
+    }
+  }
 });
+
+// In your scene setup, expose the camera:
+// window.gameCamera = camera;
+```
+
+**Example Scene Setup:**
+
+```javascript
+const createScene = function() {
+  const scene = new BABYLON.Scene(engine);
+  
+  // Create camera
+  const camera = new BABYLON.UniversalCamera("camera", new BABYLON.Vector3(0, 2, -5), scene);
+  camera.attachControl(canvas, true);
+  
+  // Expose camera for virtual joystick
+  window.gameCamera = camera;
+  
+  // Detect iframe and disable default mouse controls if needed
+  if (window.parent !== window) {
+    camera.inputs.removeByType("FreeCameraMouseInput");
+  }
+  
+  return scene;
+};
 ```
 
 ### Godot WebGL
 
 ```javascript
-// Add to your HTML shell
+// Add to your HTML shell (web_shell.html)
+
+// Store virtual joystick state for Godot to read
+window.virtualMouseDelta = { x: 0, y: 0 };
+
 window.addEventListener('message', (event) => {
-  const { type, key, eventType } = event.data || {};
+  const { type, key, eventType, deltaX, deltaY } = event.data || {};
   
   // Godot's audio context
   if (window.Godot && window.Godot.audio && window.Godot.audio.ctx) {
@@ -339,6 +483,7 @@ window.addEventListener('message', (event) => {
     }
   }
   
+  // Handle keyboard events
   if (type === 'keyEvent' && key && eventType) {
     const canvas = document.querySelector('#canvas');
     if (canvas) {
@@ -350,7 +495,111 @@ window.addEventListener('message', (event) => {
       }));
     }
   }
+  
+  // Handle click events
+  if (type === 'clickEvent' && eventType) {
+    const canvas = document.querySelector('#canvas');
+    if (canvas) {
+      canvas.dispatchEvent(new MouseEvent(eventType, {
+        bubbles: true,
+        cancelable: true,
+        view: window,
+        button: 0,
+      }));
+    }
+  }
+  
+  // Handle mouse/camera movement from virtual joystick
+  if (type === 'mouseMoveEvent') {
+    window.virtualMouseDelta.x = deltaX || 0;
+    window.virtualMouseDelta.y = deltaY || 0;
+  }
 });
+
+// Reset delta each frame (call this from Godot after reading)
+window.getAndResetMouseDelta = function() {
+  const delta = { x: window.virtualMouseDelta.x, y: window.virtualMouseDelta.y };
+  // Don't reset - let Godot read continuously while stick is held
+  return delta;
+};
+```
+
+**Godot GDScript for Camera Control:**
+
+```gdscript
+# camera_controller.gd
+extends Node3D
+
+@export var camera: Camera3D
+@export var sensitivity: float = 0.1
+@export var max_pitch: float = 89.0
+
+var rotation_x: float = 0.0
+var rotation_y: float = 0.0
+
+func _ready():
+    # Check if running in browser
+    if OS.has_feature("web"):
+        print("Running in web - virtual joystick enabled")
+
+func _process(delta):
+    if OS.has_feature("web"):
+        _handle_virtual_joystick()
+
+func _handle_virtual_joystick():
+    # Read from JavaScript
+    var js_code = "window.virtualMouseDelta ? window.virtualMouseDelta : {x: 0, y: 0}"
+    var result = JavaScriptBridge.eval(js_code)
+    
+    if result:
+        var delta_x = result.x if result.has("x") else 0.0
+        var delta_y = result.y if result.has("y") else 0.0
+        
+        if abs(delta_x) > 0.1 or abs(delta_y) > 0.1:
+            rotation_y -= delta_x * sensitivity
+            rotation_x -= delta_y * sensitivity
+            rotation_x = clamp(rotation_x, -max_pitch, max_pitch)
+            
+            camera.rotation_degrees = Vector3(rotation_x, rotation_y, 0)
+
+# Also handle regular mouse input for desktop
+func _input(event):
+    if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
+        rotation_y -= event.relative.x * sensitivity
+        rotation_x -= event.relative.y * sensitivity
+        rotation_x = clamp(rotation_x, -max_pitch, max_pitch)
+        
+        camera.rotation_degrees = Vector3(rotation_x, rotation_y, 0)
+```
+
+**Alternative: Using Godot's JavaScriptBridge with Callbacks:**
+
+```gdscript
+# For Godot 4.x with JavaScriptBridge
+extends Node
+
+var js_callback: JavaScriptObject
+
+func _ready():
+    if OS.has_feature("web"):
+        # Create a callback that JavaScript can call
+        js_callback = JavaScriptBridge.create_callback(_on_mouse_move)
+        var window = JavaScriptBridge.get_interface("window")
+        window.onVirtualMouseMove = js_callback
+
+func _on_mouse_move(args):
+    var delta_x = args[0]
+    var delta_y = args[1]
+    # Apply to camera rotation
+    # ...
+```
+
+Then in your HTML shell, call the Godot callback:
+
+```javascript
+if (type === 'mouseMoveEvent' && window.onVirtualMouseMove) {
+    window.onVirtualMouseMove(deltaX, deltaY);
+}
 ```
 
 ---
@@ -489,4 +738,59 @@ Add this to the mann.cool `games` array:
 | Accept trade | Y | (not mapped) |
 | Release mouse | ESC | (not needed on mobile) |
 
-NOTE WE ALSO NEED AN ANALOG STICK FOR LOOKING AROUND
+### Virtual Analog Stick for Camera Control
+
+For games that use mouse movement for camera control (like Tallgrass), mann.cool can send `mouseMoveEvent` messages from a virtual analog stick:
+
+```javascript
+// Message format from mann.cool
+{
+  type: 'mouseMoveEvent',
+  deltaX: number,  // Horizontal movement (-100 to 100)
+  deltaY: number   // Vertical movement (-100 to 100)
+}
+```
+
+**Handling in your game's HTML shell:**
+
+```javascript
+window.addEventListener('message', (event) => {
+  const { type, deltaX, deltaY } = event.data || {};
+  
+  // Handle mouse/camera movement from virtual analog stick
+  if (type === 'mouseMoveEvent' && (deltaX !== undefined || deltaY !== undefined)) {
+    const canvas = document.querySelector('#canvas');
+    if (canvas) {
+      // Dispatch a mousemove event with movement deltas
+      canvas.dispatchEvent(new MouseEvent('mousemove', {
+        bubbles: true,
+        cancelable: true,
+        view: window,
+        movementX: deltaX || 0,
+        movementY: deltaY || 0,
+        clientX: window.innerWidth / 2,
+        clientY: window.innerHeight / 2
+      }));
+    }
+  }
+});
+```
+
+**mann.cool config with camera stick:**
+
+```javascript
+{
+  slug: "tallgrass",
+  controls: {
+    dpad: { up: "ArrowUp", down: "ArrowDown", left: "ArrowLeft", right: "ArrowRight" },
+    actions: [
+      { key: "f", label: "COLLECT" },
+      { key: "click", label: "SWORD", isClick: true },
+    ],
+    cameraStick: true,  // Enables the right analog stick for camera
+    cameraSensitivity: 2.0,  // Multiplier for deltaX/deltaY values
+  },
+}
+```
+
+The Tallgrass web shell (`godot/export/web_shell.html`) already includes this handler

@@ -2,86 +2,10 @@ import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { Routes, Route, Link, useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState, useRef } from "react";
 import { AuctionBar } from "./components/auction/AuctionBar";
+import gamesData from "../games.json";
 
-const games = [
-  {
-    id: 1,
-    tokenId: 1, // NFT token ID for auction
-    slug: "coldplay-canoodle",
-    title: "Coldplay Canoodle",
-    image: "/nes-game-images/coldplay-canoodle.png",
-    gameUrl: "https://coldplay-canoodle.vercel.app",
-    platform: "desktop", // "desktop" or "mobile"
-    aspectRatio: "4 / 3", // width / height - common: "16 / 9", "4 / 3", "1 / 1"
-    controls: {
-      dpad: { up: "ArrowUp", down: "ArrowDown", left: "ArrowLeft", right: "ArrowRight" },
-      actions: [
-        { key: "z", label: "A" },
-        { key: "x", label: "B" },
-      ],
-    },
-  },
-  {
-    id: 2,
-    tokenId: 2, // NFT token ID for auction
-    slug: "ctn",
-    title: "Crypto Tax Nightmare",
-    image: "/nes-game-images/crypto-tax-nightmare.png",
-    gameUrl: "https://game.songaday.world/",
-    platform: "desktop",
-    aspectRatio: "16 / 9",
-    controls: {
-      dpad: { up: "ArrowUp", down: "ArrowDown", left: "ArrowLeft", right: "ArrowRight" },
-      actions: [
-        { key: "ArrowUp", label: "JUMP" },
-        { key: "click", label: "ATTACK", isClick: true },
-      ],
-    },
-  },
-  {
-    id: 3,
-    tokenId: 3, // NFT token ID for auction
-    slug: "windows",
-    title: "Windows Didn't Load Correctly",
-    image: "/nes-game-images/windows-didn't-load.png",
-    gameUrl: "https://windows-ruddy.vercel.app",
-    platform: "desktop",
-    aspectRatio: "3 / 2",
-    controls: {
-      dpad: { up: "w", down: "s", left: "a", right: "d" },
-      hasLookStick: true, // 3D game with camera controls
-      actions: [
-        { key: " ", label: "JUMP" },
-        { key: "click", label: "ATTACK", isClick: true },
-        { key: "f", label: "DASH" },
-        { key: "q", label: "CROUCH" },
-        { key: "e", label: "POUND" },
-        { keys: ["Tab", "g"], label: "TAB" }, // Skip tutorial, general action (sends both Tab and G)
-      ],
-    },
-  },
-  {
-    id: 4,
-    tokenId: null, // Not minted yet
-    slug: "tallgrass",
-    title: "Tall Grass",
-    image: "/nes-game-images/tall-grass.png",
-    gameUrl: "https://tallgrass-game.vercel.app",
-    platform: "desktop",
-    aspectRatio: "16 / 9",
-    controls: {
-      dpad: { up: "ArrowUp", down: "ArrowDown", left: "ArrowLeft", right: "ArrowRight" },
-      hasLookStick: true, // 3D game with camera controls
-      actions: [
-        { key: "f", label: "COLLECT" },
-        { key: "click", label: "SWORD", isClick: true },
-        { key: "i", label: "INV" },
-        { key: "m", label: "MAP" },
-        { key: "Shift", label: "RUN" },
-      ],
-    },
-  },
-];
+// Import games from JSON (can be symlinked and edited from any game repo)
+const games = gamesData.games;
 
 // Hook to detect mobile
 function useIsMobile() {
