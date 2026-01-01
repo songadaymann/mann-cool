@@ -769,22 +769,24 @@ body::before {
   }
 }
 
-/* Landscape tablets: maximize game screen, compact controls below */
+/* Landscape tablets: maximize game screen, 2-row controls below */
 @media (min-width: 600px) and (orientation: landscape) {
   .pico-fullscreen {
     padding: 0.5rem;
     flex-direction: column;
     justify-content: flex-start;
+    overflow: hidden;
   }
   
   .pico-console {
     max-width: 100%;
     width: 100%;
     max-height: 100vh;
+    overflow: hidden;
   }
   
   .pico-bezel {
-    padding: 0.75rem;
+    padding: 0.5rem 0.75rem;
     width: 100%;
   }
   
@@ -794,37 +796,83 @@ body::before {
   }
   
   .pico-screen {
-    /* Ensure game isn't cut off - use aspect ratio */
-    max-height: 55vh;
+    max-height: 50vh;
   }
   
-  /* Compact controls row */
+  /* Controls: keep vertical stack but compact */
   .pico-controls {
-    padding: 0.5rem;
-    flex-wrap: nowrap;
+    padding: 0.25rem 0.5rem;
   }
   
-  /* 3D controls: all in one horizontal row */
+  /* 3D controls: 2 rows - sticks on top, buttons below */
   .pico-controls-3d {
-    flex-direction: row;
+    flex-direction: column;
     align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    flex-wrap: nowrap;
+    gap: 0.5rem;
+    width: 100%;
   }
   
   .pico-controls-3d .pico-sticks-row {
-    gap: 1rem;
-    flex-shrink: 0;
+    width: 100%;
+    justify-content: space-between;
+    gap: 2rem;
+    padding: 0 1rem;
   }
   
-  /* Smaller D-pad for landscape */
+  /* Compact D-pad */
+  .pico-controls-3d .pico-dpad {
+    grid-template-columns: repeat(3, 32px);
+    grid-template-rows: repeat(3, 32px);
+  }
+  
+  /* Compact joystick */
+  .pico-controls-3d .joystick-base {
+    width: 70px;
+    height: 70px;
+  }
+  
+  .pico-controls-3d .joystick-knob {
+    width: 34px;
+    height: 34px;
+  }
+  
+  .pico-controls-3d .joystick-label {
+    font-size: 0.35rem;
+    margin-top: 2px;
+  }
+  
+  /* Action buttons: single row across full width */
+  .pico-controls-3d .pico-action-buttons {
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    overflow-x: auto;
+  }
+  
+  .pico-controls-3d .pico-btn-action {
+    min-width: auto;
+    width: auto;
+    padding: 8px 14px;
+    min-height: 32px;
+    font-size: 0.4rem;
+    flex-shrink: 0;
+  }
+}
+
+/* Larger landscape - can fit more */
+@media (min-width: 800px) and (orientation: landscape) {
+  .pico-screen {
+    max-height: 55vh;
+  }
+  
   .pico-controls-3d .pico-dpad {
     grid-template-columns: repeat(3, 36px);
     grid-template-rows: repeat(3, 36px);
   }
   
-  /* Smaller joystick for landscape */
   .pico-controls-3d .joystick-base {
     width: 80px;
     height: 80px;
@@ -835,42 +883,17 @@ body::before {
     height: 38px;
   }
   
-  .pico-controls-3d .joystick-label {
-    font-size: 0.4rem;
-  }
-  
-  /* Action buttons: flex row, small */
-  .pico-controls-3d .pico-action-buttons {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    align-items: center;
-    gap: 6px;
-    flex: 1;
-    max-width: 50%;
-  }
-  
   .pico-controls-3d .pico-btn-action {
-    min-width: 60px;
+    padding: 10px 16px;
     min-height: 36px;
-    padding: 6px 10px;
-    font-size: 0.4rem;
+    font-size: 0.45rem;
   }
 }
 
-/* Large landscape tablets/small laptops - even more compact */
-@media (min-width: 900px) and (orientation: landscape) {
+/* Even larger landscape */
+@media (min-width: 1000px) and (orientation: landscape) {
   .pico-screen {
     max-height: 60vh;
-  }
-  
-  .pico-controls-3d .pico-action-buttons {
-    max-width: 40%;
-  }
-  
-  .pico-controls-3d .pico-btn-action {
-    min-width: 70px;
-    min-height: 40px;
   }
 }
 
