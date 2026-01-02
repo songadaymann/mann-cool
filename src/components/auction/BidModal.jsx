@@ -80,8 +80,6 @@ export function BidModal({ auction, gameTitle, onClose }) {
   const potentialIncentive = bidAmount ? 
     (parseFloat(bidAmount) * 0.1).toFixed(4) : '0';
 
-  // Use portal to render at document.body level
-  // This escapes transformed ancestors which break position:fixed
   return createPortal(
     <div className="bid-modal-overlay" onClick={onClose}>
       <div className="bid-modal" onClick={(e) => e.stopPropagation()}>
