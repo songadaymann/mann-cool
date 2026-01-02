@@ -185,7 +185,7 @@ function PicoConsole({ game, onClose, showAuction = true }) {
                 src={game.gameUrl}
                 title={game.title}
                 className="pico-game-iframe"
-                allow="autoplay; fullscreen"
+                allow={`autoplay; fullscreen${game.permissions ? '; ' + game.permissions.join('; ') : ''}`}
               />
             </div>
           </div>
@@ -324,7 +324,7 @@ function MobileFullscreen({ game, onClose }) {
         src={game.gameUrl}
         title={game.title}
         className="mobile-fullscreen-iframe"
-        allow="autoplay; fullscreen"
+        allow={`autoplay; fullscreen${game.permissions ? '; ' + game.permissions.join('; ') : ''}`}
       />
     </div>
   );
@@ -350,7 +350,7 @@ function DesktopModal({ game, onClose, isMobileGame }) {
             src={game.gameUrl}
             title={game.title}
             className="game-iframe"
-            allow="autoplay; fullscreen"
+            allow={`autoplay; fullscreen${game.permissions ? '; ' + game.permissions.join('; ') : ''}`}
           />
         </div>
         

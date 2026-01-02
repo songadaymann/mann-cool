@@ -85,7 +85,8 @@
       "gameUrl": "https://chonksisyphus.vercel.app",
       "platform": "mobile",
       "aspectRatio": "9 / 16",
-      "controls": null
+      "controls": null,
+      "permissions": ["microphone"]
     }
   ]
 }
