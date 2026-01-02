@@ -75,6 +75,17 @@
           { "key": "Shift", "label": "RUN" }
         ]
       }
+    },
+    {
+      "id": 5,
+      "tokenId": 5,
+      "slug": "sisyphus-chonk",
+      "title": "Sisyphus Chonk",
+      "image": "/nes-game-images/sisyphus-chonk.png",
+      "gameUrl": "https://chonksisyphus.vercel.app",
+      "platform": "mobile",
+      "aspectRatio": "9 / 16",
+      "controls": null
     }
   ]
 }
