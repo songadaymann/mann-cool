@@ -87,6 +87,17 @@
       "aspectRatio": "9 / 16",
       "controls": null,
       "permissions": ["microphone"]
+    },
+    {
+      "id": 6,
+      "tokenId": 6,
+      "slug": "oil",
+      "title": "Oil & Epstein",
+      "image": "/nes-game-images/oil-epstein.png",
+      "gameUrl": "https://oil-ruddy.vercel.app",
+      "platform": "mobile",
+      "aspectRatio": "9 / 16",
+      "controls": null
     }
   ]
 }
