@@ -8,7 +8,7 @@ const games = [
   { slug: 'windows', title: "Windows Didn't Load Correctly", image: "/nes-game-images/windows-didn't-load.png" },
   { slug: 'tallgrass', title: 'Tall Grass', image: '/nes-game-images/tall-grass.png' },
   { slug: 'chonksisyphus', title: 'Sisyphus Chonk', image: '/nes-game-images/sisyphus-chonk.png' },
-  { slug: 'oil', title: 'Oil & Epstein', image: '/nes-game-images/oil-epstein.png' },
+  { slug: 'oil', title: 'Oil & Epstein', image: '/nes-game-images/oil.png' },
 ];
 
 // User agents for social media crawlers
