@@ -9,7 +9,7 @@
       "destination": "https://pong-gold-omega.vercel.app/$1"
     },
     {
-      "source": "/(.*)",
+      "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
   ]
