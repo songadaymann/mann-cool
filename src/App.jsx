@@ -1,11 +1,54 @@
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { Routes, Route, Link, useParams, useNavigate } from "react-router-dom";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, createContext, useContext } from "react";
 import { AuctionBar } from "./components/auction/AuctionBar";
 import gamesData from "../games.json";
 
 // Import games from JSON (can be symlinked and edited from any game repo)
 const games = gamesData.games;
+
+// Play counts context
+const PlayCountsContext = createContext({ counts: {}, trackPlay: () => {} });
+
+function usePlayCounts() {
+  return useContext(PlayCountsContext);
+}
+
+// Hook to manage play counts
+function usePlayCountsProvider() {
+  const [counts, setCounts] = useState({});
+
+  // Fetch all play counts on mount
+  useEffect(() => {
+    fetch('/api/plays')
+      .then(res => res.json())
+      .then(data => {
+        if (data.counts) {
+          setCounts(data.counts);
+        }
+      })
+      .catch(err => console.error('Failed to fetch play counts:', err));
+  }, []);
+
+  // Track a play
+  const trackPlay = async (slug) => {
+    try {
+      const res = await fetch('/api/plays', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug, source: 'mann.cool' }),
+      });
+      const data = await res.json();
+      if (data.count) {
+        setCounts(prev => ({ ...prev, [slug]: data.count }));
+      }
+    } catch (err) {
+      console.error('Failed to track play:', err);
+    }
+  };
+
+  return { counts, trackPlay };
+}
 
 // Hook to detect mobile
 function useIsMobile() {
@@ -377,6 +420,14 @@ function GameModal() {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const game = games.find((g) => g.slug === slug);
+  const { trackPlay } = usePlayCounts();
+
+  // Track play when game opens
+  useEffect(() => {
+    if (game) {
+      trackPlay(game.slug);
+    }
+  }, [game?.slug]);
 
   useEffect(() => {
     document.body.style.overflow = "hidden";
@@ -443,6 +494,9 @@ function GameModal() {
 }
 
 function GameCard({ game }) {
+  const { counts } = usePlayCounts();
+  const playCount = counts[game.slug] || 0;
+
   return (
     <article className="game-card">
       <Link to={`/${game.slug}`} className="game-card-link">
@@ -453,6 +507,12 @@ function GameCard({ game }) {
             className="game-image"
             loading="lazy"
           />
+          {playCount > 0 && (
+            <div className="play-count">
+              <span className="play-count-icon">🎮</span>
+              <span className="play-count-number">{playCount.toLocaleString()}</span>
+            </div>
+          )}
         </div>
         <h2 className="game-title">{game.title}</h2>
       </Link>
@@ -507,7 +567,7 @@ function SocialLinks() {
   );
 }
 
-export default function App() {
+function AppContent() {
   return (
     <main className="page">
       <header className="header">
@@ -528,5 +588,15 @@ export default function App() {
         <Route path="/" element={null} />
       </Routes>
     </main>
+  );
+}
+
+export default function App() {
+  const playCountsValue = usePlayCountsProvider();
+  
+  return (
+    <PlayCountsContext.Provider value={playCountsValue}>
+      <AppContent />
+    </PlayCountsContext.Provider>
   );
 }
