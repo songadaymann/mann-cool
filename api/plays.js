@@ -1,19 +1,7 @@
 const { Redis } = require('@upstash/redis');
 
-// Initialize Redis client - Upstash uses these env var names
-const redisUrl = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
-const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
-
-// Check if credentials exist
-if (!redisUrl || !redisToken) {
-  console.error('Missing Redis credentials:', { 
-    hasUrl: !!redisUrl, 
-    hasToken: !!redisToken,
-    envKeys: Object.keys(process.env).filter(k => k.includes('UPSTASH') || k.includes('KV') || k.includes('REDIS'))
-  });
-}
-
-const redis = redisUrl && redisToken ? new Redis({ url: redisUrl, token: redisToken }) : null;
+// Initialize Redis client using environment variables automatically
+const redis = Redis.fromEnv();
 
 module.exports = async function handler(req, res) {
   // Enable CORS
@@ -23,14 +11,6 @@ module.exports = async function handler(req, res) {
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
-  }
-
-  // Check if Redis is configured
-  if (!redis) {
-    return res.status(500).json({ 
-      error: 'Redis not configured',
-      hint: 'Missing UPSTASH_REDIS_REST_URL or UPSTASH_REDIS_REST_TOKEN environment variables'
-    });
   }
 
   try {
