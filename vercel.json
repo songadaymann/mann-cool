@@ -1,5 +1,14 @@
 {
+  "functions": {
+    "api/*.js": {
+      "runtime": "nodejs20.x"
+    }
+  },
   "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/$1"
+    },
     {
       "source": "/pong",
       "destination": "https://pong-gold-omega.vercel.app"
@@ -9,9 +18,8 @@
       "destination": "https://pong-gold-omega.vercel.app/$1"
     },
     {
-      "source": "/((?!api/).*)",
+      "source": "/:path*",
       "destination": "/index.html"
     }
   ]
 }
-

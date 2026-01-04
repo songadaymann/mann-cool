@@ -105,21 +105,27 @@
       "slug": "loki",
       "title": "Loki Is Genderfluid",
       "image": "/nes-game-images/loki.png",
-      "gameUrl": "https://oil-ruddy.vercel.app",
+      "gameUrl": "https://loki-gules.vercel.app/",
       "platform": "desktop",
       "aspectRatio": "16 / 9",
       "controls": {
-        "dpad": { "up": "ArrowUp", "down": "ArrowDown", "left": "ArrowLeft", "right": "ArrowRight" },
-        "lookHint": "Swipe on game to look around",
-        "actions": [
-          { "key": "f", "label": "COLLECT" },
-          { "key": "i", "label": "INV" },
-          { "key": "m", "label": "MAP" },
-          { "key": "Shift", "label": "RUN" }
-        ]
+        "dpad": {
+          "dpad": { 
+            "up": "ArrowUp", 
+            "down": "ArrowDown", 
+            "left": "ArrowLeft", 
+            "right": "ArrowRight" 
+          },
+          "actions": [
+            { "key": "z", "label": "JUMP" },
+            { "key": "x", "label": "FIRE" }
+          ]
+        }
       }
     }
   ]
 }
+  
+
 
 
