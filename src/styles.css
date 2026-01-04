@@ -1746,11 +1746,93 @@ body::before {
    GUESTBOOK - Retro Web 1.0 Vibes
    ============================================ */
 
+/* Guestbook trigger button */
+.guestbook-trigger {
+  font-family: 'Press Start 2P', 'Courier New', monospace;
+  font-size: 0.7rem;
+  padding: 0.8rem 1.5rem;
+  margin-top: 1rem;
+  background: linear-gradient(180deg, rgba(255, 0, 255, 0.2), rgba(100, 0, 100, 0.3));
+  border: 2px solid var(--accent-magenta);
+  border-radius: 8px;
+  color: var(--accent-magenta);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-shadow: 0 0 10px rgba(255, 0, 255, 0.5);
+}
+
+.guestbook-trigger:hover {
+  background: var(--accent-magenta);
+  color: #000;
+  box-shadow: 0 0 20px rgba(255, 0, 255, 0.5);
+}
+
+/* Modal overlay */
+.guestbook-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(4px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.guestbook-modal-content {
+  position: relative;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from { 
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.guestbook-modal-close {
+  position: absolute;
+  top: -12px;
+  right: -12px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--accent-magenta);
+  border: 2px solid var(--accent-cyan);
+  color: white;
+  font-size: 1rem;
+  cursor: pointer;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.guestbook-modal-close:hover {
+  background: var(--accent-cyan);
+  transform: scale(1.1);
+}
+
 .guestbook {
   max-width: 700px;
-  margin: 4rem auto;
+  margin: 0;
   padding: 2rem;
-  background: linear-gradient(135deg, rgba(20, 20, 35, 0.95), rgba(30, 25, 45, 0.95));
+  background: linear-gradient(135deg, rgba(20, 20, 35, 0.98), rgba(30, 25, 45, 0.98));
   border: 3px solid var(--accent-cyan);
   border-radius: 8px;
   box-shadow: 

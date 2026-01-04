@@ -839,7 +839,32 @@ function Guestbook() {
   );
 }
 
+// Guestbook Modal wrapper
+function GuestbookModal({ isOpen, onClose }) {
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="guestbook-modal-overlay" onClick={onClose}>
+      <div className="guestbook-modal-content" onClick={e => e.stopPropagation()}>
+        <button className="guestbook-modal-close" onClick={onClose}>✕</button>
+        <Guestbook />
+      </div>
+    </div>
+  );
+}
+
 function AppContent() {
+  const [guestbookOpen, setGuestbookOpen] = useState(false);
+
   return (
     <main className="page">
       <header className="header">
@@ -851,11 +876,17 @@ function AppContent() {
         </Link>
         <p className="subtitle">games by jonathan mann</p>
         <SocialLinks />
+        <button 
+          className="guestbook-trigger"
+          onClick={() => setGuestbookOpen(true)}
+        >
+          📖 Guestbook
+        </button>
       </header>
 
       <GamesGrid />
-      
-      <Guestbook />
+
+      <GuestbookModal isOpen={guestbookOpen} onClose={() => setGuestbookOpen(false)} />
 
       <Routes>
         <Route path="/:slug" element={<GameModal />} />
