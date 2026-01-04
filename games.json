@@ -98,7 +98,28 @@
       "platform": "mobile",
       "aspectRatio": "9 / 16",
       "controls": null
+    },
+    {
+      "id": 7,
+      "tokenId": 7,
+      "slug": "loki",
+      "title": "Loki Is Genderfluid",
+      "image": "/nes-game-images/loki.png",
+      "gameUrl": "https://oil-ruddy.vercel.app",
+      "platform": "desktop",
+      "aspectRatio": "16 / 9",
+      "controls": {
+        "dpad": { "up": "ArrowUp", "down": "ArrowDown", "left": "ArrowLeft", "right": "ArrowRight" },
+        "lookHint": "Swipe on game to look around",
+        "actions": [
+          { "key": "f", "label": "COLLECT" },
+          { "key": "i", "label": "INV" },
+          { "key": "m", "label": "MAP" },
+          { "key": "Shift", "label": "RUN" }
+        ]
+      }
     }
   ]
 }
+
 

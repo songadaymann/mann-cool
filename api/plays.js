@@ -1,7 +1,10 @@
 const { Redis } = require('@upstash/redis');
 
-// Initialize Redis client using environment variables automatically
-const redis = Redis.fromEnv();
+// Initialize Redis client with the KV_* env vars that Vercel provides
+const redis = new Redis({
+  url: process.env.KV_REST_API_URL,
+  token: process.env.KV_REST_API_TOKEN,
+});
 
 module.exports = async function handler(req, res) {
   // Enable CORS
