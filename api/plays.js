@@ -1,10 +1,19 @@
 const { Redis } = require('@upstash/redis');
 
-// Initialize Redis client
-const redis = new Redis({
-  url: process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL,
-  token: process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN,
-});
+// Initialize Redis client - Upstash uses these env var names
+const redisUrl = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
+const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
+
+// Check if credentials exist
+if (!redisUrl || !redisToken) {
+  console.error('Missing Redis credentials:', { 
+    hasUrl: !!redisUrl, 
+    hasToken: !!redisToken,
+    envKeys: Object.keys(process.env).filter(k => k.includes('UPSTASH') || k.includes('KV') || k.includes('REDIS'))
+  });
+}
+
+const redis = redisUrl && redisToken ? new Redis({ url: redisUrl, token: redisToken }) : null;
 
 module.exports = async function handler(req, res) {
   // Enable CORS
@@ -14,6 +23,14 @@ module.exports = async function handler(req, res) {
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
+  }
+
+  // Check if Redis is configured
+  if (!redis) {
+    return res.status(500).json({ 
+      error: 'Redis not configured',
+      hint: 'Missing UPSTASH_REDIS_REST_URL or UPSTASH_REDIS_REST_TOKEN environment variables'
+    });
   }
 
   try {
@@ -67,7 +84,10 @@ module.exports = async function handler(req, res) {
 
     return res.status(405).json({ error: 'Method not allowed' });
   } catch (error) {
-    console.error('Redis error:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    console.error('Redis error:', error.message);
+    return res.status(500).json({ 
+      error: 'Database error', 
+      message: error.message 
+    });
   }
 };
