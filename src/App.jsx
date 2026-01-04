@@ -775,7 +775,7 @@ function Guestbook() {
   return (
     <section className="guestbook">
       <h2 className="guestbook-title">📖 Guestbook</h2>
-      <p className="guestbook-subtitle">Sign the guestbook, just like the old days!</p>
+      <p className="guestbook-subtitle">Sign the guestbook, friend (or foe)!</p>
 
       {/* Sign form */}
       <form className="guestbook-form" onSubmit={handleSubmit}>
