@@ -1,0 +1,227 @@
+{"location":"App.jsx:trackPlay","message":"trackPlay called","data":{"slug":"loki"},"timestamp":1767545417636,"sessionId":"debug-session","hypothesisId":"C"}
+{"location":"App.jsx:usePlayCountsProvider","message":"Fetching play counts on mount","data":{},"timestamp":1767545417636,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"App.jsx:trackPlay","message":"trackPlay called","data":{"slug":"loki"},"timestamp":1767545417637,"sessionId":"debug-session","hypothesisId":"C"}
+{"location":"App.jsx:trackPlay","message":"POST failed","data":{"error":"Unexpected end of JSON input","slug":"loki"},"timestamp":1767545417648,"sessionId":"debug-session","hypothesisId":"C"}
+{"location":"App.jsx:trackPlay","message":"POST failed","data":{"error":"Failed to execute 'json' on 'Response': Unexpected end of JSON input","slug":"loki"},"timestamp":1767545417649,"sessionId":"debug-session","hypothesisId":"C"}
+{"location":"App.jsx:fetchPlays","message":"API fetch failed","data":{"error":"Unexpected token 'c', \"const { Re\"... is not valid JSON"},"timestamp":1767545417649,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"App.jsx:fetchPlays","message":"API response received","data":{"status":200,"ok":true},"timestamp":1767545417649,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"App.jsx:trackPlay","message":"trackPlay called","data":{"slug":"loki"},"timestamp":1767545418538,"sessionId":"debug-session","hypothesisId":"C"}
+{"location":"App.jsx:usePlayCountsProvider","message":"Fetching play counts on mount","data":{},"timestamp":1767545418538,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"App.jsx:trackPlay","message":"trackPlay called","data":{"slug":"loki"},"timestamp":1767545418540,"sessionId":"debug-session","hypothesisId":"C"}
+{"location":"App.jsx:fetchPlays","message":"API response received","data":{"status":200,"ok":true},"timestamp":1767545418551,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"App.jsx:trackPlay","message":"POST failed","data":{"error":"Failed to execute 'json' on 'Response': Unexpected end of JSON input","slug":"loki"},"timestamp":1767545418553,"sessionId":"debug-session","hypothesisId":"C"}
+{"location":"App.jsx:trackPlay","message":"POST failed","data":{"error":"Failed to execute 'json' on 'Response': Unexpected end of JSON input","slug":"loki"},"timestamp":1767545418555,"sessionId":"debug-session","hypothesisId":"C"}
+{"location":"App.jsx:fetchPlays","message":"API fetch failed","data":{"error":"Unexpected token 'c', \"const { Re\"... is not valid JSON"},"timestamp":1767545418556,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"coldplay-canoodle","playCount":0,"allCounts":{}},"timestamp":1767545425607,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"chonksisyphus","playCount":0,"allCounts":{}},"timestamp":1767545425609,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"chonksisyphus","playCount":0,"allCounts":{}},"timestamp":1767545425609,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"oil","playCount":0,"allCounts":{}},"timestamp":1767545425609,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"oil","playCount":0,"allCounts":{}},"timestamp":1767545425610,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"coldplay-canoodle","playCount":0,"allCounts":{}},"timestamp":1767545425607,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"loki","playCount":0,"allCounts":{}},"timestamp":1767545425610,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"windows","playCount":0,"allCounts":{}},"timestamp":1767545425608,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"loki","playCount":0,"allCounts":{}},"timestamp":1767545425611,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"ctn","playCount":0,"allCounts":{}},"timestamp":1767545425608,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"tallgrass","playCount":0,"allCounts":{}},"timestamp":1767545425609,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"ctn","playCount":0,"allCounts":{}},"timestamp":1767545425608,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"windows","playCount":0,"allCounts":{}},"timestamp":1767545425608,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"tallgrass","playCount":0,"allCounts":{}},"timestamp":1767545425609,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:trackPlay","message":"trackPlay called","data":{"slug":"loki"},"timestamp":1767545425618,"sessionId":"debug-session","hypothesisId":"C"}
+{"location":"App.jsx:usePlayCountsProvider","message":"Fetching play counts on mount","data":{},"timestamp":1767545425619,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"App.jsx:trackPlay","message":"trackPlay called","data":{"slug":"loki"},"timestamp":1767545425619,"sessionId":"debug-session","hypothesisId":"C"}
+{"location":"App.jsx:trackPlay","message":"POST failed","data":{"error":"Failed to execute 'json' on 'Response': Unexpected end of JSON input","slug":"loki"},"timestamp":1767545425626,"sessionId":"debug-session","hypothesisId":"C"}
+{"location":"App.jsx:fetchPlays","message":"API response received","data":{"status":200,"ok":true},"timestamp":1767545425627,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"App.jsx:fetchPlays","message":"API fetch failed","data":{"error":"Unexpected token 'c', \"const { Re\"... is not valid JSON"},"timestamp":1767545425627,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"App.jsx:trackPlay","message":"POST failed","data":{"error":"Unexpected end of JSON input","slug":"loki"},"timestamp":1767545425629,"sessionId":"debug-session","hypothesisId":"C"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"coldplay-canoodle","playCount":0,"allCounts":{}},"timestamp":1767545426518,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"coldplay-canoodle","playCount":0,"allCounts":{}},"timestamp":1767545426519,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"ctn","playCount":0,"allCounts":{}},"timestamp":1767545426520,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"ctn","playCount":0,"allCounts":{}},"timestamp":1767545426520,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"windows","playCount":0,"allCounts":{}},"timestamp":1767545426521,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"windows","playCount":0,"allCounts":{}},"timestamp":1767545426521,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"tallgrass","playCount":0,"allCounts":{}},"timestamp":1767545426522,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"tallgrass","playCount":0,"allCounts":{}},"timestamp":1767545426522,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"chonksisyphus","playCount":0,"allCounts":{}},"timestamp":1767545426523,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"chonksisyphus","playCount":0,"allCounts":{}},"timestamp":1767545426524,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"oil","playCount":0,"allCounts":{}},"timestamp":1767545426524,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"oil","playCount":0,"allCounts":{}},"timestamp":1767545426525,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"loki","playCount":0,"allCounts":{}},"timestamp":1767545426525,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"loki","playCount":0,"allCounts":{}},"timestamp":1767545426525,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:trackPlay","message":"trackPlay called","data":{"slug":"loki"},"timestamp":1767545426542,"sessionId":"debug-session","hypothesisId":"C"}
+{"location":"App.jsx:usePlayCountsProvider","message":"Fetching play counts on mount","data":{},"timestamp":1767545426543,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"App.jsx:trackPlay","message":"trackPlay called","data":{"slug":"loki"},"timestamp":1767545426544,"sessionId":"debug-session","hypothesisId":"C"}
+{"location":"App.jsx:trackPlay","message":"POST failed","data":{"error":"Failed to execute 'json' on 'Response': Unexpected end of JSON input","slug":"loki"},"timestamp":1767545426555,"sessionId":"debug-session","hypothesisId":"C"}
+{"location":"App.jsx:fetchPlays","message":"API response received","data":{"status":200,"ok":true},"timestamp":1767545426558,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"App.jsx:trackPlay","message":"POST failed","data":{"error":"Failed to execute 'json' on 'Response': Unexpected end of JSON input","slug":"loki"},"timestamp":1767545426559,"sessionId":"debug-session","hypothesisId":"C"}
+{"location":"App.jsx:fetchPlays","message":"API fetch failed","data":{"error":"Unexpected token 'c', \"const { Re\"... is not valid JSON"},"timestamp":1767545426559,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"App.jsx:trackPlay","message":"trackPlay called","data":{"slug":"loki"},"timestamp":1767545430774,"sessionId":"debug-session","hypothesisId":"C"}
+{"location":"App.jsx:trackPlay","message":"trackPlay called","data":{"slug":"loki"},"timestamp":1767545430774,"sessionId":"debug-session","hypothesisId":"C"}
+{"location":"App.jsx:trackPlay","message":"POST failed","data":{"error":"Failed to execute 'json' on 'Response': Unexpected end of JSON input","slug":"loki"},"timestamp":1767545430788,"sessionId":"debug-session","hypothesisId":"C"}
+{"location":"App.jsx:trackPlay","message":"POST failed","data":{"error":"Unexpected end of JSON input","slug":"loki"},"timestamp":1767545430789,"sessionId":"debug-session","hypothesisId":"C"}
+{"location":"App.jsx:trackPlay","message":"trackPlay called","data":{"slug":"ctn"},"timestamp":1767545440333,"sessionId":"debug-session","hypothesisId":"C"}
+{"location":"App.jsx:trackPlay","message":"trackPlay called","data":{"slug":"ctn"},"timestamp":1767545440333,"sessionId":"debug-session","hypothesisId":"C"}
+{"location":"App.jsx:trackPlay","message":"POST failed","data":{"error":"Failed to execute 'json' on 'Response': Unexpected end of JSON input","slug":"ctn"},"timestamp":1767545440340,"sessionId":"debug-session","hypothesisId":"C"}
+{"location":"App.jsx:trackPlay","message":"POST failed","data":{"error":"Unexpected end of JSON input","slug":"ctn"},"timestamp":1767545440342,"sessionId":"debug-session","hypothesisId":"C"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"coldplay-canoodle","playCount":0,"allCounts":{}},"timestamp":1767545443961,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"coldplay-canoodle","playCount":0,"allCounts":{}},"timestamp":1767545443961,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"ctn","playCount":0,"allCounts":{}},"timestamp":1767545443962,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"ctn","playCount":0,"allCounts":{}},"timestamp":1767545443962,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"windows","playCount":0,"allCounts":{}},"timestamp":1767545443962,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"windows","playCount":0,"allCounts":{}},"timestamp":1767545443963,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"tallgrass","playCount":0,"allCounts":{}},"timestamp":1767545443963,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"tallgrass","playCount":0,"allCounts":{}},"timestamp":1767545443963,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"chonksisyphus","playCount":0,"allCounts":{}},"timestamp":1767545443964,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"chonksisyphus","playCount":0,"allCounts":{}},"timestamp":1767545443964,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"oil","playCount":0,"allCounts":{}},"timestamp":1767545443964,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"oil","playCount":0,"allCounts":{}},"timestamp":1767545443964,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"loki","playCount":0,"allCounts":{}},"timestamp":1767545443964,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"loki","playCount":0,"allCounts":{}},"timestamp":1767545443965,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:trackPlay","message":"trackPlay called","data":{"slug":"ctn"},"timestamp":1767545443971,"sessionId":"debug-session","hypothesisId":"C"}
+{"location":"App.jsx:usePlayCountsProvider","message":"Fetching play counts on mount","data":{},"timestamp":1767545443972,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"App.jsx:trackPlay","message":"trackPlay called","data":{"slug":"ctn"},"timestamp":1767545443972,"sessionId":"debug-session","hypothesisId":"C"}
+{"location":"App.jsx:trackPlay","message":"POST failed","data":{"error":"Failed to execute 'json' on 'Response': Unexpected end of JSON input","slug":"ctn"},"timestamp":1767545444005,"sessionId":"debug-session","hypothesisId":"C"}
+{"location":"App.jsx:trackPlay","message":"POST failed","data":{"error":"Failed to execute 'json' on 'Response': Unexpected end of JSON input","slug":"ctn"},"timestamp":1767545444006,"sessionId":"debug-session","hypothesisId":"C"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"coldplay-canoodle","playCount":0,"allCounts":{}},"timestamp":1767545444216,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"coldplay-canoodle","playCount":0,"allCounts":{}},"timestamp":1767545444216,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"ctn","playCount":0,"allCounts":{}},"timestamp":1767545444217,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"ctn","playCount":0,"allCounts":{}},"timestamp":1767545444217,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"windows","playCount":0,"allCounts":{}},"timestamp":1767545444218,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"windows","playCount":0,"allCounts":{}},"timestamp":1767545444218,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"tallgrass","playCount":0,"allCounts":{}},"timestamp":1767545444218,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"tallgrass","playCount":0,"allCounts":{}},"timestamp":1767545444218,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"chonksisyphus","playCount":0,"allCounts":{}},"timestamp":1767545444219,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"chonksisyphus","playCount":0,"allCounts":{}},"timestamp":1767545444219,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"oil","playCount":0,"allCounts":{}},"timestamp":1767545444219,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"oil","playCount":0,"allCounts":{}},"timestamp":1767545444219,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"loki","playCount":0,"allCounts":{}},"timestamp":1767545444220,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"loki","playCount":0,"allCounts":{}},"timestamp":1767545444220,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:trackPlay","message":"trackPlay called","data":{"slug":"ctn"},"timestamp":1767545444237,"sessionId":"debug-session","hypothesisId":"C"}
+{"location":"App.jsx:usePlayCountsProvider","message":"Fetching play counts on mount","data":{},"timestamp":1767545444237,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"App.jsx:trackPlay","message":"trackPlay called","data":{"slug":"ctn"},"timestamp":1767545444239,"sessionId":"debug-session","hypothesisId":"C"}
+{"location":"App.jsx:usePlayCountsProvider","message":"Fetching play counts on mount","data":{},"timestamp":1767545444239,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"App.jsx:trackPlay","message":"POST failed","data":{"error":"Failed to execute 'json' on 'Response': Unexpected end of JSON input","slug":"ctn"},"timestamp":1767545444261,"sessionId":"debug-session","hypothesisId":"C"}
+{"location":"App.jsx:trackPlay","message":"POST failed","data":{"error":"Failed to execute 'json' on 'Response': Unexpected end of JSON input","slug":"ctn"},"timestamp":1767545444262,"sessionId":"debug-session","hypothesisId":"C"}
+{"location":"App.jsx:fetchPlays","message":"API response received","data":{"status":200,"ok":true},"timestamp":1767545444262,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"App.jsx:fetchPlays","message":"API response received","data":{"status":200,"ok":true},"timestamp":1767545444262,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"App.jsx:fetchPlays","message":"API fetch failed","data":{"error":"Unexpected token 'c', \"const { Re\"... is not valid JSON"},"timestamp":1767545444273,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"App.jsx:fetchPlays","message":"API fetch failed","data":{"error":"Unexpected token 'c', \"const { Re\"... is not valid JSON"},"timestamp":1767545444274,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"coldplay-canoodle","playCount":0,"allCounts":{}},"timestamp":1767545444519,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"coldplay-canoodle","playCount":0,"allCounts":{}},"timestamp":1767545444519,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"ctn","playCount":0,"allCounts":{}},"timestamp":1767545444521,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"ctn","playCount":0,"allCounts":{}},"timestamp":1767545444521,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"windows","playCount":0,"allCounts":{}},"timestamp":1767545444522,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"windows","playCount":0,"allCounts":{}},"timestamp":1767545444522,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"tallgrass","playCount":0,"allCounts":{}},"timestamp":1767545444523,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"tallgrass","playCount":0,"allCounts":{}},"timestamp":1767545444523,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"chonksisyphus","playCount":0,"allCounts":{}},"timestamp":1767545444524,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"chonksisyphus","playCount":0,"allCounts":{}},"timestamp":1767545444524,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"oil","playCount":0,"allCounts":{}},"timestamp":1767545444525,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"oil","playCount":0,"allCounts":{}},"timestamp":1767545444525,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"loki","playCount":0,"allCounts":{}},"timestamp":1767545444527,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"loki","playCount":0,"allCounts":{}},"timestamp":1767545444527,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:trackPlay","message":"trackPlay called","data":{"slug":"loki"},"timestamp":1767545444544,"sessionId":"debug-session","hypothesisId":"C"}
+{"location":"App.jsx:usePlayCountsProvider","message":"Fetching play counts on mount","data":{},"timestamp":1767545444545,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"App.jsx:trackPlay","message":"trackPlay called","data":{"slug":"loki"},"timestamp":1767545444546,"sessionId":"debug-session","hypothesisId":"C"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"coldplay-canoodle","playCount":0,"allCounts":{}},"timestamp":1767545445238,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"coldplay-canoodle","playCount":0,"allCounts":{}},"timestamp":1767545445239,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"ctn","playCount":0,"allCounts":{}},"timestamp":1767545445240,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"ctn","playCount":0,"allCounts":{}},"timestamp":1767545445240,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"windows","playCount":0,"allCounts":{}},"timestamp":1767545445241,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"windows","playCount":0,"allCounts":{}},"timestamp":1767545445242,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"tallgrass","playCount":0,"allCounts":{}},"timestamp":1767545445243,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"tallgrass","playCount":0,"allCounts":{}},"timestamp":1767545445243,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"chonksisyphus","playCount":0,"allCounts":{}},"timestamp":1767545445244,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"chonksisyphus","playCount":0,"allCounts":{}},"timestamp":1767545445244,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"oil","playCount":0,"allCounts":{}},"timestamp":1767545445245,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"oil","playCount":0,"allCounts":{}},"timestamp":1767545445245,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"loki","playCount":0,"allCounts":{}},"timestamp":1767545445246,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"loki","playCount":0,"allCounts":{}},"timestamp":1767545445246,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:trackPlay","message":"trackPlay called","data":{"slug":"loki"},"timestamp":1767545445291,"sessionId":"debug-session","hypothesisId":"C"}
+{"location":"App.jsx:usePlayCountsProvider","message":"Fetching play counts on mount","data":{},"timestamp":1767545445292,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"App.jsx:trackPlay","message":"trackPlay called","data":{"slug":"loki"},"timestamp":1767545445295,"sessionId":"debug-session","hypothesisId":"C"}
+{"location":"App.jsx:usePlayCountsProvider","message":"Fetching play counts on mount","data":{},"timestamp":1767545445296,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"App.jsx:trackPlay","message":"POST failed","data":{"error":"Failed to execute 'json' on 'Response': Unexpected end of JSON input","slug":"loki"},"timestamp":1767545445311,"sessionId":"debug-session","hypothesisId":"C"}
+{"location":"App.jsx:fetchPlays","message":"API response received","data":{"status":200,"ok":true},"timestamp":1767545445312,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"App.jsx:trackPlay","message":"POST failed","data":{"error":"Failed to execute 'json' on 'Response': Unexpected end of JSON input","slug":"loki"},"timestamp":1767545445324,"sessionId":"debug-session","hypothesisId":"C"}
+{"location":"App.jsx:fetchPlays","message":"API response received","data":{"status":200,"ok":true},"timestamp":1767545445324,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"App.jsx:fetchPlays","message":"API fetch failed","data":{"error":"Unexpected token 'c', \"const { Re\"... is not valid JSON"},"timestamp":1767545445330,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"App.jsx:fetchPlays","message":"API fetch failed","data":{"error":"Unexpected token 'c', \"const { Re\"... is not valid JSON"},"timestamp":1767545445352,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"App.jsx:trackPlay","message":"trackPlay called","data":{"slug":"ctn"},"timestamp":1767545471383,"sessionId":"debug-session","hypothesisId":"C"}
+{"location":"App.jsx:trackPlay","message":"trackPlay called","data":{"slug":"ctn"},"timestamp":1767545471383,"sessionId":"debug-session","hypothesisId":"C"}
+{"location":"App.jsx:trackPlay","message":"POST failed","data":{"error":"Unexpected end of JSON input","slug":"ctn"},"timestamp":1767545471392,"sessionId":"debug-session","hypothesisId":"C"}
+{"location":"App.jsx:trackPlay","message":"POST failed","data":{"error":"Unexpected end of JSON input","slug":"ctn"},"timestamp":1767545471393,"sessionId":"debug-session","hypothesisId":"C"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"coldplay-canoodle","playCount":0,"allCounts":{}},"timestamp":1767545817924,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"coldplay-canoodle","playCount":0,"allCounts":{}},"timestamp":1767545817924,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"ctn","playCount":0,"allCounts":{}},"timestamp":1767545817925,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"ctn","playCount":0,"allCounts":{}},"timestamp":1767545817926,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"windows","playCount":0,"allCounts":{}},"timestamp":1767545817926,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"windows","playCount":0,"allCounts":{}},"timestamp":1767545817926,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"tallgrass","playCount":0,"allCounts":{}},"timestamp":1767545817927,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"tallgrass","playCount":0,"allCounts":{}},"timestamp":1767545817927,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"chonksisyphus","playCount":0,"allCounts":{}},"timestamp":1767545817927,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"chonksisyphus","playCount":0,"allCounts":{}},"timestamp":1767545817928,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"oil","playCount":0,"allCounts":{}},"timestamp":1767545817928,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"oil","playCount":0,"allCounts":{}},"timestamp":1767545817928,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"loki","playCount":0,"allCounts":{}},"timestamp":1767545817928,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"loki","playCount":0,"allCounts":{}},"timestamp":1767545817929,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:usePlayCountsProvider","message":"Fetching play counts on mount","data":{},"timestamp":1767545817951,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"App.jsx:usePlayCountsProvider","message":"Fetching play counts on mount","data":{},"timestamp":1767545817953,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"App.jsx:fetchPlays","message":"API response received","data":{"status":200,"ok":true},"timestamp":1767545817981,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"App.jsx:fetchPlays","message":"API response received","data":{"status":200,"ok":true},"timestamp":1767545817982,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"App.jsx:fetchPlays","message":"API fetch failed","data":{"error":"Unexpected token 'c', \"const { Re\"... is not valid JSON"},"timestamp":1767545818008,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"App.jsx:fetchPlays","message":"API fetch failed","data":{"error":"Unexpected token 'c', \"const { Re\"... is not valid JSON"},"timestamp":1767545818009,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"coldplay-canoodle","playCount":0,"allCounts":{}},"timestamp":1767545896529,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"coldplay-canoodle","playCount":0,"allCounts":{}},"timestamp":1767545896529,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"tallgrass","playCount":0,"allCounts":{}},"timestamp":1767545896531,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"tallgrass","playCount":0,"allCounts":{}},"timestamp":1767545896532,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"ctn","playCount":0,"allCounts":{}},"timestamp":1767545896530,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"chonksisyphus","playCount":0,"allCounts":{}},"timestamp":1767545896532,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"chonksisyphus","playCount":0,"allCounts":{}},"timestamp":1767545896533,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"ctn","playCount":0,"allCounts":{}},"timestamp":1767545896530,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"oil","playCount":0,"allCounts":{}},"timestamp":1767545896533,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"oil","playCount":0,"allCounts":{}},"timestamp":1767545896533,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"windows","playCount":0,"allCounts":{}},"timestamp":1767545896531,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"loki","playCount":0,"allCounts":{}},"timestamp":1767545896534,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"loki","playCount":0,"allCounts":{}},"timestamp":1767545896534,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"windows","playCount":0,"allCounts":{}},"timestamp":1767545896531,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:usePlayCountsProvider","message":"Fetching play counts on mount","data":{},"timestamp":1767545896543,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"App.jsx:fetchPlays","message":"API response received","data":{"status":200,"ok":true},"timestamp":1767545896549,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"App.jsx:fetchPlays","message":"API fetch failed","data":{"error":"Unexpected token 'c', \"const { Re\"... is not valid JSON"},"timestamp":1767545896550,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"coldplay-canoodle","playCount":0,"allCounts":{}},"timestamp":1767545967206,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"coldplay-canoodle","playCount":0,"allCounts":{}},"timestamp":1767545967206,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"ctn","playCount":0,"allCounts":{}},"timestamp":1767545967207,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"ctn","playCount":0,"allCounts":{}},"timestamp":1767545967207,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"windows","playCount":0,"allCounts":{}},"timestamp":1767545967208,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"windows","playCount":0,"allCounts":{}},"timestamp":1767545967208,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"tallgrass","playCount":0,"allCounts":{}},"timestamp":1767545967209,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"tallgrass","playCount":0,"allCounts":{}},"timestamp":1767545967209,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"chonksisyphus","playCount":0,"allCounts":{}},"timestamp":1767545967209,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"chonksisyphus","playCount":0,"allCounts":{}},"timestamp":1767545967210,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"oil","playCount":0,"allCounts":{}},"timestamp":1767545967210,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"oil","playCount":0,"allCounts":{}},"timestamp":1767545967210,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"loki","playCount":0,"allCounts":{}},"timestamp":1767545967210,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"loki","playCount":0,"allCounts":{}},"timestamp":1767545967210,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:usePlayCountsProvider","message":"Fetching play counts on mount","data":{},"timestamp":1767545967230,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"App.jsx:usePlayCountsProvider","message":"Fetching play counts on mount","data":{},"timestamp":1767545967232,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"App.jsx:fetchPlays","message":"API response received","data":{"status":200,"ok":true},"timestamp":1767545967264,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"App.jsx:fetchPlays","message":"API response received","data":{"status":200,"ok":true},"timestamp":1767545967265,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"App.jsx:fetchPlays","message":"API fetch failed","data":{"error":"Unexpected token 'c', \"const { Re\"... is not valid JSON"},"timestamp":1767545967266,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"App.jsx:fetchPlays","message":"API fetch failed","data":{"error":"Unexpected token 'c', \"const { Re\"... is not valid JSON"},"timestamp":1767545967269,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"App.jsx:trackPlay","message":"trackPlay called","data":{"slug":"loki"},"timestamp":1767545967868,"sessionId":"debug-session","hypothesisId":"C"}
+{"location":"App.jsx:trackPlay","message":"trackPlay called","data":{"slug":"loki"},"timestamp":1767545967868,"sessionId":"debug-session","hypothesisId":"C"}
+{"location":"App.jsx:trackPlay","message":"POST failed","data":{"error":"Unexpected end of JSON input","slug":"loki"},"timestamp":1767545967877,"sessionId":"debug-session","hypothesisId":"C"}
+{"location":"App.jsx:trackPlay","message":"POST failed","data":{"error":"Unexpected end of JSON input","slug":"loki"},"timestamp":1767545967878,"sessionId":"debug-session","hypothesisId":"C"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"coldplay-canoodle","playCount":0,"allCounts":{}},"timestamp":1767545978519,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"ctn","playCount":0,"allCounts":{}},"timestamp":1767545978520,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"windows","playCount":0,"allCounts":{}},"timestamp":1767545978520,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"tallgrass","playCount":0,"allCounts":{}},"timestamp":1767545978521,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"chonksisyphus","playCount":0,"allCounts":{}},"timestamp":1767545978521,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"oil","playCount":0,"allCounts":{}},"timestamp":1767545978521,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:GameCard","message":"GameCard render","data":{"slug":"loki","playCount":0,"allCounts":{}},"timestamp":1767545978521,"sessionId":"debug-session","hypothesisId":"E"}
+{"location":"App.jsx:usePlayCountsProvider","message":"Fetching play counts on mount","data":{},"timestamp":1767545978555,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"App.jsx:fetchPlays","message":"API response received","data":{"status":500,"ok":false},"timestamp":1767545978805,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"App.jsx:fetchPlays","message":"API fetch failed","data":{"error":"Unexpected token 'A', \"A server e\"... is not valid JSON"},"timestamp":1767545978809,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"App.jsx:trackPlay","message":"trackPlay called","data":{"slug":"loki"},"timestamp":1767545982131,"sessionId":"debug-session","hypothesisId":"C"}
+{"location":"App.jsx:trackPlay","message":"POST failed","data":{"error":"Unexpected token 'A', \"A server e\"... is not valid JSON","slug":"loki"},"timestamp":1767545982291,"sessionId":"debug-session","hypothesisId":"C"}
+{"location":"App.jsx:trackPlay","message":"trackPlay called","data":{"slug":"loki"},"timestamp":1767546077693,"sessionId":"debug-session","hypothesisId":"C"}
+{"location":"App.jsx:trackPlay","message":"POST failed","data":{"error":"Unexpected token 'A', \"A server e\"... is not valid JSON","slug":"loki"},"timestamp":1767546078251,"sessionId":"debug-session","hypothesisId":"C"}

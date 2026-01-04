@@ -10,10 +10,21 @@
       "platform": "desktop",
       "aspectRatio": "4 / 3",
       "controls": {
-        "dpad": { "up": "ArrowUp", "down": "ArrowDown", "left": "ArrowLeft", "right": "ArrowRight" },
+        "dpad": {
+          "up": "ArrowUp",
+          "down": "ArrowDown",
+          "left": "ArrowLeft",
+          "right": "ArrowRight"
+        },
         "actions": [
-          { "key": "z", "label": "A" },
-          { "key": "x", "label": "B" }
+          {
+            "key": "z",
+            "label": "A"
+          },
+          {
+            "key": "x",
+            "label": "B"
+          }
         ]
       }
     },
@@ -27,10 +38,22 @@
       "platform": "desktop",
       "aspectRatio": "16 / 9",
       "controls": {
-        "dpad": { "up": "ArrowUp", "down": "ArrowDown", "left": "ArrowLeft", "right": "ArrowRight" },
+        "dpad": {
+          "up": "ArrowUp",
+          "down": "ArrowDown",
+          "left": "ArrowLeft",
+          "right": "ArrowRight"
+        },
         "actions": [
-          { "key": "ArrowUp", "label": "JUMP" },
-          { "key": "click", "label": "ATTACK", "isClick": true }
+          {
+            "key": "ArrowUp",
+            "label": "JUMP"
+          },
+          {
+            "key": "click",
+            "label": "ATTACK",
+            "isClick": true
+          }
         ]
       }
     },
@@ -44,15 +67,42 @@
       "platform": "desktop",
       "aspectRatio": "3 / 2",
       "controls": {
-        "dpad": { "up": "w", "down": "s", "left": "a", "right": "d" },
+        "dpad": {
+          "up": "w",
+          "down": "s",
+          "left": "a",
+          "right": "d"
+        },
         "hasLookStick": true,
         "actions": [
-          { "key": " ", "label": "JUMP" },
-          { "key": "click", "label": "ATTACK", "isClick": true },
-          { "key": "f", "label": "DASH" },
-          { "key": "q", "label": "CROUCH" },
-          { "key": "e", "label": "POUND" },
-          { "keys": ["Tab", "g"], "label": "TAB" }
+          {
+            "key": " ",
+            "label": "JUMP"
+          },
+          {
+            "key": "click",
+            "label": "ATTACK",
+            "isClick": true
+          },
+          {
+            "key": "f",
+            "label": "DASH"
+          },
+          {
+            "key": "q",
+            "label": "CROUCH"
+          },
+          {
+            "key": "e",
+            "label": "POUND"
+          },
+          {
+            "keys": [
+              "Tab",
+              "g"
+            ],
+            "label": "TAB"
+          }
         ]
       }
     },
@@ -66,13 +116,30 @@
       "platform": "desktop",
       "aspectRatio": "16 / 9",
       "controls": {
-        "dpad": { "up": "ArrowUp", "down": "ArrowDown", "left": "ArrowLeft", "right": "ArrowRight" },
+        "dpad": {
+          "up": "ArrowUp",
+          "down": "ArrowDown",
+          "left": "ArrowLeft",
+          "right": "ArrowRight"
+        },
         "lookHint": "Swipe on game to look around",
         "actions": [
-          { "key": "f", "label": "COLLECT" },
-          { "key": "i", "label": "INV" },
-          { "key": "m", "label": "MAP" },
-          { "key": "Shift", "label": "RUN" }
+          {
+            "key": "f",
+            "label": "COLLECT"
+          },
+          {
+            "key": "i",
+            "label": "INV"
+          },
+          {
+            "key": "m",
+            "label": "MAP"
+          },
+          {
+            "key": "Shift",
+            "label": "RUN"
+          }
         ]
       }
     },
@@ -86,7 +153,9 @@
       "platform": "mobile",
       "aspectRatio": "9 / 16",
       "controls": null,
-      "permissions": ["microphone"]
+      "permissions": [
+        "microphone"
+      ]
     },
     {
       "id": 6,
@@ -108,22 +177,8 @@
       "gameUrl": "https://loki-gules.vercel.app/",
       "platform": "desktop",
       "aspectRatio": "16 / 9",
-      "controls": {
-        "dpad": { 
-          "up": "ArrowUp", 
-          "down": "ArrowDown", 
-          "left": "ArrowLeft", 
-          "right": "ArrowRight" 
-        },
-        "actions": [
-          { "key": "z", "label": "JUMP" },
-          { "key": "x", "label": "FIRE" }
-        ]
-      }
+      "mobileMode": "landscape",
+      "controls": null
     }
   ]
 }
-  
-
-
-

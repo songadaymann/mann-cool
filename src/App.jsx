@@ -20,37 +20,18 @@ function usePlayCountsProvider() {
 
   // Fetch all play counts on mount
   useEffect(() => {
-    // #region agent log
-    fetch('http://127.0.0.1:7245/ingest/46954ea1-1aa3-4e8d-8ae9-db1427a0457b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.jsx:usePlayCountsProvider',message:'Fetching play counts on mount',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B'})}).catch(()=>{});
-    // #endregion
     fetch('/api/plays')
-      .then(res => {
-        // #region agent log
-        fetch('http://127.0.0.1:7245/ingest/46954ea1-1aa3-4e8d-8ae9-db1427a0457b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.jsx:fetchPlays',message:'API response received',data:{status:res.status,ok:res.ok},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B'})}).catch(()=>{});
-        // #endregion
-        return res.json();
-      })
+      .then(res => res.json())
       .then(data => {
-        // #region agent log
-        fetch('http://127.0.0.1:7245/ingest/46954ea1-1aa3-4e8d-8ae9-db1427a0457b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.jsx:fetchPlays',message:'API data parsed',data:{rawData:data,hasCounts:!!data.counts,countsKeys:data.counts?Object.keys(data.counts):[]},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A'})}).catch(()=>{});
-        // #endregion
         if (data.counts) {
           setCounts(data.counts);
         }
       })
-      .catch(err => {
-        // #region agent log
-        fetch('http://127.0.0.1:7245/ingest/46954ea1-1aa3-4e8d-8ae9-db1427a0457b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.jsx:fetchPlays',message:'API fetch failed',data:{error:err.message},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B'})}).catch(()=>{});
-        // #endregion
-        console.error('Failed to fetch play counts:', err);
-      });
+      .catch(err => console.error('Failed to fetch play counts:', err));
   }, []);
 
   // Track a play
   const trackPlay = async (slug) => {
-    // #region agent log
-    fetch('http://127.0.0.1:7245/ingest/46954ea1-1aa3-4e8d-8ae9-db1427a0457b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.jsx:trackPlay',message:'trackPlay called',data:{slug},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'C'})}).catch(()=>{});
-    // #endregion
     try {
       const res = await fetch('/api/plays', {
         method: 'POST',
@@ -58,16 +39,10 @@ function usePlayCountsProvider() {
         body: JSON.stringify({ slug, source: 'mann.cool' }),
       });
       const data = await res.json();
-      // #region agent log
-      fetch('http://127.0.0.1:7245/ingest/46954ea1-1aa3-4e8d-8ae9-db1427a0457b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.jsx:trackPlay',message:'POST response received',data:{status:res.status,responseData:data},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'C'})}).catch(()=>{});
-      // #endregion
       if (data.count) {
         setCounts(prev => ({ ...prev, [slug]: data.count }));
       }
     } catch (err) {
-      // #region agent log
-      fetch('http://127.0.0.1:7245/ingest/46954ea1-1aa3-4e8d-8ae9-db1427a0457b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.jsx:trackPlay',message:'POST failed',data:{error:err.message,slug},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'C'})}).catch(()=>{});
-      // #endregion
       console.error('Failed to track play:', err);
     }
   };
@@ -177,30 +152,40 @@ function VirtualJoystick({ onMove, onEnd, label }) {
 
 // PICO-8 style console for desktop games on mobile
 function PicoConsole({ game, onClose, showAuction = true }) {
+  const iframeRef = useRef(null);
+
+  // Refocus iframe to prevent pause - call after any button interaction
+  const refocusGame = () => {
+    if (iframeRef.current) {
+      iframeRef.current.focus();
+      // Also send a focus message to the game
+      iframeRef.current.contentWindow?.postMessage({ type: "focusEvent" }, "*");
+    }
+  };
+
   const sendKey = (key, type) => {
-    const iframe = document.querySelector(".pico-game-iframe");
-    if (iframe && iframe.contentWindow) {
-      iframe.contentWindow.postMessage(
+    if (iframeRef.current?.contentWindow) {
+      iframeRef.current.contentWindow.postMessage(
         { type: "keyEvent", key, eventType: type },
         "*"
       );
     }
+    refocusGame();
   };
 
   const sendClick = (type) => {
-    const iframe = document.querySelector(".pico-game-iframe");
-    if (iframe && iframe.contentWindow) {
-      iframe.contentWindow.postMessage(
+    if (iframeRef.current?.contentWindow) {
+      iframeRef.current.contentWindow.postMessage(
         { type: "clickEvent", eventType: type },
         "*"
       );
     }
+    refocusGame();
   };
 
   const sendMouseMove = (deltaX, deltaY) => {
-    const iframe = document.querySelector(".pico-game-iframe");
-    if (iframe && iframe.contentWindow) {
-      iframe.contentWindow.postMessage(
+    if (iframeRef.current?.contentWindow) {
+      iframeRef.current.contentWindow.postMessage(
         { type: "mouseMoveEvent", deltaX, deltaY },
         "*"
       );
@@ -229,6 +214,14 @@ function PicoConsole({ game, onClose, showAuction = true }) {
     }
   };
 
+  // Prevent any touch on the console from causing focus issues
+  const handleConsoleTouchStart = (e) => {
+    // Don't prevent if it's the close button
+    if (e.target.closest('.pico-close')) return;
+    // Prevent default to stop focus changes
+    e.preventDefault();
+  };
+
   const dpad = game.controls?.dpad || {};
   const actions = game.controls?.actions || [];
   const hasLookStick = game.controls?.hasLookStick || false;
@@ -247,7 +240,11 @@ function PicoConsole({ game, onClose, showAuction = true }) {
   const hasMany = actions.length > 2 || hasLookStick || lookHint || isWideGame;
 
   return (
-    <div className="pico-fullscreen">
+    <div 
+      className="pico-fullscreen"
+      onTouchStart={handleConsoleTouchStart}
+      onTouchMove={(e) => { if (!e.target.closest('.pico-close')) e.preventDefault(); }}
+    >
       <button className="pico-close" onClick={onClose}>
         ✕
       </button>
@@ -261,6 +258,7 @@ function PicoConsole({ game, onClose, showAuction = true }) {
               style={{ aspectRatio: game.aspectRatio || "1 / 1" }}
             >
               <iframe
+                ref={iframeRef}
                 src={game.gameUrl}
                 title={game.title}
                 className="pico-game-iframe"
@@ -364,7 +362,7 @@ function PicoConsole({ game, onClose, showAuction = true }) {
             )}
 
             {/* Action Buttons - dynamically rendered */}
-            <div className={`pico-action-buttons ${hasMany && !hasLookStick ? "pico-action-grid" : ""}`}>
+            <div className={`pico-action-buttons ${hasMany && !hasLookStick ? "pico-action-grid" : ""} ${actions.length === 1 ? "pico-single-button" : ""}`}>
               {actions.map((action, index) => (
                 <button
                   key={index}
@@ -403,6 +401,60 @@ function MobileFullscreen({ game, onClose }) {
         src={game.gameUrl}
         title={game.title}
         className="mobile-fullscreen-iframe"
+        allow={`autoplay; fullscreen${game.permissions ? '; ' + game.permissions.join('; ') : ''}`}
+      />
+    </div>
+  );
+}
+
+// Landscape fullscreen view - for games that need phone rotation (no virtual controller)
+function LandscapeFullscreen({ game, onClose }) {
+  const [isLandscape, setIsLandscape] = useState(false);
+
+  useEffect(() => {
+    const checkOrientation = () => {
+      // Check if width > height (landscape) or use screen.orientation if available
+      const landscape = window.innerWidth > window.innerHeight;
+      setIsLandscape(landscape);
+    };
+    
+    checkOrientation();
+    window.addEventListener("resize", checkOrientation);
+    window.addEventListener("orientationchange", checkOrientation);
+    
+    return () => {
+      window.removeEventListener("resize", checkOrientation);
+      window.removeEventListener("orientationchange", checkOrientation);
+    };
+  }, []);
+
+  if (!isLandscape) {
+    // Portrait mode - show rotate message
+    return (
+      <div className="landscape-rotate-prompt">
+        <button className="landscape-close" onClick={onClose}>
+          ✕
+        </button>
+        <div className="rotate-message">
+          <div className="rotate-icon">📱↪️</div>
+          <h2 className="rotate-title">Rotate Your Phone</h2>
+          <p className="rotate-subtitle">Turn to landscape mode to play</p>
+          <p className="rotate-game-name">{game.title}</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Landscape mode - show game fullscreen
+  return (
+    <div className="landscape-fullscreen">
+      <button className="landscape-close" onClick={onClose}>
+        ✕
+      </button>
+      <iframe
+        src={game.gameUrl}
+        title={game.title}
+        className="landscape-game-iframe"
         allow={`autoplay; fullscreen${game.permissions ? '; ' + game.permissions.join('; ') : ''}`}
       />
     </div>
@@ -513,6 +565,10 @@ function GameModal() {
   // Desktop-first game
   if (game.platform === "desktop") {
     if (isMobile) {
+      // Check for landscape mode (no virtual controller, requires phone rotation)
+      if (game.mobileMode === "landscape") {
+        return <LandscapeFullscreen game={game} onClose={handleClose} />;
+      }
       // Desktop game on mobile = PICO-8 console
       return <PicoConsole game={game} onClose={handleClose} />;
     } else {
@@ -532,9 +588,6 @@ function GameModal() {
 function GameCard({ game }) {
   const { counts } = usePlayCounts();
   const playCount = counts[game.slug] || 0;
-  // #region agent log
-  fetch('http://127.0.0.1:7245/ingest/46954ea1-1aa3-4e8d-8ae9-db1427a0457b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.jsx:GameCard',message:'GameCard render',data:{slug:game.slug,playCount,allCounts:counts},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'E'})}).catch(()=>{});
-  // #endregion
 
   return (
     <article className="game-card">
@@ -606,6 +659,186 @@ function SocialLinks() {
   );
 }
 
+// Turnstile site key - set in Vercel env or .env as VITE_TURNSTILE_SITE_KEY
+const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY || '';
+
+// Guestbook component - retro style!
+function Guestbook() {
+  const [entries, setEntries] = useState([]);
+  const [name, setName] = useState('');
+  const [message, setMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState('');
+  const [turnstileReady, setTurnstileReady] = useState(false);
+  const turnstileRef = useRef(null);
+  const turnstileWidgetId = useRef(null);
+
+  // Load entries on mount
+  useEffect(() => {
+    fetch('/api/guestbook')
+      .then(res => res.json())
+      .then(data => {
+        if (data.entries) {
+          // Parse JSON strings if needed
+          const parsed = data.entries.map(e => typeof e === 'string' ? JSON.parse(e) : e);
+          setEntries(parsed);
+        }
+      })
+      .catch(err => console.error('Failed to load guestbook:', err));
+  }, []);
+
+  // Load Turnstile script (only if site key is configured)
+  useEffect(() => {
+    if (!TURNSTILE_SITE_KEY) return;
+    
+    if (typeof window !== 'undefined' && !window.turnstile) {
+      const script = document.createElement('script');
+      script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstileLoad';
+      script.async = true;
+      
+      window.onTurnstileLoad = () => {
+        setTurnstileReady(true);
+      };
+      
+      document.head.appendChild(script);
+    } else if (window.turnstile) {
+      setTurnstileReady(true);
+    }
+  }, []);
+
+  // Render Turnstile widget when ready
+  useEffect(() => {
+    if (!TURNSTILE_SITE_KEY || !turnstileReady || !turnstileRef.current) return;
+    if (turnstileWidgetId.current) return; // Already rendered
+    
+    turnstileWidgetId.current = window.turnstile.render(turnstileRef.current, {
+      sitekey: TURNSTILE_SITE_KEY,
+      callback: (token) => setTurnstileToken(token),
+      'expired-callback': () => setTurnstileToken(''),
+      theme: 'dark',
+    });
+  }, [turnstileReady]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccess(false);
+    setIsSubmitting(true);
+
+    try {
+      const res = await fetch('/api/guestbook', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, message, turnstileToken }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to sign guestbook');
+      }
+
+      // Add new entry to the top
+      setEntries(prev => [data.entry, ...prev]);
+      setName('');
+      setMessage('');
+      setSuccess(true);
+      
+      // Reset Turnstile
+      if (window.turnstile && turnstileWidgetId.current) {
+        window.turnstile.reset(turnstileWidgetId.current);
+      }
+      setTurnstileToken('');
+
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccess(false), 3000);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const formatDate = (timestamp) => {
+    const date = new Date(timestamp);
+    return date.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  return (
+    <section className="guestbook">
+      <h2 className="guestbook-title">📖 Guestbook</h2>
+      <p className="guestbook-subtitle">Sign the guestbook, just like the old days!</p>
+
+      {/* Sign form */}
+      <form className="guestbook-form" onSubmit={handleSubmit}>
+        <div className="guestbook-input-group">
+          <label htmlFor="gb-name">Your Name</label>
+          <input
+            id="gb-name"
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Anonymous Gamer"
+            maxLength={50}
+            required
+          />
+        </div>
+        <div className="guestbook-input-group">
+          <label htmlFor="gb-message">Message</label>
+          <textarea
+            id="gb-message"
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder="Leave a message..."
+            maxLength={500}
+            rows={3}
+            required
+          />
+        </div>
+        
+        {/* Turnstile widget - only shows if configured */}
+        {TURNSTILE_SITE_KEY && <div ref={turnstileRef} className="guestbook-turnstile" />}
+
+        {error && <p className="guestbook-error">{error}</p>}
+        {success && <p className="guestbook-success">✨ Thanks for signing!</p>}
+
+        <button 
+          type="submit" 
+          className="guestbook-submit"
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? 'Signing...' : '✍️ Sign Guestbook'}
+        </button>
+      </form>
+
+      {/* Entries list */}
+      <div className="guestbook-entries">
+        {entries.length === 0 ? (
+          <p className="guestbook-empty">Be the first to sign! 🎮</p>
+        ) : (
+          entries.map((entry) => (
+            <div key={entry.id} className="guestbook-entry">
+              <div className="guestbook-entry-header">
+                <span className="guestbook-entry-name">{entry.name}</span>
+                <span className="guestbook-entry-date">{formatDate(entry.timestamp)}</span>
+              </div>
+              <p className="guestbook-entry-message">{entry.message}</p>
+            </div>
+          ))
+        )}
+      </div>
+    </section>
+  );
+}
+
 function AppContent() {
   return (
     <main className="page">
@@ -621,6 +854,8 @@ function AppContent() {
       </header>
 
       <GamesGrid />
+      
+      <Guestbook />
 
       <Routes>
         <Route path="/:slug" element={<GameModal />} />

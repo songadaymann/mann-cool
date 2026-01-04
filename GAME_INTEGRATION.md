@@ -261,6 +261,37 @@ interface ClickMessage {
 }
 ```
 
+### Landscape Mode (No Virtual Controller)
+
+For games that work better with phone rotation instead of virtual controls (e.g., games with touch-to-jump or gesture controls), use `mobileMode: "landscape"`:
+
+```javascript
+{
+  slug: "your-touch-game",
+  title: "My Touch Game",
+  gameUrl: "https://your-game.vercel.app",
+  platform: "desktop",
+  aspectRatio: "16 / 9",
+  mobileMode: "landscape",  // Prompts user to rotate phone, then shows fullscreen
+  controls: null,           // No virtual controller needed
+}
+```
+
+**How it works:**
+1. On mobile in portrait mode: Shows a "Rotate Your Phone" message with animated icon
+2. On mobile in landscape mode: Shows the game fullscreen without any virtual controller
+3. On desktop: Shows normal modal (same as other desktop games)
+
+**When to use:**
+- Games with built-in touch controls (tap to jump, swipe to move, etc.)
+- Games that need precise touch input that doesn't work well with virtual buttons
+- Games designed for landscape orientation
+
+**Game requirements:**
+- Your game should handle touch events directly (e.g., tap anywhere to jump)
+- Game should be responsive to landscape dimensions
+- Consider adding in-game touch control hints since there's no visible controller
+
 ---
 
 ## 3D Games: Virtual Joystick Camera Control
