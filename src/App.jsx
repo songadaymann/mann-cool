@@ -20,18 +20,37 @@ function usePlayCountsProvider() {
 
   // Fetch all play counts on mount
   useEffect(() => {
+    // #region agent log
+    fetch('http://127.0.0.1:7245/ingest/46954ea1-1aa3-4e8d-8ae9-db1427a0457b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.jsx:usePlayCountsProvider',message:'Fetching play counts on mount',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
     fetch('/api/plays')
-      .then(res => res.json())
+      .then(res => {
+        // #region agent log
+        fetch('http://127.0.0.1:7245/ingest/46954ea1-1aa3-4e8d-8ae9-db1427a0457b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.jsx:fetchPlays',message:'API response received',data:{status:res.status,ok:res.ok},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B'})}).catch(()=>{});
+        // #endregion
+        return res.json();
+      })
       .then(data => {
+        // #region agent log
+        fetch('http://127.0.0.1:7245/ingest/46954ea1-1aa3-4e8d-8ae9-db1427a0457b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.jsx:fetchPlays',message:'API data parsed',data:{rawData:data,hasCounts:!!data.counts,countsKeys:data.counts?Object.keys(data.counts):[]},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
         if (data.counts) {
           setCounts(data.counts);
         }
       })
-      .catch(err => console.error('Failed to fetch play counts:', err));
+      .catch(err => {
+        // #region agent log
+        fetch('http://127.0.0.1:7245/ingest/46954ea1-1aa3-4e8d-8ae9-db1427a0457b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.jsx:fetchPlays',message:'API fetch failed',data:{error:err.message},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B'})}).catch(()=>{});
+        // #endregion
+        console.error('Failed to fetch play counts:', err);
+      });
   }, []);
 
   // Track a play
   const trackPlay = async (slug) => {
+    // #region agent log
+    fetch('http://127.0.0.1:7245/ingest/46954ea1-1aa3-4e8d-8ae9-db1427a0457b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.jsx:trackPlay',message:'trackPlay called',data:{slug},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'C'})}).catch(()=>{});
+    // #endregion
     try {
       const res = await fetch('/api/plays', {
         method: 'POST',
@@ -39,10 +58,16 @@ function usePlayCountsProvider() {
         body: JSON.stringify({ slug, source: 'mann.cool' }),
       });
       const data = await res.json();
+      // #region agent log
+      fetch('http://127.0.0.1:7245/ingest/46954ea1-1aa3-4e8d-8ae9-db1427a0457b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.jsx:trackPlay',message:'POST response received',data:{status:res.status,responseData:data},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
       if (data.count) {
         setCounts(prev => ({ ...prev, [slug]: data.count }));
       }
     } catch (err) {
+      // #region agent log
+      fetch('http://127.0.0.1:7245/ingest/46954ea1-1aa3-4e8d-8ae9-db1427a0457b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.jsx:trackPlay',message:'POST failed',data:{error:err.message,slug},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
       console.error('Failed to track play:', err);
     }
   };
@@ -208,7 +233,18 @@ function PicoConsole({ game, onClose, showAuction = true }) {
   const actions = game.controls?.actions || [];
   const hasLookStick = game.controls?.hasLookStick || false;
   const lookHint = game.controls?.lookHint || null;
-  const hasMany = actions.length > 2 || hasLookStick || lookHint;
+  
+  // Check if game has wide aspect ratio (16:9 or wider) - these need expanded console
+  const isWideGame = game.aspectRatio && (() => {
+    const match = game.aspectRatio.match(/(\d+)\s*\/\s*(\d+)/);
+    if (match) {
+      const ratio = parseInt(match[1]) / parseInt(match[2]);
+      return ratio >= 1.5; // 16:9 = 1.78, 4:3 = 1.33
+    }
+    return false;
+  })();
+  
+  const hasMany = actions.length > 2 || hasLookStick || lookHint || isWideGame;
 
   return (
     <div className="pico-fullscreen">
@@ -496,6 +532,9 @@ function GameModal() {
 function GameCard({ game }) {
   const { counts } = usePlayCounts();
   const playCount = counts[game.slug] || 0;
+  // #region agent log
+  fetch('http://127.0.0.1:7245/ingest/46954ea1-1aa3-4e8d-8ae9-db1427a0457b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.jsx:GameCard',message:'GameCard render',data:{slug:game.slug,playCount,allCounts:counts},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'E'})}).catch(()=>{});
+  // #endregion
 
   return (
     <article className="game-card">

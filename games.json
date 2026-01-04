@@ -109,18 +109,16 @@
       "platform": "desktop",
       "aspectRatio": "16 / 9",
       "controls": {
-        "dpad": {
-          "dpad": { 
-            "up": "ArrowUp", 
-            "down": "ArrowDown", 
-            "left": "ArrowLeft", 
-            "right": "ArrowRight" 
-          },
-          "actions": [
-            { "key": "z", "label": "JUMP" },
-            { "key": "x", "label": "FIRE" }
-          ]
-        }
+        "dpad": { 
+          "up": "ArrowUp", 
+          "down": "ArrowDown", 
+          "left": "ArrowLeft", 
+          "right": "ArrowRight" 
+        },
+        "actions": [
+          { "key": "z", "label": "JUMP" },
+          { "key": "x", "label": "FIRE" }
+        ]
       }
     }
   ]
