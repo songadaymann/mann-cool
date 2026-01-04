@@ -1,10 +1,17 @@
 const { Redis } = require('@upstash/redis');
 
-// Initialize Redis client with the KV_* env vars that Vercel provides
-const redis = new Redis({
-  url: process.env.KV_REST_API_URL,
-  token: process.env.KV_REST_API_TOKEN,
-});
+// Defensive: only create Redis client if env vars exist
+let redis = null;
+const url = process.env.KV_REST_API_URL;
+const token = process.env.KV_REST_API_TOKEN;
+
+if (url && token) {
+  try {
+    redis = new Redis({ url, token });
+  } catch (e) {
+    console.error('Failed to create Redis client:', e.message);
+  }
+}
 
 module.exports = async function handler(req, res) {
   // Enable CORS
@@ -14,6 +21,16 @@ module.exports = async function handler(req, res) {
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
+  }
+
+  // Check if Redis is available
+  if (!redis) {
+    return res.status(503).json({ 
+      error: 'Redis not configured',
+      hasUrl: !!url,
+      hasToken: !!token,
+      counts: {} // Return empty counts so frontend doesn't break
+    });
   }
 
   try {
@@ -70,7 +87,8 @@ module.exports = async function handler(req, res) {
     console.error('Redis error:', error.message);
     return res.status(500).json({ 
       error: 'Database error', 
-      message: error.message 
+      message: error.message,
+      counts: {} // Return empty counts so frontend doesn't break
     });
   }
 };
