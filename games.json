@@ -197,7 +197,7 @@
         },
         "actions": []
       },
-      "hidden": true
+      "hidden": false
       }
     ]
 }
