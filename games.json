@@ -188,16 +188,8 @@
       "image": "/nes-game-images/pong.png",
       "gameUrl": "https://pong-gold-omega.vercel.app/",
       "platform": "desktop",
-      "aspectRatio": "3 / 4",
-      "desktopRedirect": true,
-      "controls": {
-        "dpad": {
-          "up": "ArrowUp",
-          "down": "ArrowDown"
-        },
-        "actions": []
-      },
-      "hidden": false
+      "redirect": true,
+      "hidden": true
       }
     ]
 }

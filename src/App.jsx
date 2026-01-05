@@ -577,6 +577,12 @@ function GameModal() {
     return <FullPageGame game={game} onClose={handleClose} />;
   }
 
+  // Redirect mode - just go to the game URL directly (works for all devices)
+  if (game.redirect) {
+    window.location.href = game.gameUrl;
+    return null;
+  }
+
   // Mobile-first game
   if (game.platform === "mobile") {
     if (isMobile) {
@@ -600,11 +606,6 @@ function GameModal() {
       // Desktop game on mobile = PICO-8 console
       return <PicoConsole game={game} onClose={handleClose} />;
     } else {
-      // Desktop redirect - just go to the game URL directly
-      if (game.desktopRedirect) {
-        window.location.href = game.gameUrl;
-        return null;
-      }
       // Desktop game on desktop = standard modal
       return (
         <DesktopModal game={game} onClose={handleClose} isMobileGame={false} />
