@@ -643,9 +643,12 @@ function GameCard({ game }) {
 }
 
 function GamesGrid() {
+  // Filter out hidden games from the grid (but they're still accessible via direct URL)
+  const visibleGames = games.filter((game) => !game.hidden);
+  
   return (
     <section className="games-grid">
-      {games.map((game) => (
+      {visibleGames.map((game) => (
         <GameCard key={game.id} game={game} />
       ))}
     </section>

@@ -190,7 +190,8 @@
       "platform": "desktop",
       "aspectRatio": "3 / 4",
       "aspectRatioDesktop": "9 / 17",
-      "controls": null
+      "controls": null,
+      "hidden": true
       }
     ]
 }
