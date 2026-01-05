@@ -179,6 +179,18 @@
       "aspectRatio": "16 / 9",
       "mobileMode": "landscape",
       "controls": null
-    }
-  ]
+    },
+    {
+      "id": 8,
+      "tokenId": 8,
+      "slug": "pong",
+      "title": "Anybody // Pong",
+      "image": "/nes-game-images/pong.png",
+      "gameUrl": "https://pong-gold-omega.vercel.app/",
+      "platform": "desktop",
+      "aspectRatio": "3 / 4",
+      "aspectRatioDesktop": "9 / 16",
+      "controls": null
+      }
+    ]
 }

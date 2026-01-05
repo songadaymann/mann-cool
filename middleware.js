@@ -10,6 +10,7 @@ const games = [
   { slug: 'chonksisyphus', title: 'Sisyphus Chonk', image: '/nes-game-images/sisyphus-chonk.png' },
   { slug: 'oil', title: 'Oil & Epstein', image: '/nes-game-images/oil.png' },
   { slug: 'loki', title: 'Loki Is Genderfluid', image: '/nes-game-images/loki.png' },
+  { slug: 'pong', title: 'Anybody // Pong', image: '/nes-game-images/pong.png' },
 ];
 
 // User agents for social media crawlers

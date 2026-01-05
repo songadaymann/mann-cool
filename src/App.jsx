@@ -461,8 +461,28 @@ function LandscapeFullscreen({ game, onClose }) {
   );
 }
 
+// Full page game - no modal, just the game taking over the whole page
+function FullPageGame({ game, onClose }) {
+  return (
+    <div className="fullpage-game">
+      <Link to="/" className="fullpage-home-btn" onClick={onClose}>
+        ← Home
+      </Link>
+      <iframe
+        src={game.gameUrl}
+        title={game.title}
+        className="fullpage-iframe"
+        allow={`autoplay; fullscreen${game.permissions ? '; ' + game.permissions.join('; ') : ''}`}
+      />
+    </div>
+  );
+}
+
 // Standard modal for desktop viewing
 function DesktopModal({ game, onClose, isMobileGame }) {
+  // Use desktop-specific aspect ratio if provided, otherwise fall back to default
+  const aspectRatio = game.aspectRatioDesktop || game.aspectRatio || "16 / 9";
+  
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div
@@ -475,7 +495,7 @@ function DesktopModal({ game, onClose, isMobileGame }) {
         <h2 className="modal-title">{game.title}</h2>
         <div
           className="modal-game-wrapper"
-          style={{ aspectRatio: game.aspectRatio || "16 / 9" }}
+          style={{ aspectRatio }}
         >
           <iframe
             src={game.gameUrl}
@@ -547,6 +567,11 @@ function GameModal() {
         </div>
       </div>
     );
+  }
+
+  // Full page mode - no modal, just the game
+  if (game.fullPage) {
+    return <FullPageGame game={game} onClose={handleClose} />;
   }
 
   // Mobile-first game
