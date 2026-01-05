@@ -189,7 +189,7 @@
       "gameUrl": "https://pong-gold-omega.vercel.app/",
       "platform": "desktop",
       "redirect": true,
-      "hidden": true
-      }
-    ]
+      "hidden": false
+    }
+  ]
 }
