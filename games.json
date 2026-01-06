@@ -190,6 +190,18 @@
       "platform": "desktop",
       "redirect": true,
       "hidden": false
+    },
+    {
+      "id": 9,
+      "tokenId": 9,
+      "slug": "rcs",
+      "title": "Right-Click Save Kill",
+      "image": "/nes-game-images/rcs.png",
+      "gameUrl": "https://rcs-nine-psi.vercel.app",
+      "platform": "desktop",
+      "aspectRatio": "16 / 9",
+      "mobileMode": "landscape",
+      "controls": null
     }
   ]
 }
