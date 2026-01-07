@@ -485,11 +485,13 @@ function FullPageGame({ game, onClose }) {
 function DesktopModal({ game, onClose, isMobileGame }) {
   // Use desktop-specific aspect ratio if provided, otherwise fall back to default
   const aspectRatio = game.aspectRatioDesktop || game.aspectRatio || "16 / 9";
+  // Only apply portrait class if it's a mobile game WITHOUT a custom desktop aspect ratio
+  const usePortrait = isMobileGame && !game.aspectRatioDesktop;
   
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div
-        className={`modal-content ${isMobileGame ? "modal-portrait" : ""}`}
+        className={`modal-content ${usePortrait ? "modal-portrait" : ""}`}
         onClick={(e) => e.stopPropagation()}
       >
         <button className="modal-close" onClick={onClose}>

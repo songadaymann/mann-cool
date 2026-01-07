@@ -214,7 +214,7 @@
       "aspectRatio": "9 / 16",
       "aspectRatioDesktop": "16 / 9",
       "controls": null,
-      "hidden": true
+      "hidden": false
     }
   ]
 }
