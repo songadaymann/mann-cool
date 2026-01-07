@@ -202,6 +202,19 @@
       "aspectRatio": "16 / 9",
       "mobileMode": "landscape",
       "controls": null
+    },
+    {
+      "id": 10,
+      "tokenId": 10,
+      "slug": "kevin",
+      "title": "Kevin",
+      "image": "/nes-game-images/kevin.png",
+      "gameUrl": "https://kevin-runner.vercel.app",
+      "platform": "mobile",
+      "aspectRatio": "9 / 16",
+      "aspectRatioDesktop": "16 / 9",
+      "controls": null,
+      "hidden": true
     }
   ]
 }
