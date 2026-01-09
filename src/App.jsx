@@ -510,8 +510,8 @@ function DesktopModal({ game, onClose, isMobileGame }) {
           />
         </div>
         
-        {/* Auction Bar - shows if game has a tokenId */}
-        {game.tokenId && (
+        {/* Auction Bar - only show for game 11 (FUCK ICE) */}
+        {game.tokenId && game.id === 11 && (
           <AuctionBar tokenId={game.tokenId} gameTitle={game.title} />
         )}
         
@@ -645,8 +645,8 @@ function GameCard({ game }) {
         <h2 className="game-title">{game.title}</h2>
       </Link>
       
-      {/* Auction Bar - shows beneath each game card if it has a tokenId */}
-      {game.tokenId && (
+      {/* Auction Bar - only show for game 11 (FUCK ICE) */}
+      {game.tokenId && game.id === 11 && (
         <AuctionBar tokenId={game.tokenId} gameTitle={game.title} />
       )}
     </article>
