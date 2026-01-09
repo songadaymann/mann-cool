@@ -222,7 +222,7 @@
       "slug": "fuckice",
       "title": "FUCK ICE",
       "image": "/nes-game-images/fuckice.png",
-      "gameUrl": "fuckice.vercel.app",
+      "gameUrl": "https://fuckice.vercel.app/",
       "platform": "desktop",
       "aspectRatio": "16 / 9",
       "mobileMode": "landscape",
