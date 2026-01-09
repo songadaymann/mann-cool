@@ -215,6 +215,19 @@
       "aspectRatioDesktop": "16 / 9",
       "controls": null,
       "hidden": false
+    },
+    {
+      "id": 11,
+      "tokenId": 11,
+      "slug": "fuckice",
+      "title": "FUCK ICE",
+      "image": "/nes-game-images/fuckice.png",
+      "gameUrl": "https://fuckice.vercel.app/",
+      "platform": "desktop",
+      "aspectRatio": "16 / 9",
+      "mobileMode": "landscape",
+      "controls": null,
+      "hidden": false
     }
   ]
 }
