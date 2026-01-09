@@ -228,6 +228,19 @@
       "mobileMode": "landscape",
       "controls": null,
       "hidden": false
+    },
+    {
+      "id": 12,
+      "tokenId": 12,
+      "slug": "bubble",
+      "title": "YOU ARE BUBBLE",
+      "image": "/nes-game-images/bubble.png",
+      "gameUrl": "https://bubble-shader-game.vercel.app/",
+      "platform": "desktop",
+      "aspectRatio": "16 / 9",
+      "mobileMode": "landscape",
+      "controls": null,
+      "hidden": false
     }
   ]
 }

@@ -14,6 +14,7 @@ const games = [
   { slug: 'rcs', title: 'Right-Click Save Kill', image: '/nes-game-images/rcs.png' },
   { slug: 'kevin', title: 'Kevin', image: '/nes-game-images/kevin.png' },
   { slug: 'fuckice', title: 'FUCK ICE', image: '/nes-game-images/fuckice.png' },
+  { slug: 'bubble', title: 'YOU ARE BUBBLE', image: '/nes-game-images/bubble.png' },
 ];
 
 // User agents for social media crawlers
