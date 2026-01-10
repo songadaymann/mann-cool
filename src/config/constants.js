@@ -8,7 +8,7 @@ export const GAME_NFT_CONTRACT_ADDRESS = "0x734842b5431A926dB23A99feFbBe4B100c8A
 // GBM Auction Contract (Mainnet)
 // =============================================================================
 
-export const GBM_CONTRACT_ADDRESS = "0x06c85C9Df7a5A4b4f2bC7fB4eE2F7894BEBd277c";
+export const GBM_CONTRACT_ADDRESS = "0x1e51339ba83171E65C09132567b0bf0478bad392";
 
 // Subgraph URL (set up later if needed)
 export const GBM_SUBGRAPH_URL = "";

@@ -241,6 +241,30 @@
       "mobileMode": "landscape",
       "controls": null,
       "hidden": false
+    },
+    {
+      "id": 13,
+      "tokenId": 13,
+      "slug": "cyber",
+      "title": "Cyber Sunshine Smash",
+      "image": "/nes-game-images/cyber.png",
+      "gameUrl": "https://web-three-rho-85.vercel.app/",
+      "platform": "desktop",
+      "aspectRatio": "16 / 9",
+      "controls": {
+        "dpad": {
+          "up": "ArrowUp",
+          "down": "ArrowDown",
+          "left": "ArrowLeft",
+          "right": "ArrowRight"
+        },
+        "actions": [
+          { "key": "z", "label": "PUNCH" },
+          { "key": "x", "label": "KICK" },
+          { "key": " ", "label": "JUMP" }
+        ]
+      },
+      "hidden": false
     }
   ]
 }
