@@ -235,7 +235,7 @@
       "slug": "bubble",
       "title": "YOU ARE BUBBLE",
       "image": "/nes-game-images/bubble.png",
-      "gameUrl": "https://bubble-shader-game.vercel.app/",
+      "gameUrl": "bubble-shader-game.vercel.app",
       "platform": "desktop",
       "aspectRatio": "16 / 9",
       "mobileMode": "landscape",
@@ -248,7 +248,7 @@
       "slug": "cyber",
       "title": "Cyber Sunshine Smash",
       "image": "/nes-game-images/cyber.png",
-      "gameUrl": "https://web-three-rho-85.vercel.app/",
+      "gameUrl": "web-three-rho-85.vercel.app",
       "platform": "desktop",
       "aspectRatio": "16 / 9",
       "controls": {
@@ -259,9 +259,18 @@
           "right": "ArrowRight"
         },
         "actions": [
-          { "key": "z", "label": "PUNCH" },
-          { "key": "x", "label": "KICK" },
-          { "key": " ", "label": "JUMP" }
+          {
+            "key": "z",
+            "label": "PUNCH"
+          },
+          {
+            "key": "x",
+            "label": "KICK"
+          },
+          {
+            "key": " ",
+            "label": "JUMP"
+          }
         ]
       },
       "hidden": false
