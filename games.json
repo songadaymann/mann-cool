@@ -282,8 +282,8 @@
       "title": "game. punk. match.",
       "image": "/nes-game-images/punkmatch.png",
       "gameUrl": "https://punkmatch.vercel.app",
-      "platform": "desktop",
-      "aspectRatio": "16 / 9",
+      "platform": "mobile",
+      "aspectRatio": "9 / 16",
       "controls": null,
       "hidden": false
     }
