@@ -5,7 +5,7 @@
 const games = [
   { slug: 'coldplay-canoodle', title: 'Coldplay Canoodle', image: '/nes-game-images/coldplay-canoodle.png' },
   { slug: 'ctn', title: 'Crypto Tax Nightmare', image: '/nes-game-images/crypto-tax-nightmare.png' },
-  { slug: 'windows', title: 'Windows Didn\'t Load Correctly', image: '/nes-game-images/windows-didn't-load.png' },
+  { slug: 'windows', title: 'Windows Didn\'t Load Correctly', image: '/nes-game-images/windows-didnt-load.png' },
   { slug: 'tallgrass', title: 'Tall Grass', image: '/nes-game-images/tall-grass.png' },
   { slug: 'chonksisyphus', title: 'Sisyphus Chonk', image: '/nes-game-images/sisyphus-chonk.png' },
   { slug: 'oil', title: 'Oil & Epstein', image: '/nes-game-images/oil.png' },
