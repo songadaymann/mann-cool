@@ -235,7 +235,7 @@
       "slug": "bubble",
       "title": "YOU ARE BUBBLE",
       "image": "/nes-game-images/bubble.png",
-      "gameUrl": "bubble-shader-game.vercel.app",
+      "gameUrl": "https://bubble-shader-game.vercel.app/",
       "platform": "desktop",
       "aspectRatio": "16 / 9",
       "mobileMode": "landscape",
@@ -248,7 +248,7 @@
       "slug": "cyber",
       "title": "Cyber Sunshine Smash",
       "image": "/nes-game-images/cyber.png",
-      "gameUrl": "web-three-rho-85.vercel.app",
+      "gameUrl": "https://web-three-rho-85.vercel.app/",
       "platform": "desktop",
       "aspectRatio": "16 / 9",
       "controls": {
