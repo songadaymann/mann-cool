@@ -17,6 +17,7 @@ const games = [
   { slug: 'bubble', title: 'YOU ARE BUBBLE', image: '/nes-game-images/bubble.png' },
   { slug: 'cyber', title: 'Cyber Sunshine Smash', image: '/nes-game-images/cyber.png' },
   { slug: 'punkmatch', title: 'game. punk. match.', image: '/nes-game-images/punkmatch.png' },
+  { slug: 'beepleblox', title: 'Beeple Blox', image: '/nes-game-images/beepleblox.png' },
 ];
 
 // User agents for social media crawlers

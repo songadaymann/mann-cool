@@ -286,6 +286,19 @@
       "aspectRatio": "9 / 16",
       "controls": null,
       "hidden": false
+    },
+    {
+      "id": 15,
+      "tokenId": 15,
+      "slug": "beepleblox",
+      "title": "Beeple Blox",
+      "image": "/nes-game-images/beepleblox.png",
+      "gameUrl": "https://beeple-blox.vercel.app/",
+      "platform": "desktop",
+      "aspectRatio": "16 / 9",
+      "mobileMode": "landscape",
+      "controls": null,
+      "hidden": false
     }
   ]
 }
