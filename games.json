@@ -300,6 +300,19 @@
       "controls": null,
       "permissions": ["camera"],
       "hidden": false
+    },
+    {
+      "id": 16,
+      "tokenId": 16,
+      "slug": "doge",
+      "title": "Goodbye, Kabosu",
+      "image": "/nes-game-images/doge.png",
+      "gameUrl": "https://doge-henna-six.vercel.app/",
+      "platform": "desktop",
+      "aspectRatio": "16 / 9",
+      "mobileMode": "desktop-only",
+      "controls": null,
+      "hidden": false
     }
   ]
 }

@@ -464,6 +464,23 @@ function LandscapeFullscreen({ game, onClose }) {
   );
 }
 
+// Desktop only prompt - for games that don't work on mobile at all
+function DesktopOnlyPrompt({ game, onClose }) {
+  return (
+    <div className="desktop-only-prompt">
+      <button className="landscape-close" onClick={onClose}>
+        ✕
+      </button>
+      <div className="desktop-only-message">
+        <div className="desktop-only-icon">🖥️</div>
+        <h2 className="desktop-only-title">Desktop Only</h2>
+        <p className="desktop-only-subtitle">This game requires a desktop computer</p>
+        <p className="rotate-game-name">{game.title}</p>
+      </div>
+    </div>
+  );
+}
+
 // Full page game - no modal, just the game taking over the whole page
 function FullPageGame({ game, onClose }) {
   return (
@@ -601,6 +618,10 @@ function GameModal() {
   // Desktop-first game
   if (game.platform === "desktop") {
     if (isMobile) {
+      // Check for desktop-only mode (no mobile support at all)
+      if (game.mobileMode === "desktop-only") {
+        return <DesktopOnlyPrompt game={game} onClose={handleClose} />;
+      }
       // Check for landscape mode (no virtual controller, requires phone rotation)
       if (game.mobileMode === "landscape") {
         return <LandscapeFullscreen game={game} onClose={handleClose} />;
