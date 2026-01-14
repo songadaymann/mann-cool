@@ -313,6 +313,18 @@
       "mobileMode": "desktop-only",
       "controls": null,
       "hidden": false
+    },
+    {
+      "id": 17,
+      "tokenId": 17,
+      "slug": "girlscouts",
+      "title": "ScoutSort",
+      "image": "/nes-game-images/girlscouts.png",
+      "gameUrl": "https://girlscouts.vercel.app/",
+      "platform": "desktop",
+      "aspectRatio": "16 / 9",
+      "controls": null,
+      "hidden": false
     }
   ]
 }

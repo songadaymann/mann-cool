@@ -19,6 +19,7 @@ const games = [
   { slug: 'punkmatch', title: 'game. punk. match.', image: '/nes-game-images/punkmatch.png' },
   { slug: 'beepleblox', title: 'Beeple Blox', image: '/nes-game-images/beepleblox.png' },
   { slug: 'doge', title: 'Goodbye, Kabosu', image: '/nes-game-images/doge.png' },
+  { slug: 'girlscouts', title: 'ScoutSort', image: '/nes-game-images/girlscouts.png' },
 ];
 
 // User agents for social media crawlers
