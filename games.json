@@ -293,12 +293,14 @@
       "slug": "beepleblox",
       "title": "Beeple Blox",
       "image": "/nes-game-images/beepleblox.png",
-      "gameUrl": "https://beeple-blox.vercel.app/",
+      "gameUrl": "beeple-blox.vercel.app",
       "platform": "desktop",
       "aspectRatio": "16 / 9",
       "mobileMode": "landscape",
       "controls": null,
-      "permissions": ["camera"],
+      "permissions": [
+        "camera"
+      ],
       "hidden": false
     },
     {
@@ -307,7 +309,7 @@
       "slug": "doge",
       "title": "Goodbye, Kabosu",
       "image": "/nes-game-images/doge.png",
-      "gameUrl": "https://doge-henna-six.vercel.app/",
+      "gameUrl": "doge-henna-six.vercel.app",
       "platform": "desktop",
       "aspectRatio": "16 / 9",
       "mobileMode": "desktop-only",
@@ -321,6 +323,19 @@
       "title": "ScoutSort",
       "image": "/nes-game-images/girlscouts.png",
       "gameUrl": "https://girlscouts.vercel.app/",
+      "platform": "desktop",
+      "aspectRatio": "16 / 9",
+      "mobileMode": "landscape",
+      "controls": null,
+      "hidden": false
+    },
+    {
+      "id": 18,
+      "tokenId": 18,
+      "slug": "dream",
+      "title": "Mouth Dream",
+      "image": "/nes-game-images/dream.png",
+      "gameUrl": "https://dream-hazel.vercel.app/",
       "platform": "desktop",
       "aspectRatio": "16 / 9",
       "mobileMode": "landscape",
