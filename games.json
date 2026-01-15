@@ -323,6 +323,7 @@
       "gameUrl": "https://girlscouts.vercel.app/",
       "platform": "desktop",
       "aspectRatio": "16 / 9",
+      "mobileMode": "landscape",
       "controls": null,
       "hidden": false
     }
