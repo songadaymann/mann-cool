@@ -322,7 +322,7 @@
       "slug": "girlscouts",
       "title": "ScoutSort",
       "image": "/nes-game-images/girlscouts.png",
-      "gameUrl": "https://girlscouts.vercel.app/",
+      "gameUrl": "girlscouts.vercel.app",
       "platform": "desktop",
       "aspectRatio": "16 / 9",
       "mobileMode": "landscape",
@@ -335,10 +335,22 @@
       "slug": "dream",
       "title": "Mouth Dream",
       "image": "/nes-game-images/dream.png",
-      "gameUrl": "https://dream-hazel.vercel.app/",
+      "gameUrl": "dream-hazel.vercel.app",
       "platform": "desktop",
       "aspectRatio": "16 / 9",
       "mobileMode": "landscape",
+      "controls": null,
+      "hidden": false
+    },
+    {
+      "id": 19,
+      "tokenId": 19,
+      "slug": "kombatice",
+      "title": "Kombat Ice",
+      "image": "/nes-game-images/kombatice.png",
+      "gameUrl": "https://kombatice.vercel.app",
+      "platform": "mobile",
+      "aspectRatio": "9 / 16",
       "controls": null,
       "hidden": false
     }
