@@ -353,6 +353,19 @@
       "aspectRatio": "9 / 16",
       "controls": null,
       "hidden": false
+    },
+    {
+      "id": 20,
+      "tokenId": 20,
+      "slug": "lidstaysclosed",
+      "title": "The Lid Stays Closed",
+      "image": "/nes-game-images/lidstaysclosed.png",
+      "gameUrl": "https://catlid.vercel.app",
+      "platform": "desktop",
+      "aspectRatio": "16 / 9",
+      "mobileMode": "landscape",
+      "controls": null,
+      "hidden": false
     }
   ]
 }
