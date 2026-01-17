@@ -349,7 +349,10 @@
       "title": "Kombat Ice",
       "image": "/nes-game-images/kombatice.png",
       "gameUrl": "https://kombatice.vercel.app/",
-      "redirect": true
+      "platform": "mobile",
+      "aspectRatio": "9 / 16",
+      "controls": null,
+      "hidden": false
     }
   ]
 }
