@@ -428,6 +428,11 @@ body::before {
   max-width: 400px;
 }
 
+.modal-portrait .modal-game-wrapper {
+  width: 100%;
+  max-height: none;
+}
+
 /* ========================================
    MOBILE FULLSCREEN (for mobile games on mobile)
    ======================================== */
