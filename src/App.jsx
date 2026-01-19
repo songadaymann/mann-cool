@@ -163,9 +163,11 @@ function PicoConsole({ game, onClose, showAuction = true }) {
   // Listen for messages from the game iframe (e.g., keyboard requests)
   useEffect(() => {
     const handleMessage = (event) => {
+      console.log('[mann.cool] Received postMessage:', event.data);
       const { type, show, context } = event.data || {};
 
       if (type === 'requestKeyboard') {
+        console.log('[mann.cool] requestKeyboard received, show:', show, 'context:', context);
         setShowKeyboard(show);
         setKeyboardText('');
         if (show) {
@@ -176,6 +178,7 @@ function PicoConsole({ game, onClose, showAuction = true }) {
     };
 
     window.addEventListener('message', handleMessage);
+    console.log('[mann.cool] Message listener attached for keyboard requests');
     return () => window.removeEventListener('message', handleMessage);
   }, []);
 
