@@ -161,10 +161,14 @@ function PicoConsole({ game, onClose, showAuction = true }) {
   const textInputRef = useRef(null);
 
   // Listen for messages from the game iframe (e.g., keyboard requests)
-  // Note: Currently unused - games use D-pad for name input instead
   useEffect(() => {
     const handleMessage = (event) => {
-      const { type, show } = event.data || {};
+      const { type, show, key } = event.data || {};
+
+      // Debug: log acknowledgments from meelode
+      if (type === 'meelode-ack') {
+        console.log('[mann.cool] RECEIVED ACK from meelode for key:', key);
+      }
 
       if (type === 'requestKeyboard') {
         setShowKeyboard(show);
