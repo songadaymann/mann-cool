@@ -209,6 +209,7 @@ function PicoConsole({ game, onClose, showAuction = true }) {
   };
 
   const sendKey = (key, type) => {
+    console.log('[mann.cool] sendKey:', key, type, 'iframe:', !!iframeRef.current?.contentWindow);
     if (iframeRef.current?.contentWindow) {
       iframeRef.current.contentWindow.postMessage(
         { type: "keyEvent", key, eventType: type },
