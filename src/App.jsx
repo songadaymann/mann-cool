@@ -156,6 +156,48 @@ function VirtualJoystick({ onMove, onEnd, label }) {
 // PICO-8 style console for desktop games on mobile
 function PicoConsole({ game, onClose, showAuction = true }) {
   const iframeRef = useRef(null);
+  const [showKeyboard, setShowKeyboard] = useState(false);
+  const [keyboardText, setKeyboardText] = useState('');
+  const textInputRef = useRef(null);
+
+  // Listen for messages from the game iframe (e.g., keyboard requests)
+  useEffect(() => {
+    const handleMessage = (event) => {
+      const { type, show, context } = event.data || {};
+
+      if (type === 'requestKeyboard') {
+        setShowKeyboard(show);
+        setKeyboardText('');
+        if (show) {
+          // Focus the input after a short delay to ensure it's rendered
+          setTimeout(() => textInputRef.current?.focus(), 100);
+        }
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
+
+  // Send text input to the game
+  const sendTextToGame = (text) => {
+    if (iframeRef.current?.contentWindow) {
+      iframeRef.current.contentWindow.postMessage(
+        { type: 'textInputEvent', text },
+        '*'
+      );
+    }
+  };
+
+  // Handle text input submission
+  const handleTextSubmit = () => {
+    if (keyboardText.trim()) {
+      sendTextToGame(keyboardText.toUpperCase());
+      setKeyboardText('');
+      setShowKeyboard(false);
+      refocusGame();
+    }
+  };
 
   // Refocus iframe to prevent pause - call after any button interaction
   const refocusGame = () => {
@@ -251,6 +293,42 @@ function PicoConsole({ game, onClose, showAuction = true }) {
       <button className="pico-close" onClick={onClose}>
         ✕
       </button>
+
+      {/* Keyboard overlay for text input (e.g., high score name entry) */}
+      {showKeyboard && (
+        <div className="pico-keyboard-overlay">
+          <div className="pico-keyboard-modal">
+            <div className="pico-keyboard-title">ENTER YOUR NAME</div>
+            <input
+              ref={textInputRef}
+              type="text"
+              className="pico-keyboard-input"
+              value={keyboardText}
+              onChange={(e) => setKeyboardText(e.target.value.slice(0, 8))}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleTextSubmit();
+              }}
+              maxLength={8}
+              autoComplete="off"
+              autoCapitalize="characters"
+            />
+            <div className="pico-keyboard-buttons">
+              <button
+                className="pico-keyboard-btn pico-keyboard-cancel"
+                onClick={() => setShowKeyboard(false)}
+              >
+                CANCEL
+              </button>
+              <button
+                className="pico-keyboard-btn pico-keyboard-ok"
+                onClick={handleTextSubmit}
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className={`pico-console ${hasMany ? "pico-console-expanded" : ""}`}>
         <div className="pico-bezel">

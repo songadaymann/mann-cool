@@ -391,6 +391,10 @@
           {
             "key": "x",
             "label": "DIG R"
+          },
+          {
+            "key": "Enter",
+            "label": "OK"
           }
         ]
       },
