@@ -161,27 +161,21 @@ function PicoConsole({ game, onClose, showAuction = true }) {
   const textInputRef = useRef(null);
 
   // Listen for messages from the game iframe (e.g., keyboard requests)
+  // Note: Currently unused - games use D-pad for name input instead
   useEffect(() => {
     const handleMessage = (event) => {
-      // Only log messages that have a type property (game messages)
-      const { type, show, context } = event.data || {};
-      if (type) {
-        console.log('[mann.cool] Received postMessage with type:', type, 'data:', event.data, 'origin:', event.origin);
-      }
+      const { type, show } = event.data || {};
 
       if (type === 'requestKeyboard') {
-        console.log('[mann.cool] requestKeyboard received, show:', show, 'context:', context);
         setShowKeyboard(show);
         setKeyboardText('');
         if (show) {
-          // Focus the input after a short delay to ensure it's rendered
           setTimeout(() => textInputRef.current?.focus(), 100);
         }
       }
     };
 
     window.addEventListener('message', handleMessage);
-    console.log('[mann.cool] Message listener attached for keyboard requests');
     return () => window.removeEventListener('message', handleMessage);
   }, []);
 
