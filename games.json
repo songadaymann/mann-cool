@@ -373,7 +373,7 @@
       "slug": "meelode",
       "title": "LodeMeeRunnerBits",
       "image": "/nes-game-images/meelode.png",
-      "gameUrl": "https://meelode.vercel.app",
+      "gameUrl": "https://meelode.vercel.app/lodeRunner.html",
       "platform": "desktop",
       "aspectRatio": "16 / 9",
       "controls": {
