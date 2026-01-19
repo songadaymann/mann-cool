@@ -163,8 +163,11 @@ function PicoConsole({ game, onClose, showAuction = true }) {
   // Listen for messages from the game iframe (e.g., keyboard requests)
   useEffect(() => {
     const handleMessage = (event) => {
-      console.log('[mann.cool] Received postMessage:', event.data);
+      // Only log messages that have a type property (game messages)
       const { type, show, context } = event.data || {};
+      if (type) {
+        console.log('[mann.cool] Received postMessage with type:', type, 'data:', event.data, 'origin:', event.origin);
+      }
 
       if (type === 'requestKeyboard') {
         console.log('[mann.cool] requestKeyboard received, show:', show, 'context:', context);
