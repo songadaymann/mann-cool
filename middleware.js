@@ -5,7 +5,7 @@
 const games = [
   { slug: 'coldplay-canoodle', title: 'Coldplay Canoodle', image: '/nes-game-images/coldplay-canoodle.png' },
   { slug: 'ctn', title: 'Crypto Tax Nightmare', image: '/nes-game-images/crypto-tax-nightmare.png' },
-  { slug: 'windows', title: 'Windows Didn\'t Load Correctly', image: '/nes-game-images/windows-didn't-load.png' },
+  { slug: 'windows', title: 'Windows Didn\'t Load Correctly', image: '/nes-game-images/windows-didn\'t-load.png' },
   { slug: 'tallgrass', title: 'Tall Grass', image: '/nes-game-images/tall-grass.png' },
   { slug: 'chonksisyphus', title: 'Sisyphus Chonk', image: '/nes-game-images/sisyphus-chonk.png' },
   { slug: 'oil', title: 'Oil & Epstein', image: '/nes-game-images/oil.png' },
@@ -21,6 +21,10 @@ const games = [
   { slug: 'doge', title: 'Goodbye, Kabosu', image: '/nes-game-images/doge.png' },
   { slug: 'girlscouts', title: 'ScoutSort', image: '/nes-game-images/girlscouts.png' },
   { slug: 'dream', title: 'Mouth Dream', image: '/nes-game-images/dream.png' },
+  { slug: 'kombatice', title: 'Kombat Ice', image: '/nes-game-images/kombatice.png' },
+  { slug: 'lidstaysclosed', title: 'The Lid Stays Closed', image: '/nes-game-images/lidstaysclosed.png' },
+  { slug: 'meelode', title: 'LodeMeeRunnerBits', image: '/nes-game-images/meelode.png' },
+  { slug: 'synthsnow', title: 'SynthSnow', image: '/nes-game-images/synthsnow.png' },
 ];
 
 // User agents for social media crawlers
