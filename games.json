@@ -366,6 +366,35 @@
       "mobileMode": "landscape",
       "controls": null,
       "hidden": false
+    },
+    {
+      "id": 21,
+      "tokenId": 21,
+      "slug": "meelode",
+      "title": "LodeMeeRunnerBits",
+      "image": "/nes-game-images/meelode.png",
+      "gameUrl": "https://meelode.vercel.app",
+      "platform": "desktop",
+      "aspectRatio": "16 / 9",
+      "controls": {
+        "dpad": {
+          "up": "ArrowUp",
+          "down": "ArrowDown",
+          "left": "ArrowLeft",
+          "right": "ArrowRight"
+        },
+        "actions": [
+          {
+            "key": "z",
+            "label": "DIG L"
+          },
+          {
+            "key": "x",
+            "label": "DIG R"
+          }
+        ]
+      },
+      "hidden": false
     }
   ]
 }
