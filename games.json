@@ -399,6 +399,20 @@
         ]
       },
       "hidden": false
+    },
+    {
+      "id": 22,
+      "tokenId": 22,
+      "slug": "synthsnow",
+      "title": "SynthSnow",
+      "image": "/nes-game-images/synthsnow.png",
+      "gameUrl": "https://synthsnow.vercel.app",
+      "platform": "desktop",
+      "aspectRatio": "16 / 9",
+      "mobileMode": "landscape",
+      "controls": null,
+      "permissions": ["camera"],
+      "hidden": false
     }
   ]
 }
