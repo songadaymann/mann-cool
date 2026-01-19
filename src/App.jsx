@@ -163,12 +163,7 @@ function PicoConsole({ game, onClose, showAuction = true }) {
   // Listen for messages from the game iframe (e.g., keyboard requests)
   useEffect(() => {
     const handleMessage = (event) => {
-      const { type, show, key } = event.data || {};
-
-      // Debug: log acknowledgments from meelode
-      if (type === 'meelode-ack') {
-        console.log('[mann.cool] RECEIVED ACK from meelode for key:', key);
-      }
+      const { type, show } = event.data || {};
 
       if (type === 'requestKeyboard') {
         setShowKeyboard(show);
@@ -213,7 +208,6 @@ function PicoConsole({ game, onClose, showAuction = true }) {
   };
 
   const sendKey = (key, type) => {
-    console.log('[mann.cool] sendKey:', key, type, 'iframe:', !!iframeRef.current?.contentWindow);
     if (iframeRef.current?.contentWindow) {
       iframeRef.current.contentWindow.postMessage(
         { type: "keyEvent", key, eventType: type },
