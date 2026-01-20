@@ -1012,6 +1012,7 @@ function AppContent() {
           <h1 className="title">mann.cool</h1>
         </Link>
         <p className="subtitle">games by jonathan mann</p>
+        <p className="subtitle">exec. produced by <a href="https://x.com/cxy" target="_blank" rel="noopener noreferrer">cxy</a></p>
         <SocialLinks />
         <button 
           className="guestbook-trigger"
