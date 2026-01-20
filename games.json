@@ -413,6 +413,18 @@
       "controls": null,
       "permissions": ["camera"],
       "hidden": false
+    },
+    {
+      "id": 23,
+      "tokenId": 23,
+      "slug": "protectgreenland",
+      "title": "Protect Greenland",
+      "image": "/nes-game-images/protectgreenland.png",
+      "gameUrl": "https://protectgreenland.vercel.app",
+      "platform": "desktop",
+      "aspectRatio": "16 / 9",
+      "controls": null,
+      "hidden": false
     }
   ]
 }
