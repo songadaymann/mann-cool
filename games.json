@@ -423,7 +423,7 @@
       "gameUrl": "https://protectgreenland.vercel.app",
       "platform": "desktop",
       "aspectRatio": "16 / 9",
-      "mobileMode": "landscape",
+      "redirect": true,
       "controls": null,
       "hidden": false
     }
