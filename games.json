@@ -426,6 +426,36 @@
       "redirect": true,
       "controls": null,
       "hidden": false
+    },
+    {
+      "id": 24,
+      "tokenId": 24,
+      "slug": "penisvagina",
+      "title": "Penis // Vagina",
+      "image": "/nes-game-images/penisvagina.png",
+      "gameUrl": "https://penis-vagina.songadaymann.partykit.dev",
+      "platform": "desktop",
+      "aspectRatio": "16 / 9",
+      "controls": {
+        "dpad": {
+          "up": "ArrowUp",
+          "down": "ArrowDown",
+          "left": "ArrowLeft",
+          "right": "ArrowRight"
+        },
+        "actions": [
+          {
+            "key": "ArrowUp",
+            "label": "JUMP"
+          },
+          {
+            "key": "click",
+            "label": "SHOOT",
+            "isClick": true
+          }
+        ]
+      },
+      "hidden": false
     }
   ]
 }
