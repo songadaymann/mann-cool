@@ -435,26 +435,7 @@
       "image": "/nes-game-images/penisvagina.png",
       "gameUrl": "https://penis-vagina.songadaymann.partykit.dev",
       "platform": "desktop",
-      "aspectRatio": "16 / 9",
-      "controls": {
-        "dpad": {
-          "up": "ArrowUp",
-          "down": "ArrowDown",
-          "left": "ArrowLeft",
-          "right": "ArrowRight"
-        },
-        "actions": [
-          {
-            "key": "ArrowUp",
-            "label": "JUMP"
-          },
-          {
-            "key": "click",
-            "label": "SHOOT",
-            "isClick": true
-          }
-        ]
-      },
+      "redirect": true,
       "hidden": false
     }
   ]
