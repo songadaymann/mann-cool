@@ -437,6 +437,19 @@
       "platform": "desktop",
       "redirect": true,
       "hidden": false
+    },
+    {
+      "id": 25,
+      "tokenId": 25,
+      "slug": "punksinspace",
+      "title": "Punks In Space",
+      "image": "/nes-game-images/punksinspace.png",
+      "gameUrl": "https://punksinspace.vercel.app",
+      "platform": "mobile",
+      "aspectRatio": "9 / 16",
+      "aspectRatioDesktop": "16 / 9",
+      "controls": null,
+      "hidden": false
     }
   ]
 }
