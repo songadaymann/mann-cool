@@ -450,6 +450,18 @@
       "aspectRatioDesktop": "16 / 9",
       "controls": null,
       "hidden": false
+    },
+    {
+      "id": 26,
+      "tokenId": 26,
+      "slug": "towerofpunks",
+      "title": "Tower of Punks",
+      "image": "/nes-game-images/towerofpunks.png",
+      "gameUrl": "https://towerofpunks.vercel.app",
+      "platform": "mobile",
+      "aspectRatio": "9 / 16",
+      "controls": null,
+      "hidden": false
     }
   ]
 }
