@@ -462,6 +462,18 @@
       "aspectRatio": "9 / 16",
       "controls": null,
       "hidden": false
+    },
+    {
+      "id": 27,
+      "tokenId": 27,
+      "slug": "armfulofpunks",
+      "title": "Armful of Punks",
+      "image": "/nes-game-images/armfulofpunks.png",
+      "gameUrl": "https://armfulofpunks.vercel.app",
+      "platform": "mobile",
+      "aspectRatio": "9 / 16",
+      "controls": null,
+      "hidden": false
     }
   ]
 }
