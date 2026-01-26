@@ -474,6 +474,18 @@
       "aspectRatio": "9 / 16",
       "controls": null,
       "hidden": false
+    },
+    {
+      "id": 28,
+      "tokenId": 28,
+      "slug": "punkfling",
+      "title": "Punk Fling",
+      "image": "/nes-game-images/punkfling.png",
+      "gameUrl": "https://punk-fling.vercel.app",
+      "platform": "mobile",
+      "aspectRatio": "9 / 16",
+      "controls": null,
+      "hidden": false
     }
   ]
 }
