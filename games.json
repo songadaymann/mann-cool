@@ -112,7 +112,7 @@
       "slug": "tallgrass",
       "title": "Tall Grass",
       "image": "/nes-game-images/tall-grass.png",
-      "gameUrl": "https://tallgrass-game.vercel.app",
+      "gameUrl": "tall-grass.vercel.app",
       "platform": "desktop",
       "aspectRatio": "16 / 9",
       "controls": {
@@ -411,7 +411,9 @@
       "aspectRatio": "16 / 9",
       "mobileMode": "landscape",
       "controls": null,
-      "permissions": ["camera"],
+      "permissions": [
+        "camera"
+      ],
       "hidden": false
     },
     {
@@ -482,6 +484,18 @@
       "title": "Punk Fling",
       "image": "/nes-game-images/punkfling.png",
       "gameUrl": "https://punk-fling.vercel.app",
+      "platform": "mobile",
+      "aspectRatio": "9 / 16",
+      "controls": null,
+      "hidden": false
+    },
+    {
+      "id": 29,
+      "tokenId": 29,
+      "slug": "dontscroll",
+      "title": "Don't Scroll",
+      "image": "/nes-game-images/dontscroll.png",
+      "gameUrl": "https://dontscroll.vercel.app",
       "platform": "mobile",
       "aspectRatio": "9 / 16",
       "controls": null,
