@@ -500,6 +500,18 @@
       "aspectRatio": "9 / 16",
       "controls": null,
       "hidden": false
+    },
+    {
+      "id": 30,
+      "tokenId": 30,
+      "slug": "perilouspenguin",
+      "title": "Perilous Penguin",
+      "image": "/nes-game-images/perilouspenguin.png",
+      "gameUrl": "https://perilouspenguin.vercel.app",
+      "platform": "mobile",
+      "aspectRatio": "9 / 16",
+      "controls": null,
+      "hidden": false
     }
   ]
 }
