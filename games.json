@@ -512,6 +512,19 @@
       "aspectRatio": "9 / 16",
       "controls": null,
       "hidden": false
+    },
+    {
+      "id": 31,
+      "tokenId": 31,
+      "slug": "flighttosfo",
+      "title": "Flight To SFO",
+      "image": "/nes-game-images/flighttosfo.png",
+      "gameUrl": "https://848-seven.vercel.app",
+      "platform": "desktop",
+      "aspectRatio": "16 / 9",
+      "mobileMode": "desktop-only",
+      "controls": null,
+      "hidden": false
     }
   ]
 }
