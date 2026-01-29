@@ -534,9 +534,7 @@
       "image": "/nes-game-images/meebitsmountain.png",
       "gameUrl": "https://335prod.vercel.app",
       "platform": "desktop",
-      "aspectRatio": "16 / 9",
-      "mobileMode": "landscape",
-      "controls": null,
+      "redirect": true,
       "hidden": false
     }
   ]
