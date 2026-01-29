@@ -525,6 +525,19 @@
       "mobileMode": "desktop-only",
       "controls": null,
       "hidden": false
+    },
+    {
+      "id": 32,
+      "tokenId": 32,
+      "slug": "meebitsmountain",
+      "title": "Meebits Mountain",
+      "image": "/nes-game-images/meebitsmountain.png",
+      "gameUrl": "https://335prod.vercel.app",
+      "platform": "desktop",
+      "aspectRatio": "16 / 9",
+      "mobileMode": "landscape",
+      "controls": null,
+      "hidden": false
     }
   ]
 }
