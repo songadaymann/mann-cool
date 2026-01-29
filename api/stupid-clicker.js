@@ -23,49 +23,53 @@ import { Redis } from '@upstash/redis';
 // =============================================================================
 
 // Personal Milestones - unlock at these individual click counts
+// tier = NFT token ID in StupidClickerNFT contract (1-12 for personal milestones)
 const PERSONAL_MILESTONES = [
-  { id: 'first-timer', clicks: 1, name: 'First Timer', description: 'Your first click!', cosmetic: null, nftEligible: false },
-  { id: 'getting-started', clicks: 100, name: 'Getting Started', description: '100 clicks', cosmetic: 'cursor-bronze', nftEligible: false },
-  { id: 'warming-up', clicks: 500, name: 'Warming Up', description: '500 clicks', cosmetic: 'cursor-silver', nftEligible: false },
-  { id: 'dedicated', clicks: 1000, name: 'Dedicated', description: '1,000 clicks', cosmetic: 'cursor-gold', nftEligible: true },
-  { id: 'serious-clicker', clicks: 5000, name: 'Serious Clicker', description: '5,000 clicks', cosmetic: 'button-red-glow', nftEligible: true },
-  { id: 'obsessed', clicks: 10000, name: 'Obsessed', description: '10,000 clicks', cosmetic: 'button-blue', nftEligible: true },
-  { id: 'no-sleep', clicks: 25000, name: 'No Sleep', description: '25,000 clicks', cosmetic: 'cursor-rainbow', nftEligible: true },
-  { id: 'touch-grass', clicks: 50000, name: 'Touch Grass', description: '50,000 clicks', cosmetic: 'button-purple', nftEligible: true },
-  { id: 'legend', clicks: 100000, name: 'Legend', description: '100,000 clicks', cosmetic: 'button-animated', nftEligible: true },
-  { id: 'ascended', clicks: 250000, name: 'Ascended', description: '250,000 clicks', cosmetic: 'cursor-fire', nftEligible: true },
-  { id: 'transcendent', clicks: 500000, name: 'Transcendent', description: '500,000 clicks', cosmetic: 'button-gold', nftEligible: true },
-  { id: 'click-god', clicks: 1000000, name: 'Click God', description: '1,000,000 clicks', cosmetic: 'everything-special', nftEligible: true },
+  { id: 'first-timer', tier: 1, clicks: 1, name: 'First Timer', description: 'Your first click!', cosmetic: null, nftEligible: true },
+  { id: 'getting-started', tier: 2, clicks: 100, name: 'Getting Started', description: '100 clicks', cosmetic: 'cursor-bronze', nftEligible: true },
+  { id: 'warming-up', tier: 3, clicks: 500, name: 'Warming Up', description: '500 clicks', cosmetic: 'cursor-silver', nftEligible: true },
+  { id: 'dedicated', tier: 4, clicks: 1000, name: 'Dedicated', description: '1,000 clicks', cosmetic: 'cursor-gold', nftEligible: true },
+  { id: 'serious-clicker', tier: 5, clicks: 5000, name: 'Serious Clicker', description: '5,000 clicks', cosmetic: 'button-red-glow', nftEligible: true },
+  { id: 'obsessed', tier: 6, clicks: 10000, name: 'Obsessed', description: '10,000 clicks', cosmetic: 'button-blue', nftEligible: true },
+  { id: 'no-sleep', tier: 7, clicks: 25000, name: 'No Sleep', description: '25,000 clicks', cosmetic: 'cursor-rainbow', nftEligible: true },
+  { id: 'touch-grass', tier: 8, clicks: 50000, name: 'Touch Grass', description: '50,000 clicks', cosmetic: 'button-purple', nftEligible: true },
+  { id: 'legend', tier: 9, clicks: 100000, name: 'Legend', description: '100,000 clicks', cosmetic: 'button-animated', nftEligible: true },
+  { id: 'ascended', tier: 10, clicks: 250000, name: 'Ascended', description: '250,000 clicks', cosmetic: 'cursor-fire', nftEligible: true },
+  { id: 'transcendent', tier: 11, clicks: 500000, name: 'Transcendent', description: '500,000 clicks', cosmetic: 'button-gold', nftEligible: true },
+  { id: 'click-god', tier: 12, clicks: 1000000, name: 'Click God', description: '1,000,000 clicks', cosmetic: 'everything-special', nftEligible: true },
 ];
 
 // Global Milestones - first person to hit X OVERALL clicks wins (1/1 NFTs)
+// tier = NFT token ID (200-209 for global 1/1 milestones)
 const GLOBAL_MILESTONES = [
-  { id: 'global-1', globalClick: 1, name: 'The First Click', description: 'The very first click ever' },
-  { id: 'global-100', globalClick: 100, name: 'Century', description: 'The 100th click' },
-  { id: 'global-1000', globalClick: 1000, name: 'Thousandaire', description: 'The 1,000th click' },
-  { id: 'global-10000', globalClick: 10000, name: 'Ten Grand', description: 'The 10,000th click' },
-  { id: 'global-100000', globalClick: 100000, name: 'The Hundred Thousandth', description: 'The 100,000th click' },
-  { id: 'global-1000000', globalClick: 1000000, name: 'The Millionth Click', description: 'The 1,000,000th click' },
-  { id: 'global-10000000', globalClick: 10000000, name: 'Ten Million', description: 'The 10,000,000th click' },
-  { id: 'global-50000000', globalClick: 50000000, name: 'Halfway There', description: 'The 50,000,000th click' },
-  { id: 'global-100000000', globalClick: 100000000, name: 'The Final Click', description: 'The 100,000,000th click' },
+  { id: 'global-1', tier: 201, globalClick: 1, name: 'The First Click', description: 'The very first click ever' },
+  { id: 'global-100', tier: 202, globalClick: 100, name: 'Century', description: 'The 100th click' },
+  { id: 'global-1000', tier: 203, globalClick: 1000, name: 'Thousandaire', description: 'The 1,000th click' },
+  { id: 'global-10000', tier: 204, globalClick: 10000, name: 'Ten Grand', description: 'The 10,000th click' },
+  { id: 'global-100000', tier: 205, globalClick: 100000, name: 'The Hundred Thousandth', description: 'The 100,000th click' },
+  { id: 'global-1000000', tier: 206, globalClick: 1000000, name: 'The Millionth Click', description: 'The 1,000,000th click' },
+  { id: 'global-10000000', tier: 207, globalClick: 10000000, name: 'Ten Million', description: 'The 10,000,000th click' },
+  { id: 'global-50000000', tier: 208, globalClick: 50000000, name: 'Halfway There', description: 'The 50,000,000th click' },
+  { id: 'global-100000000', tier: 209, globalClick: 100000000, name: 'The Final Click', description: 'The 100,000,000th click' },
 ];
 
 // Hidden Achievements - triggered at specific personal click numbers (don't announce!)
+// tier = NFT token ID (500+ for hidden achievements)
 const HIDDEN_ACHIEVEMENTS = [
-  { id: 'nice', triggerClick: 69, name: 'Nice', description: 'Nice.' },
-  { id: 'blaze-it', triggerClick: 420, name: 'Blaze It', description: '420 blaze it' },
-  { id: 'devils-click', triggerClick: 666, name: "Devil's Click", description: 'The number of the beast' },
-  { id: 'lucky-7s', triggerClick: 777, name: 'Lucky 7s', description: 'Jackpot!' },
-  { id: 'elite', triggerClick: 1337, name: 'Elite', description: 'L33T H4X0R' },
-  { id: 'palindrome', triggerClick: 12321, name: 'Palindrome', description: 'Reads the same forwards and backwards' },
+  { id: 'nice', tier: 500, triggerClick: 69, name: 'Nice', description: 'Nice.' },
+  { id: 'blaze-it', tier: 501, triggerClick: 420, name: 'Blaze It', description: '420 blaze it' },
+  { id: 'devils-click', tier: 502, triggerClick: 666, name: "Devil's Click", description: 'The number of the beast' },
+  { id: 'lucky-7s', tier: 503, triggerClick: 777, name: 'Lucky 7s', description: 'Jackpot!' },
+  { id: 'elite', tier: 504, triggerClick: 1337, name: 'Elite', description: 'L33T H4X0R' },
+  { id: 'palindrome', tier: 505, triggerClick: 12321, name: 'Palindrome', description: 'Reads the same forwards and backwards' },
 ];
 
 // Streak Achievements
+// tier = NFT token ID (101-103 for streak achievements)
 const STREAK_ACHIEVEMENTS = [
-  { id: 'week-warrior', days: 7, name: 'Week Warrior', description: 'Clicked 7 days in a row' },
-  { id: 'month-master', days: 30, name: 'Month Master', description: 'Clicked 30 days in a row' },
-  { id: 'perfect-attendance', days: 90, name: 'Perfect Attendance', description: 'Clicked all 90 days' },
+  { id: 'week-warrior', tier: 101, days: 7, name: 'Week Warrior', description: 'Clicked 7 days in a row' },
+  { id: 'month-master', tier: 102, days: 30, name: 'Month Master', description: 'Clicked 30 days in a row' },
+  { id: 'perfect-attendance', tier: 103, days: 90, name: 'Perfect Attendance', description: 'Clicked all 90 days' },
 ];
 
 // Time-Based Achievements
@@ -76,9 +80,10 @@ const TIME_ACHIEVEMENTS = [
 ];
 
 // Epoch-Based Achievements
+// tier = NFT token ID (104-105 for epoch achievements)
 const EPOCH_ACHIEVEMENTS = [
-  { id: 'day-one-og', epoch: 1, name: 'Day One OG', description: 'Clicked during epoch 1' },
-  { id: 'final-day', epoch: 90, name: 'The Final Day', description: 'Clicked during epoch 90' },
+  { id: 'day-one-og', tier: 104, epoch: 1, name: 'Day One OG', description: 'Clicked during epoch 1' },
+  { id: 'final-day', tier: 105, epoch: 90, name: 'The Final Day', description: 'Clicked during epoch 90' },
 ];
 
 // Legacy alias for backwards compatibility
