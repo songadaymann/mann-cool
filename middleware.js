@@ -5,7 +5,7 @@
 const games = [
   { slug: 'coldplay-canoodle', title: 'Coldplay Canoodle', image: '/nes-game-images/coldplay-canoodle.png' },
   { slug: 'ctn', title: 'Crypto Tax Nightmare', image: '/nes-game-images/crypto-tax-nightmare.png' },
-  { slug: 'windows', title: 'Windows Didn\'t Load Correctly', image: '/nes-game-images/windows-didn\'t-load.png' },
+  { slug: 'windows', title: 'Windows Didn\'t Load Correctly', image: '/nes-game-images/windows-didn't-load.png' },
   { slug: 'tallgrass', title: 'Tall Grass', image: '/nes-game-images/tall-grass.png' },
   { slug: 'chonksisyphus', title: 'Sisyphus Chonk', image: '/nes-game-images/sisyphus-chonk.png' },
   { slug: 'oil', title: 'Oil & Epstein', image: '/nes-game-images/oil.png' },
@@ -25,6 +25,12 @@ const games = [
   { slug: 'lidstaysclosed', title: 'The Lid Stays Closed', image: '/nes-game-images/lidstaysclosed.png' },
   { slug: 'meelode', title: 'LodeMeeRunnerBits', image: '/nes-game-images/meelode.png' },
   { slug: 'synthsnow', title: 'SynthSnow', image: '/nes-game-images/synthsnow.png' },
+  { slug: 'protectgreenland', title: 'Protect Greenland', image: '/nes-game-images/protectgreenland.png' },
+  { slug: 'penisvagina', title: 'Penis // Vagina', image: '/nes-game-images/penisvagina.png' },
+  { slug: 'punksinspace', title: 'Punks In Space', image: '/nes-game-images/punksinspace.png' },
+  { slug: 'towerofpunks', title: 'Tower of Punks', image: '/nes-game-images/towerofpunks.png' },
+  { slug: 'armfulofpunks', title: 'Armful of Punks', image: '/nes-game-images/armfulofpunks.png' },
+  { slug: 'punkfling', title: 'Punk Fling', image: '/nes-game-images/punkfling.png' },
 ];
 
 // User agents for social media crawlers

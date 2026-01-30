@@ -94,6 +94,7 @@ const MILESTONES = PERSONAL_MILESTONES;
 // =============================================================================
 const CLICKS_KEY = (addr) => `stupid-clicker:clicks:${addr.toLowerCase()}`;
 const LEADERBOARD_KEY = 'stupid-clicker:leaderboard';
+const ONCHAIN_LEADERBOARD_KEY = 'stupid-clicker:onchain-leaderboard'; // Tracks on-chain submissions via frontend
 const MILESTONES_KEY = (addr) => `stupid-clicker:milestones:${addr.toLowerCase()}`;
 const ACHIEVEMENTS_KEY = (addr) => `stupid-clicker:achievements:${addr.toLowerCase()}`;
 const ELIGIBLE_KEY = 'stupid-clicker:nft-eligible';
@@ -331,20 +332,57 @@ export default async function handler(req, res) {
       });
     }
 
-    // POST - Record frontend clicks
+    // POST - Record frontend clicks or on-chain submissions
     if (req.method === 'POST') {
       const body = req.body || {};
-      const { address, clicks, sessionId, name, epoch, timestamp, turnstileToken } = body;
+      const { address, clicks, onChainClicks, txHash, sessionId, name, epoch, timestamp, turnstileToken } = body;
 
-      // Validate
+      // Validate address (required for all POST requests)
       if (!validateAddress(address)) {
         return res.status(400).json({ error: 'Invalid or missing address' });
       }
+
+      const addr = address.toLowerCase();
+
+      // -----------------------------------------------------------------------
+      // ON-CHAIN SUBMISSION TRACKING (no Turnstile required - blockchain is proof)
+      // -----------------------------------------------------------------------
+      if (onChainClicks && typeof onChainClicks === 'number' && onChainClicks > 0) {
+        // Get current on-chain stats
+        const currentStats = await redis.hgetall(CLICKS_KEY(addr));
+        const previousOnChain = parseInt(currentStats?.onChainClicks || '0', 10);
+        const newOnChainTotal = previousOnChain + onChainClicks;
+        const playerName = currentStats?.name || 'Anonymous';
+
+        // Update on-chain click count in user stats
+        await redis.hset(CLICKS_KEY(addr), {
+          onChainClicks: newOnChainTotal,
+          lastOnChainAt: Date.now(),
+          lastTxHash: txHash || null
+        });
+
+        // Update on-chain leaderboard
+        await redis.zadd(ONCHAIN_LEADERBOARD_KEY, {
+          score: newOnChainTotal,
+          member: JSON.stringify({ address: addr, name: playerName })
+        });
+
+        return res.status(200).json({
+          success: true,
+          address: addr,
+          onChainClicksRecorded: onChainClicks,
+          totalOnChainClicks: newOnChainTotal,
+          txHash: txHash || null
+        });
+      }
+
+      // -----------------------------------------------------------------------
+      // FRONTEND CLICK TRACKING (requires Turnstile verification)
+      // -----------------------------------------------------------------------
       if (!clicks || typeof clicks !== 'number' || clicks < 1 || clicks > 10000) {
         return res.status(400).json({ error: 'Invalid clicks count (must be 1-10000)' });
       }
 
-      const addr = address.toLowerCase();
       const now = timestamp || Date.now();
       const sanitizedName = name ? String(name).slice(0, 20).replace(/[^a-zA-Z0-9 ._-]/g, '') : null;
 
