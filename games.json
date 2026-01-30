@@ -536,6 +536,31 @@
       "platform": "desktop",
       "redirect": true,
       "hidden": false
+    },
+    {
+      "id": 33,
+      "tokenId": 33,
+      "slug": "100goombas",
+      "title": "100 Goombas",
+      "image": "/nes-game-images/100goombas.png",
+      "gameUrl": "https://100goombas.vercel.app",
+      "platform": "desktop",
+      "aspectRatio": "16 / 9",
+      "controls": {
+        "dpad": {
+          "up": "ArrowUp",
+          "down": "ArrowDown",
+          "left": "ArrowLeft",
+          "right": "ArrowRight"
+        },
+        "actions": [
+          {
+            "key": "ArrowUp",
+            "label": "JUMP"
+          }
+        ]
+      },
+      "hidden": false
     }
   ]
 }
