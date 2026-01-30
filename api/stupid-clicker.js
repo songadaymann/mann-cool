@@ -139,7 +139,8 @@ async function verifyTurnstile(token) {
     );
 
     const data = await response.json();
-    return { success: data.success, error: data.success ? null : 'Verification failed' };
+    console.log('Turnstile verification response:', JSON.stringify(data));
+    return { success: data.success, error: data.success ? null : (data['error-codes']?.join(', ') || 'Verification failed') };
   } catch (error) {
     console.error('Turnstile verification error:', error);
     return { success: false, error: 'Verification service error' };
