@@ -561,6 +561,19 @@
         ]
       },
       "hidden": false
+    },
+    {
+      "id": 34,
+      "tokenId": 34,
+      "slug": "sledding",
+      "title": "SLEDDING",
+      "image": "/nes-game-images/sledding.png",
+      "gameUrl": "https://sledding-peach.vercel.app",
+      "platform": "desktop",
+      "aspectRatio": "16 / 9",
+      "mobileMode": "landscape",
+      "controls": null,
+      "hidden": false
     }
   ]
 }
