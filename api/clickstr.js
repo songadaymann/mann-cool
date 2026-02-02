@@ -12,6 +12,7 @@ import { keccak256, encodePacked } from 'viem';
  *   - clickstr:leaderboard - Sorted set for rankings by total frontend clicks
  *   - clickstr:milestones:{address} - Set of unlocked milestone IDs
  *   - clickstr:heartbeat:{address} - Active frontend session (60s TTL)
+ *   - clickstr:click-log - List of all submissions for retroactive click attribution
  *
  * Endpoints:
  *   GET  /api/clickstr?address=0x...     - Get player stats
@@ -20,6 +21,7 @@ import { keccak256, encodePacked } from 'viem';
  *   GET  /api/clickstr?leaderboard=true  - Get leaderboard
  *   GET  /api/clickstr?activeUsers=true  - Get count of active humans clicking
  *   GET  /api/clickstr?eligible=true&address=0x... - Check NFT eligibility
+ *   GET  /api/clickstr?findClick=1111    - Find who made a specific global click number
  */
 
 // =============================================================================
@@ -197,6 +199,7 @@ const TIME_CLICKS_KEY = (addr) => `clickstr:time-clicks:${addr.toLowerCase()}`; 
 const HUMAN_SESSION_KEY = (addr) => `clickstr:human-session:${addr.toLowerCase()}`; // Turnstile verification session
 const HEARTBEAT_KEY = (addr) => `clickstr:heartbeat:${addr.toLowerCase()}`; // Active frontend session heartbeat
 const ACTIVE_USERS_SET = 'clickstr:active-users'; // Sorted set of active users (score = timestamp)
+const CLICK_LOG_KEY = 'clickstr:click-log'; // List of all click submissions for retroactive attribution
 
 // =============================================================================
 // CONSTANTS
@@ -427,6 +430,74 @@ export default async function handler(req, res) {
             claimed: !!globalMilestoneWinners[gm.id]
           }))
         });
+      }
+
+      // Lookup who made a specific global click number
+      // Usage: GET /api/clickstr?findClick=1111
+      if (req.query.findClick) {
+        const targetClick = parseInt(req.query.findClick, 10);
+        if (isNaN(targetClick) || targetClick < 1) {
+          return res.status(400).json({ error: 'Invalid click number' });
+        }
+
+        const globalClicks = parseInt(await redis.get(GLOBAL_CLICKS_KEY) || '0', 10);
+        if (targetClick > globalClicks) {
+          return res.status(200).json({
+            success: true,
+            clickNumber: targetClick,
+            found: false,
+            message: `Click #${targetClick} hasn't happened yet (current global: ${globalClicks})`
+          });
+        }
+
+        // Search through click log to find who made this click
+        // We use binary search-like approach: scan log entries
+        const logLength = await redis.llen(CLICK_LOG_KEY);
+
+        // For now, do a simple scan (could optimize with binary search later if needed)
+        // Start from beginning and find the entry where targetClick falls within [b+1, f]
+        const batchSize = 100;
+        let found = null;
+
+        for (let i = 0; i < logLength && !found; i += batchSize) {
+          const entries = await redis.lrange(CLICK_LOG_KEY, i, i + batchSize - 1);
+          for (const entry of entries) {
+            try {
+              const log = JSON.parse(entry);
+              // Click #X was made by this address if: b < X <= f
+              if (targetClick > log.b && targetClick <= log.f) {
+                found = {
+                  address: log.a,
+                  clickNumber: targetClick,
+                  batchStart: log.b + 1,
+                  batchEnd: log.f,
+                  batchSize: log.c,
+                  timestamp: log.t
+                };
+                break;
+              }
+            } catch {
+              // Skip malformed entries
+            }
+          }
+        }
+
+        if (found) {
+          return res.status(200).json({
+            success: true,
+            clickNumber: targetClick,
+            found: true,
+            ...found,
+            note: `Click #${targetClick} was part of a batch of ${found.batchSize} clicks (${found.batchStart}-${found.batchEnd})`
+          });
+        } else {
+          return res.status(200).json({
+            success: true,
+            clickNumber: targetClick,
+            found: false,
+            message: `Click #${targetClick} occurred before logging was enabled, or log entry not found`
+          });
+        }
       }
 
       // Active users request (for "clicking now" display)
@@ -743,6 +814,17 @@ export default async function handler(req, res) {
       const previousGlobalClicks = parseInt(await redis.get(GLOBAL_CLICKS_KEY) || '0', 10);
       const newGlobalClicks = previousGlobalClicks + actualClicks;
       await redis.set(GLOBAL_CLICKS_KEY, newGlobalClicks);
+
+      // Log this submission for retroactive click attribution
+      // This allows us to determine who made any specific global click number
+      // Format: {addr, clicks, globalBefore, globalAfter, ts}
+      await redis.rpush(CLICK_LOG_KEY, JSON.stringify({
+        a: addr,                        // address (shortened key for storage)
+        c: actualClicks,                // clicks in this batch
+        b: previousGlobalClicks,        // global count before this batch
+        f: newGlobalClicks,             // global count after this batch (b + c = f)
+        t: now                          // timestamp
+      }));
 
       // Track streak (days clicked in a row)
       const today = new Date(now).toISOString().split('T')[0]; // YYYY-MM-DD
