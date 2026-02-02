@@ -8,18 +8,18 @@ import { keccak256, encodePacked } from 'viem';
  * This enables Cookie Clicker-style rewards for human players using the UI.
  *
  * Redis keys:
- *   - stupid-clicker:clicks:{address} - Hash with cumulative stats per address
- *   - stupid-clicker:leaderboard - Sorted set for rankings by total frontend clicks
- *   - stupid-clicker:milestones:{address} - Set of unlocked milestone IDs
- *   - stupid-clicker:heartbeat:{address} - Active frontend session (60s TTL)
+ *   - clickstr:clicks:{address} - Hash with cumulative stats per address
+ *   - clickstr:leaderboard - Sorted set for rankings by total frontend clicks
+ *   - clickstr:milestones:{address} - Set of unlocked milestone IDs
+ *   - clickstr:heartbeat:{address} - Active frontend session (60s TTL)
  *
  * Endpoints:
- *   GET  /api/stupid-clicker?address=0x...     - Get player stats
- *   POST /api/stupid-clicker                    - Record clicks from frontend
- *   POST /api/stupid-clicker (heartbeat=true)  - Send heartbeat for active user tracking
- *   GET  /api/stupid-clicker?leaderboard=true  - Get leaderboard
- *   GET  /api/stupid-clicker?activeUsers=true  - Get count of active humans clicking
- *   GET  /api/stupid-clicker?eligible=true&address=0x... - Check NFT eligibility
+ *   GET  /api/clickstr?address=0x...     - Get player stats
+ *   POST /api/clickstr                    - Record clicks from frontend
+ *   POST /api/clickstr (heartbeat=true)  - Send heartbeat for active user tracking
+ *   GET  /api/clickstr?leaderboard=true  - Get leaderboard
+ *   GET  /api/clickstr?activeUsers=true  - Get count of active humans clicking
+ *   GET  /api/clickstr?eligible=true&address=0x... - Check NFT eligibility
  */
 
 // =============================================================================
@@ -27,7 +27,7 @@ import { keccak256, encodePacked } from 'viem';
 // =============================================================================
 
 // Personal Milestones - unlock at these individual click counts
-// tier = NFT token ID in StupidClickerNFT contract (1-12 for personal milestones)
+// tier = NFT token ID in ClickstrNFT contract (1-12 for personal milestones)
 const PERSONAL_MILESTONES = [
   { id: 'first-timer', tier: 1, clicks: 1, name: 'First Timer', description: 'Your first click!', cosmetic: null, nftEligible: true },
   { id: 'getting-started', tier: 2, clicks: 100, name: 'Getting Started', description: '100 clicks', cosmetic: 'cursor-bronze', nftEligible: true },
@@ -96,19 +96,19 @@ const MILESTONES = PERSONAL_MILESTONES;
 // =============================================================================
 // REDIS KEYS
 // =============================================================================
-const CLICKS_KEY = (addr) => `stupid-clicker:clicks:${addr.toLowerCase()}`;
-const LEADERBOARD_KEY = 'stupid-clicker:leaderboard';
-const ONCHAIN_LEADERBOARD_KEY = 'stupid-clicker:onchain-leaderboard'; // Tracks on-chain submissions via frontend
-const MILESTONES_KEY = (addr) => `stupid-clicker:milestones:${addr.toLowerCase()}`;
-const ACHIEVEMENTS_KEY = (addr) => `stupid-clicker:achievements:${addr.toLowerCase()}`;
-const ELIGIBLE_KEY = 'stupid-clicker:nft-eligible';
-const GLOBAL_CLICKS_KEY = 'stupid-clicker:global-clicks';
-const GLOBAL_MILESTONES_KEY = 'stupid-clicker:global-milestones'; // Hash: milestoneId -> winner address
-const STREAK_KEY = (addr) => `stupid-clicker:streak:${addr.toLowerCase()}`;
-const TIME_CLICKS_KEY = (addr) => `stupid-clicker:time-clicks:${addr.toLowerCase()}`; // Hash for time-based tracking
-const HUMAN_SESSION_KEY = (addr) => `stupid-clicker:human-session:${addr.toLowerCase()}`; // Turnstile verification session
-const HEARTBEAT_KEY = (addr) => `stupid-clicker:heartbeat:${addr.toLowerCase()}`; // Active frontend session heartbeat
-const ACTIVE_USERS_SET = 'stupid-clicker:active-users'; // Sorted set of active users (score = timestamp)
+const CLICKS_KEY = (addr) => `clickstr:clicks:${addr.toLowerCase()}`;
+const LEADERBOARD_KEY = 'clickstr:leaderboard';
+const ONCHAIN_LEADERBOARD_KEY = 'clickstr:onchain-leaderboard'; // Tracks on-chain submissions via frontend
+const MILESTONES_KEY = (addr) => `clickstr:milestones:${addr.toLowerCase()}`;
+const ACHIEVEMENTS_KEY = (addr) => `clickstr:achievements:${addr.toLowerCase()}`;
+const ELIGIBLE_KEY = 'clickstr:nft-eligible';
+const GLOBAL_CLICKS_KEY = 'clickstr:global-clicks';
+const GLOBAL_MILESTONES_KEY = 'clickstr:global-milestones'; // Hash: milestoneId -> winner address
+const STREAK_KEY = (addr) => `clickstr:streak:${addr.toLowerCase()}`;
+const TIME_CLICKS_KEY = (addr) => `clickstr:time-clicks:${addr.toLowerCase()}`; // Hash for time-based tracking
+const HUMAN_SESSION_KEY = (addr) => `clickstr:human-session:${addr.toLowerCase()}`; // Turnstile verification session
+const HEARTBEAT_KEY = (addr) => `clickstr:heartbeat:${addr.toLowerCase()}`; // Active frontend session heartbeat
+const ACTIVE_USERS_SET = 'clickstr:active-users'; // Sorted set of active users (score = timestamp)
 
 // =============================================================================
 // CONSTANTS

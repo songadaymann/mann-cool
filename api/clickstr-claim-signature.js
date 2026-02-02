@@ -15,11 +15,11 @@ import { keccak256, encodePacked, toHex } from 'viem';
  *   4. User submits signature to NFT contract, which verifies and mints
  *
  * Endpoints:
- *   POST /api/stupid-clicker-claim-signature
+ *   POST /api/clickstr-claim-signature
  *     Body: { address: "0x...", milestone: "dedicated" } or { address: "0x...", tier: 4 }
  *     Returns: { signature: "0x...", tier: 4, milestone: {...} }
  *
- *   POST /api/stupid-clicker-claim-signature (with action: "confirm")
+ *   POST /api/clickstr-claim-signature (with action: "confirm")
  *     Body: { address: "0x...", tier: 4, txHash: "0x...", action: "confirm" }
  *     Confirms a successful on-chain claim (called after tx confirms)
  *
@@ -33,10 +33,10 @@ import { keccak256, encodePacked, toHex } from 'viem';
 // =============================================================================
 const RATE_LIMIT_WINDOW = 60; // 1 minute in seconds
 const RATE_LIMIT_MAX_REQUESTS = 10; // Max requests per window
-const RATE_LIMIT_KEY = (addr) => `stupid-clicker:rate-limit:claim:${addr.toLowerCase()}`;
+const RATE_LIMIT_KEY = (addr) => `clickstr:rate-limit:claim:${addr.toLowerCase()}`;
 
 // Global milestone lock key (for atomic claim of 1/1s)
-const GLOBAL_LOCK_KEY = (tier) => `stupid-clicker:global-lock:${tier}`;
+const GLOBAL_LOCK_KEY = (tier) => `clickstr:global-lock:${tier}`;
 const GLOBAL_LOCK_TTL = 30; // 30 seconds lock duration
 
 // =============================================================================
@@ -125,10 +125,10 @@ const TIER_INFO = {
 // =============================================================================
 // REDIS KEYS
 // =============================================================================
-const MILESTONES_KEY = (addr) => `stupid-clicker:milestones:${addr.toLowerCase()}`;
-const ACHIEVEMENTS_KEY = (addr) => `stupid-clicker:achievements:${addr.toLowerCase()}`;
-const NFT_CLAIMED_KEY = (addr) => `stupid-clicker:nft-claimed:${addr.toLowerCase()}`; // Set of claimed tier numbers
-const GLOBAL_MILESTONES_KEY = 'stupid-clicker:global-milestones'; // Hash: milestoneId -> winner address
+const MILESTONES_KEY = (addr) => `clickstr:milestones:${addr.toLowerCase()}`;
+const ACHIEVEMENTS_KEY = (addr) => `clickstr:achievements:${addr.toLowerCase()}`;
+const NFT_CLAIMED_KEY = (addr) => `clickstr:nft-claimed:${addr.toLowerCase()}`; // Set of claimed tier numbers
+const GLOBAL_MILESTONES_KEY = 'clickstr:global-milestones'; // Hash: milestoneId -> winner address
 
 // =============================================================================
 // HELPERS

@@ -6,25 +6,25 @@ import { Redis } from '@upstash/redis';
  * Resets off-chain click data for testing purposes.
  * NEVER use in production once game is live!
  *
- * POST /api/stupid-clicker-admin-reset
+ * POST /api/clickstr-admin-reset
  * {
  *   "secret": "YOUR_ADMIN_SECRET",
  *   "address": "0x..." // optional - if omitted, resets ALL data
  * }
  */
 
-// Redis keys (must match stupid-clicker.js)
-const CLICKS_KEY = (addr) => `stupid-clicker:clicks:${addr.toLowerCase()}`;
-const LEADERBOARD_KEY = 'stupid-clicker:leaderboard';
-const ONCHAIN_LEADERBOARD_KEY = 'stupid-clicker:onchain-leaderboard';
-const MILESTONES_KEY = (addr) => `stupid-clicker:milestones:${addr.toLowerCase()}`;
-const ACHIEVEMENTS_KEY = (addr) => `stupid-clicker:achievements:${addr.toLowerCase()}`;
-const ELIGIBLE_KEY = 'stupid-clicker:nft-eligible';
-const GLOBAL_CLICKS_KEY = 'stupid-clicker:global-clicks';
-const GLOBAL_MILESTONES_KEY = 'stupid-clicker:global-milestones';
-const STREAK_KEY = (addr) => `stupid-clicker:streak:${addr.toLowerCase()}`;
-const TIME_CLICKS_KEY = (addr) => `stupid-clicker:time-clicks:${addr.toLowerCase()}`;
-const HUMAN_SESSION_KEY = (addr) => `stupid-clicker:human-session:${addr.toLowerCase()}`;
+// Redis keys (must match clickstr.js)
+const CLICKS_KEY = (addr) => `clickstr:clicks:${addr.toLowerCase()}`;
+const LEADERBOARD_KEY = 'clickstr:leaderboard';
+const ONCHAIN_LEADERBOARD_KEY = 'clickstr:onchain-leaderboard';
+const MILESTONES_KEY = (addr) => `clickstr:milestones:${addr.toLowerCase()}`;
+const ACHIEVEMENTS_KEY = (addr) => `clickstr:achievements:${addr.toLowerCase()}`;
+const ELIGIBLE_KEY = 'clickstr:nft-eligible';
+const GLOBAL_CLICKS_KEY = 'clickstr:global-clicks';
+const GLOBAL_MILESTONES_KEY = 'clickstr:global-milestones';
+const STREAK_KEY = (addr) => `clickstr:streak:${addr.toLowerCase()}`;
+const TIME_CLICKS_KEY = (addr) => `clickstr:time-clicks:${addr.toLowerCase()}`;
+const HUMAN_SESSION_KEY = (addr) => `clickstr:human-session:${addr.toLowerCase()}`;
 
 function validateAddress(address) {
   return address && /^0x[a-fA-F0-9]{40}$/.test(address);
@@ -45,7 +45,7 @@ export default async function handler(req, res) {
   }
 
   // Check admin secret
-  const adminSecret = process.env.STUPID_CLICKER_ADMIN_SECRET;
+  const adminSecret = process.env.CLICKSTR_ADMIN_SECRET;
   if (!adminSecret) {
     return res.status(500).json({ error: 'Admin secret not configured' });
   }
@@ -141,12 +141,12 @@ export default async function handler(req, res) {
       // Scan and delete all player-specific keys
       let cursor = '0';
       const patterns = [
-        'stupid-clicker:clicks:*',
-        'stupid-clicker:milestones:*',
-        'stupid-clicker:achievements:*',
-        'stupid-clicker:streak:*',
-        'stupid-clicker:time-clicks:*',
-        'stupid-clicker:human-session:*',
+        'clickstr:clicks:*',
+        'clickstr:milestones:*',
+        'clickstr:achievements:*',
+        'clickstr:streak:*',
+        'clickstr:time-clicks:*',
+        'clickstr:human-session:*',
       ];
 
       for (const pattern of patterns) {

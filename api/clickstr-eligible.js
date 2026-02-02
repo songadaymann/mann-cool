@@ -7,24 +7,24 @@ import { Redis } from '@upstash/redis';
  * which addresses are eligible for NFT airdrops.
  *
  * Endpoints:
- *   GET /api/stupid-clicker-eligible
+ *   GET /api/clickstr-eligible
  *     - Returns list of all eligible addresses
  *     - Query params:
  *       - milestone: Filter by specific milestone (e.g., "dedicated", "legend")
  *       - limit: Max addresses to return (default 100)
  *       - claimed: Include already-claimed addresses (default false)
  *
- *   POST /api/stupid-clicker-eligible
+ *   POST /api/clickstr-eligible
  *     - Mark addresses as having claimed their NFT
  *     - Body: { addresses: ["0x...", "0x..."], milestone: "dedicated" }
  *     - Requires admin secret in header
  */
 
 // Redis keys
-const ELIGIBLE_KEY = 'stupid-clicker:nft-eligible';
-const CLAIMED_KEY = (milestone) => `stupid-clicker:nft-claimed:${milestone}`;
-const MILESTONES_KEY = (addr) => `stupid-clicker:milestones:${addr.toLowerCase()}`;
-const CLICKS_KEY = (addr) => `stupid-clicker:clicks:${addr.toLowerCase()}`;
+const ELIGIBLE_KEY = 'clickstr:nft-eligible';
+const CLAIMED_KEY = (milestone) => `clickstr:nft-claimed:${milestone}`;
+const MILESTONES_KEY = (addr) => `clickstr:milestones:${addr.toLowerCase()}`;
+const CLICKS_KEY = (addr) => `clickstr:clicks:${addr.toLowerCase()}`;
 
 // Milestones that qualify for NFT drops
 const NFT_MILESTONES = ['dedicated', 'serious', 'obsessed', 'no-life', 'legend', 'transcendent', 'god'];
@@ -169,7 +169,7 @@ export default async function handler(req, res) {
     if (req.method === 'POST') {
       // Verify admin secret
       const adminSecret = req.headers['x-admin-secret'];
-      if (!adminSecret || adminSecret !== process.env.STUPID_CLICKER_ADMIN_SECRET) {
+      if (!adminSecret || adminSecret !== process.env.CLICKSTR_ADMIN_SECRET) {
         return res.status(401).json({ error: 'Unauthorized' });
       }
 
