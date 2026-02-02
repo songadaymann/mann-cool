@@ -108,11 +108,13 @@ const STREAK_KEY = (addr) => `stupid-clicker:streak:${addr.toLowerCase()}`;
 const TIME_CLICKS_KEY = (addr) => `stupid-clicker:time-clicks:${addr.toLowerCase()}`; // Hash for time-based tracking
 const HUMAN_SESSION_KEY = (addr) => `stupid-clicker:human-session:${addr.toLowerCase()}`; // Turnstile verification session
 const HEARTBEAT_KEY = (addr) => `stupid-clicker:heartbeat:${addr.toLowerCase()}`; // Active frontend session heartbeat
+const ACTIVE_USERS_SET = 'stupid-clicker:active-users'; // Sorted set of active users (score = timestamp)
 
 // =============================================================================
 // CONSTANTS
 // =============================================================================
 const HEARTBEAT_TTL = 60; // Heartbeat expires after 60 seconds
+const ACTIVE_USER_WINDOW = 60 * 1000; // Consider users active if heartbeat within 60 seconds
 const HUMAN_SESSION_DURATION = 60 * 60 * 1000; // 1 hour in milliseconds
 const CLICKS_BEFORE_VERIFICATION = 500; // Require verification after this many clicks per session
 
@@ -341,18 +343,11 @@ export default async function handler(req, res) {
 
       // Active users request (for "clicking now" display)
       if (req.query.activeUsers === 'true') {
-        // Count heartbeat keys that haven't expired (TTL-based)
-        // Upstash Redis doesn't support KEYS with TTL filtering, so we scan and check
-        const heartbeatPattern = 'stupid-clicker:heartbeat:*';
-        let activeHumans = 0;
-        let cursor = 0;
+        const now = Date.now();
+        const cutoff = now - ACTIVE_USER_WINDOW;
 
-        // Use SCAN to find heartbeat keys (they auto-expire via TTL)
-        do {
-          const result = await redis.scan(cursor, { match: heartbeatPattern, count: 100 });
-          cursor = result[0];
-          activeHumans += result[1].length;
-        } while (cursor !== 0);
+        // Count users with heartbeat within the active window (O(log N) operation)
+        const activeHumans = await redis.zcount(ACTIVE_USERS_SET, cutoff, '+inf');
 
         const globalClicks = parseInt(await redis.get(GLOBAL_CLICKS_KEY) || '0', 10);
 
@@ -439,8 +434,15 @@ export default async function handler(req, res) {
       // HEARTBEAT - Track active frontend sessions
       // -----------------------------------------------------------------------
       if (heartbeat === true) {
-        // Set heartbeat key with TTL (auto-expires)
-        await redis.set(HEARTBEAT_KEY(addr), Date.now().toString(), { ex: HEARTBEAT_TTL });
+        const now = Date.now();
+        // Add user to sorted set with current timestamp as score
+        // This allows efficient counting of users active within a time window
+        await redis.zadd(ACTIVE_USERS_SET, { score: now, member: addr });
+
+        // Clean up old entries (older than 2x the window to avoid constant cleanup)
+        const cutoff = now - (ACTIVE_USER_WINDOW * 2);
+        await redis.zremrangebyscore(ACTIVE_USERS_SET, 0, cutoff);
+
         return res.status(200).json({ success: true });
       }
 
