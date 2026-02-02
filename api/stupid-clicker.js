@@ -1,4 +1,5 @@
 import { Redis } from '@upstash/redis';
+import { keccak256, encodePacked } from 'viem';
 
 /**
  * Stupid Clicker - Frontend Click Tracking API
@@ -110,8 +111,67 @@ const HUMAN_SESSION_KEY = (addr) => `stupid-clicker:human-session:${addr.toLower
 const HUMAN_SESSION_DURATION = 60 * 60 * 1000; // 1 hour in milliseconds
 const CLICKS_BEFORE_VERIFICATION = 500; // Require verification after this many clicks per session
 
+// Proof-of-work constants for off-chain nonce validation
+// These should match the contract's difficulty settings
+const POW_CHAIN_ID = 11155111; // Sepolia - update for mainnet
+const POW_DIFFICULTY_TARGET = BigInt('0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'); // Max difficulty (easiest)
+
 function validateAddress(address) {
   return address && /^0x[a-fA-F0-9]{40}$/.test(address);
+}
+
+/**
+ * Verify a proof-of-work nonce
+ * This replicates the on-chain verification logic for off-chain click validation
+ *
+ * @param {string} address - User's Ethereum address
+ * @param {string} nonceStr - Nonce as a string (BigInt serialized)
+ * @param {number} epoch - Current epoch (optional, defaults to 0 for off-chain)
+ * @returns {boolean} - True if nonce is valid
+ */
+function verifyNonce(address, nonceStr, epoch = 0) {
+  try {
+    const nonce = BigInt(nonceStr);
+
+    // Pack the data the same way the contract does:
+    // abi.encodePacked(msg.sender, nonce, currentEpoch, block.chainid)
+    const packed = encodePacked(
+      ['address', 'uint256', 'uint256', 'uint256'],
+      [address, nonce, BigInt(epoch), BigInt(POW_CHAIN_ID)]
+    );
+
+    const hash = keccak256(packed);
+    const hashBigInt = BigInt(hash);
+
+    // Valid if hash is below difficulty target
+    return hashBigInt < POW_DIFFICULTY_TARGET;
+  } catch (error) {
+    console.error('Nonce verification error:', error);
+    return false;
+  }
+}
+
+/**
+ * Verify an array of nonces and return how many are valid
+ *
+ * @param {string} address - User's Ethereum address
+ * @param {string[]} nonces - Array of nonce strings
+ * @param {number} epoch - Current epoch
+ * @returns {{ validCount: number, invalidCount: number }}
+ */
+function verifyNonces(address, nonces, epoch = 0) {
+  let validCount = 0;
+  let invalidCount = 0;
+
+  for (const nonceStr of nonces) {
+    if (verifyNonce(address, nonceStr, epoch)) {
+      validCount++;
+    } else {
+      invalidCount++;
+    }
+  }
+
+  return { validCount, invalidCount };
 }
 
 // Verify Cloudflare Turnstile token
@@ -336,7 +396,7 @@ export default async function handler(req, res) {
     // POST - Record frontend clicks or on-chain submissions
     if (req.method === 'POST') {
       const body = req.body || {};
-      const { address, clicks, onChainClicks, txHash, sessionId, name, epoch, timestamp, turnstileToken } = body;
+      const { address, clicks, onChainClicks, txHash, name, epoch, timestamp, turnstileToken, nonces } = body;
 
       // Validate address (required for all POST requests)
       if (!validateAddress(address)) {
@@ -344,6 +404,9 @@ export default async function handler(req, res) {
       }
 
       const addr = address.toLowerCase();
+
+      // Check if nonces are provided for proof-of-work validation
+      const hasNonces = Array.isArray(nonces) && nonces.length > 0;
 
       // -----------------------------------------------------------------------
       // ON-CHAIN SUBMISSION TRACKING (no Turnstile required - blockchain is proof)
@@ -378,7 +441,7 @@ export default async function handler(req, res) {
       }
 
       // -----------------------------------------------------------------------
-      // FRONTEND CLICK TRACKING (requires Turnstile verification)
+      // FRONTEND CLICK TRACKING (requires Turnstile OR proof-of-work nonces)
       // -----------------------------------------------------------------------
       if (!clicks || typeof clicks !== 'number' || clicks < 1 || clicks > 10000) {
         return res.status(400).json({ error: 'Invalid clicks count (must be 1-10000)' });
@@ -388,80 +451,112 @@ export default async function handler(req, res) {
       const sanitizedName = name ? String(name).slice(0, 20).replace(/[^a-zA-Z0-9 ._-]/g, '') : null;
 
       // -----------------------------------------------------------------------
-      // HUMAN VERIFICATION (Turnstile)
-      // Check if user has a valid human session, or needs to verify
+      // PROOF-OF-WORK VERIFICATION (nonces)
+      // If nonces are provided, verify them as proof-of-work. This bypasses
+      // Turnstile and is used for off-chain submissions when game is inactive.
       // -----------------------------------------------------------------------
-      const humanSession = await redis.hgetall(HUMAN_SESSION_KEY(addr));
-      const sessionExpiry = parseInt(humanSession?.expiresAt || '0', 10);
-      const sessionClicks = parseInt(humanSession?.clicksSinceVerify || '0', 10);
-      const isSessionValid = sessionExpiry > now;
-      const needsReverification = sessionClicks + clicks >= CLICKS_BEFORE_VERIFICATION;
+      let verifiedByNonces = false;
+      let actualClicks = clicks;
 
-      // Determine if we need Turnstile verification
-      let requireVerification = false;
-      let verificationReason = null;
+      if (hasNonces) {
+        // Verify each nonce matches the expected difficulty
+        const { validCount, invalidCount } = verifyNonces(addr, nonces, epoch || 0);
 
-      if (!isSessionValid) {
-        requireVerification = true;
-        verificationReason = 'session_expired';
-      } else if (needsReverification) {
-        requireVerification = true;
-        verificationReason = 'click_limit';
+        if (validCount === 0) {
+          return res.status(400).json({
+            error: 'No valid nonces provided',
+            message: 'All proof-of-work nonces failed verification'
+          });
+        }
+
+        if (invalidCount > 0) {
+          console.warn(`[PoW] Address ${addr}: ${invalidCount}/${nonces.length} nonces failed verification`);
+        }
+
+        // Only count valid nonces as clicks
+        actualClicks = validCount;
+        verifiedByNonces = true;
+
+        console.log(`[PoW] Address ${addr}: ${validCount} valid nonces verified (${invalidCount} invalid)`);
       }
 
-      // If verification required, check for Turnstile token
-      if (requireVerification && process.env.TURNSTILE_SECRET_KEY) {
-        if (!turnstileToken) {
-          return res.status(403).json({
-            error: 'Human verification required',
-            reason: verificationReason,
-            requiresVerification: true,
-            message: verificationReason === 'session_expired'
-              ? 'Please complete verification to continue clicking'
-              : 'You\'ve been clicking for a while! Please verify you\'re human to continue'
-          });
+      // -----------------------------------------------------------------------
+      // HUMAN VERIFICATION (Turnstile) - skipped if nonces were verified
+      // Check if user has a valid human session, or needs to verify
+      // -----------------------------------------------------------------------
+      if (!verifiedByNonces) {
+        const humanSession = await redis.hgetall(HUMAN_SESSION_KEY(addr));
+        const sessionExpiry = parseInt(humanSession?.expiresAt || '0', 10);
+        const sessionClicks = parseInt(humanSession?.clicksSinceVerify || '0', 10);
+        const isSessionValid = sessionExpiry > now;
+        const needsReverification = sessionClicks + actualClicks >= CLICKS_BEFORE_VERIFICATION;
+
+        // Determine if we need Turnstile verification
+        let requireVerification = false;
+        let verificationReason = null;
+
+        if (!isSessionValid) {
+          requireVerification = true;
+          verificationReason = 'session_expired';
+        } else if (needsReverification) {
+          requireVerification = true;
+          verificationReason = 'click_limit';
         }
 
-        // Verify the token
-        const verification = await verifyTurnstile(turnstileToken);
-        if (!verification.success) {
-          return res.status(403).json({
-            error: 'Verification failed',
-            reason: verification.error,
-            requiresVerification: true
+        // If verification required, check for Turnstile token
+        if (requireVerification && process.env.TURNSTILE_SECRET_KEY) {
+          if (!turnstileToken) {
+            return res.status(403).json({
+              error: 'Human verification required',
+              reason: verificationReason,
+              requiresVerification: true,
+              message: verificationReason === 'session_expired'
+                ? 'Please complete verification to continue clicking'
+                : 'You\'ve been clicking for a while! Please verify you\'re human to continue'
+            });
+          }
+
+          // Verify the token
+          const verification = await verifyTurnstile(turnstileToken);
+          if (!verification.success) {
+            return res.status(403).json({
+              error: 'Verification failed',
+              reason: verification.error,
+              requiresVerification: true
+            });
+          }
+
+          // Verification successful - create/renew session
+          await redis.hset(HUMAN_SESSION_KEY(addr), {
+            verifiedAt: now,
+            expiresAt: now + HUMAN_SESSION_DURATION,
+            clicksSinceVerify: 0
+          });
+        } else if (isSessionValid) {
+          // Update clicks since last verification
+          await redis.hset(HUMAN_SESSION_KEY(addr), {
+            clicksSinceVerify: sessionClicks + actualClicks
+          });
+        } else {
+          // No Turnstile configured - create a session anyway (dev mode)
+          await redis.hset(HUMAN_SESSION_KEY(addr), {
+            verifiedAt: now,
+            expiresAt: now + HUMAN_SESSION_DURATION,
+            clicksSinceVerify: actualClicks,
+            devMode: true
           });
         }
-
-        // Verification successful - create/renew session
-        await redis.hset(HUMAN_SESSION_KEY(addr), {
-          verifiedAt: now,
-          expiresAt: now + HUMAN_SESSION_DURATION,
-          clicksSinceVerify: 0
-        });
-      } else if (isSessionValid) {
-        // Update clicks since last verification
-        await redis.hset(HUMAN_SESSION_KEY(addr), {
-          clicksSinceVerify: sessionClicks + clicks
-        });
-      } else {
-        // No Turnstile configured - create a session anyway (dev mode)
-        await redis.hset(HUMAN_SESSION_KEY(addr), {
-          verifiedAt: now,
-          expiresAt: now + HUMAN_SESSION_DURATION,
-          clicksSinceVerify: clicks,
-          devMode: true
-        });
       }
 
       // Get current stats
       const currentStats = await redis.hgetall(CLICKS_KEY(addr));
       const previousClicks = parseInt(currentStats?.totalClicks || '0', 10);
-      const newTotalClicks = previousClicks + clicks;
+      const newTotalClicks = previousClicks + actualClicks;
       const playerName = sanitizedName || currentStats?.name || 'Anonymous';
 
       // Get and update global click count
       const previousGlobalClicks = parseInt(await redis.get(GLOBAL_CLICKS_KEY) || '0', 10);
-      const newGlobalClicks = previousGlobalClicks + clicks;
+      const newGlobalClicks = previousGlobalClicks + actualClicks;
       await redis.set(GLOBAL_CLICKS_KEY, newGlobalClicks);
 
       // Track streak (days clicked in a row)
@@ -494,8 +589,9 @@ export default async function handler(req, res) {
         totalClicks: newTotalClicks,
         sessionsCount: parseInt(currentStats?.sessionsCount || '0', 10) + 1,
         lastSessionAt: now,
-        lastSessionClicks: clicks,
-        name: playerName
+        lastSessionClicks: actualClicks,
+        name: playerName,
+        ...(verifiedByNonces ? { lastPoWSubmit: now } : {})
       });
 
       // Update leaderboard
@@ -592,14 +688,15 @@ export default async function handler(req, res) {
       return res.status(200).json({
         success: true,
         address: addr,
-        clicksRecorded: clicks,
+        clicksRecorded: actualClicks,
         totalClicks: newTotalClicks,
         globalClicks: newGlobalClicks,
         rank: rank !== null ? rank + 1 : null,
         streak: { current: currentStreak, longest: longestStreak },
         newMilestones: newMilestones.length > 0 ? newMilestones : null,
         newAchievements: newAchievements.length > 0 ? newAchievements : null,
-        nextMilestone: PERSONAL_MILESTONES.find(m => m.clicks > newTotalClicks) || null
+        nextMilestone: PERSONAL_MILESTONES.find(m => m.clicks > newTotalClicks) || null,
+        verifiedByPoW: verifiedByNonces
       });
     }
 

@@ -18,7 +18,26 @@ import { keccak256, encodePacked, toHex } from 'viem';
  *   POST /api/stupid-clicker-claim-signature
  *     Body: { address: "0x...", milestone: "dedicated" } or { address: "0x...", tier: 4 }
  *     Returns: { signature: "0x...", tier: 4, milestone: {...} }
+ *
+ *   POST /api/stupid-clicker-claim-signature (with action: "confirm")
+ *     Body: { address: "0x...", tier: 4, txHash: "0x...", action: "confirm" }
+ *     Confirms a successful on-chain claim (called after tx confirms)
+ *
+ * Security Features:
+ *   - Rate limiting: 10 requests per minute per address
+ *   - Atomic locks for global 1/1 milestone claims (prevents race conditions)
  */
+
+// =============================================================================
+// RATE LIMITING
+// =============================================================================
+const RATE_LIMIT_WINDOW = 60; // 1 minute in seconds
+const RATE_LIMIT_MAX_REQUESTS = 10; // Max requests per window
+const RATE_LIMIT_KEY = (addr) => `stupid-clicker:rate-limit:claim:${addr.toLowerCase()}`;
+
+// Global milestone lock key (for atomic claim of 1/1s)
+const GLOBAL_LOCK_KEY = (tier) => `stupid-clicker:global-lock:${tier}`;
+const GLOBAL_LOCK_TTL = 30; // 30 seconds lock duration
 
 // =============================================================================
 // MILESTONE TIER MAPPING
@@ -120,6 +139,75 @@ function validateAddress(address) {
 }
 
 /**
+ * Check and update rate limit for an address
+ * @returns {object} { allowed: boolean, remaining: number, resetIn: number }
+ */
+async function checkRateLimit(redis, address) {
+  const key = RATE_LIMIT_KEY(address);
+  const now = Math.floor(Date.now() / 1000);
+
+  // Get current count and TTL
+  const [count, ttl] = await Promise.all([
+    redis.get(key),
+    redis.ttl(key)
+  ]);
+
+  const currentCount = parseInt(count || '0', 10);
+
+  if (currentCount >= RATE_LIMIT_MAX_REQUESTS) {
+    return {
+      allowed: false,
+      remaining: 0,
+      resetIn: ttl > 0 ? ttl : RATE_LIMIT_WINDOW
+    };
+  }
+
+  // Increment counter
+  if (currentCount === 0) {
+    // New window - set with expiry
+    await redis.setex(key, RATE_LIMIT_WINDOW, 1);
+  } else {
+    // Existing window - increment
+    await redis.incr(key);
+  }
+
+  return {
+    allowed: true,
+    remaining: RATE_LIMIT_MAX_REQUESTS - currentCount - 1,
+    resetIn: ttl > 0 ? ttl : RATE_LIMIT_WINDOW
+  };
+}
+
+/**
+ * Acquire a lock for global milestone claim (prevents race conditions)
+ * Uses Redis SETNX for atomic operation
+ * @returns {boolean} true if lock acquired, false if already locked
+ */
+async function acquireGlobalLock(redis, tier, address) {
+  const key = GLOBAL_LOCK_KEY(tier);
+  // SETNX returns 1 if key was set (lock acquired), 0 if key already exists
+  const result = await redis.setnx(key, address.toLowerCase());
+  if (result === 1) {
+    // Set TTL to prevent deadlocks
+    await redis.expire(key, GLOBAL_LOCK_TTL);
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Release a global milestone lock
+ */
+async function releaseGlobalLock(redis, tier, address) {
+  const key = GLOBAL_LOCK_KEY(tier);
+  // Only release if we hold the lock
+  const holder = await redis.get(key);
+  if (holder && holder.toLowerCase() === address.toLowerCase()) {
+    await redis.del(key);
+  }
+}
+
+/**
  * Sign a claim message using EIP-191 personal sign
  * The NFT contract expects: keccak256(abi.encodePacked(address, tier, contractAddress))
  * Then wrapped with "\x19Ethereum Signed Message:\n32" prefix
@@ -190,7 +278,7 @@ export default async function handler(req, res) {
 
   try {
     const body = req.body || {};
-    const { address, milestone, tier: requestedTier } = body;
+    const { address, milestone, tier: requestedTier, action, txHash } = body;
 
     // Validate address
     if (!validateAddress(address)) {
@@ -198,6 +286,56 @@ export default async function handler(req, res) {
     }
 
     const addr = address.toLowerCase();
+
+    // -------------------------------------------------------------------------
+    // RATE LIMITING - Check before any expensive operations
+    // -------------------------------------------------------------------------
+    const rateLimit = await checkRateLimit(redis, addr);
+    if (!rateLimit.allowed) {
+      res.setHeader('X-RateLimit-Remaining', '0');
+      res.setHeader('X-RateLimit-Reset', rateLimit.resetIn.toString());
+      return res.status(429).json({
+        error: 'Too many requests',
+        message: `Rate limit exceeded. Try again in ${rateLimit.resetIn} seconds.`,
+        retryAfter: rateLimit.resetIn
+      });
+    }
+    res.setHeader('X-RateLimit-Remaining', rateLimit.remaining.toString());
+    res.setHeader('X-RateLimit-Reset', rateLimit.resetIn.toString());
+
+    // -------------------------------------------------------------------------
+    // CONFIRM ACTION - Mark a claim as confirmed after on-chain tx
+    // -------------------------------------------------------------------------
+    if (action === 'confirm') {
+      const tierToConfirm = parseInt(requestedTier, 10);
+      if (!tierToConfirm || !TIER_INFO[tierToConfirm]) {
+        return res.status(400).json({ error: 'Invalid tier for confirmation' });
+      }
+
+      // Mark as confirmed in Redis
+      await redis.sadd(NFT_CLAIMED_KEY(addr), String(tierToConfirm));
+
+      // For global milestones, also mark in global registry
+      const isGlobalConfirm = tierToConfirm >= 200 && tierToConfirm < 500;
+      if (isGlobalConfirm) {
+        const milestoneIdConfirm = TIER_INFO[tierToConfirm].id;
+        await redis.hset(GLOBAL_MILESTONES_KEY, { [milestoneIdConfirm]: addr });
+        // Release the lock if we held it
+        await releaseGlobalLock(redis, tierToConfirm, addr);
+      }
+
+      return res.status(200).json({
+        success: true,
+        confirmed: true,
+        tier: tierToConfirm,
+        address: addr,
+        txHash: txHash || null
+      });
+    }
+
+    // -------------------------------------------------------------------------
+    // SIGNATURE REQUEST - Generate signature for NFT claim
+    // -------------------------------------------------------------------------
 
     // Determine tier from milestone ID or direct tier number
     let tier;
@@ -260,7 +398,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // For global milestones, verify this user is the winner
+    // For global milestones, verify this user is the winner AND acquire lock
     if (isGlobal) {
       const winner = await redis.hget(GLOBAL_MILESTONES_KEY, milestoneId);
       if (winner && winner.toLowerCase() !== addr) {
@@ -269,6 +407,17 @@ export default async function handler(req, res) {
           message: 'This global milestone was claimed by someone else',
           tier,
           winner
+        });
+      }
+
+      // Acquire atomic lock for global milestone (prevents race conditions)
+      const lockAcquired = await acquireGlobalLock(redis, tier, addr);
+      if (!lockAcquired) {
+        return res.status(409).json({
+          error: 'Claim in progress',
+          message: 'Another claim for this global milestone is being processed. Please try again in a few seconds.',
+          tier,
+          milestone: milestoneId
         });
       }
     }
