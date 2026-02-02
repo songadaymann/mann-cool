@@ -774,8 +774,10 @@ export default async function handler(req, res) {
       const unlockedAchievements = await redis.smembers(ACHIEVEMENTS_KEY(addr)) || [];
 
       for (const hidden of HIDDEN_ACHIEVEMENTS) {
-        // Did the player's click count pass through this number?
-        if (previousClicks < hidden.triggerClick && newTotalClicks >= hidden.triggerClick) {
+        // Grant achievement if player has passed the threshold (backfill + new)
+        // This catches both newly crossed thresholds AND retroactive grants for
+        // thresholds that were passed before these achievements were added
+        if (newTotalClicks >= hidden.triggerClick) {
           if (!unlockedAchievements.includes(hidden.id)) {
             await redis.sadd(ACHIEVEMENTS_KEY(addr), hidden.id);
             await redis.sadd(ELIGIBLE_KEY, addr);
