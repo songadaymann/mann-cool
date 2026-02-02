@@ -45,22 +45,25 @@ const PERSONAL_MILESTONES = [
 
 // Global Milestones - first person to hit X OVERALL clicks wins (1/1 NFTs)
 // tier = NFT token ID (200+ for global 1/1 milestones)
-// Must match claim-signature.js GLOBAL_MILESTONES
+// Must match claim-signature.js GLOBAL_MILESTONES and milestones-v2.csv
 const GLOBAL_MILESTONES = [
-  // Main milestones (200-213)
+  // Main milestones (200-213) - from CSV
   { id: 'global-1', tier: 200, globalClick: 1, name: 'The First Click', description: 'The very first click ever' },
   { id: 'global-10', tier: 201, globalClick: 10, name: 'The Tenth', description: 'The 10th click' },
   { id: 'global-100', tier: 202, globalClick: 100, name: 'Century', description: 'The 100th click' },
-  { id: 'global-1000', tier: 206, globalClick: 1000, name: 'Thousandaire', description: 'The 1,000th click' },
-  { id: 'global-10000', tier: 208, globalClick: 10000, name: 'Ten Grand', description: 'The 10,000th click' },
-  { id: 'global-100000', tier: 209, globalClick: 100000, name: 'The Hundred Thousandth', description: 'The 100,000th click' },
-  { id: 'global-1000000', tier: 210, globalClick: 1000000, name: 'The Millionth Click', description: 'The 1,000,000th click' },
-  { id: 'global-10000000', tier: 211, globalClick: 10000000, name: 'Ten Million', description: 'The 10,000,000th click' },
-  { id: 'global-100000000', tier: 213, globalClick: 100000000, name: 'Hundred Million', description: 'The 100,000,000th click' },
+  { id: 'global-1000', tier: 203, globalClick: 1000, name: 'Thousandaire', description: 'The 1,000th click' },
+  { id: 'global-10000', tier: 204, globalClick: 10000, name: 'Ten Grand', description: 'The 10,000th click' },
+  { id: 'global-100000', tier: 205, globalClick: 100000, name: 'The Hundred Thousandth', description: 'The 100,000th click' },
+  { id: 'global-1000000', tier: 206, globalClick: 1000000, name: 'The Millionth Click', description: 'The 1,000,000th click' },
+  { id: 'global-10000000', tier: 207, globalClick: 10000000, name: 'Ten Million', description: 'The 10,000,000th click' },
+  { id: 'global-100000000', tier: 208, globalClick: 100000000, name: 'Hundred Million', description: 'The 100,000,000th click' },
   { id: 'global-1000000000', tier: 209, globalClick: 1000000000, name: 'Billionaire', description: 'The 1,000,000,000th click' },
+  { id: 'global-10000000000', tier: 210, globalClick: 10000000000, name: 'Ten Billion', description: 'The 10,000,000,000th click' },
+  { id: 'global-100000000000', tier: 211, globalClick: 100000000000, name: 'One Hundred Billion', description: 'The 100,000,000,000th click' },
+  { id: 'global-1000000000000', tier: 212, globalClick: 1000000000000, name: 'One Trillion', description: 'The 1,000,000,000,000th click' },
+  { id: 'global-10000000000000', tier: 213, globalClick: 10000000000000, name: 'Ten Trillion', description: 'The 10,000,000,000,000th click' },
 
-  // Hidden global meme numbers (220-229)
-  { id: 'global-42', tier: 229, globalClick: 42, name: 'Meaning of Everything', description: 'The answer to life, the universe, and everything' },
+  // Hidden global meme numbers (220-229) - from CSV
   { id: 'global-69', tier: 220, globalClick: 69, name: 'Nice', description: 'Nice.' },
   { id: 'global-420', tier: 221, globalClick: 420, name: 'Blaze It', description: '420 blaze it' },
   { id: 'global-666', tier: 222, globalClick: 666, name: "Devil's Click", description: 'The number of the beast' },
@@ -70,66 +73,7 @@ const GLOBAL_MILESTONES = [
   { id: 'global-69420', tier: 226, globalClick: 69420, name: 'Ultra Nice', description: 'Peak absurdity' },
   { id: 'global-8008135', tier: 227, globalClick: 8008135, name: 'Calculator Masterpiece', description: 'BOOBIES on a calculator' },
   { id: 'global-8675309', tier: 228, globalClick: 8675309, name: 'Jenny', description: 'Jenny I got your number' },
-
-  // Repeated digits - ones (240-247)
-  { id: 'global-111', tier: 240, globalClick: 111, name: 'Triple Ones', description: '111' },
-  { id: 'global-1111', tier: 241, globalClick: 1111, name: 'Quad Ones', description: '1111' },
-  { id: 'global-11111', tier: 242, globalClick: 11111, name: 'Make a Wish', description: '11:11' },
-  { id: 'global-111111', tier: 243, globalClick: 111111, name: 'Six Ones', description: '111111' },
-
-  // Repeated digits - sevens (250-255)
-  { id: 'global-7777', tier: 250, globalClick: 7777, name: 'Jackpot', description: '7777' },
-  { id: 'global-77777', tier: 251, globalClick: 77777, name: 'Mega Jackpot', description: '77777' },
-  { id: 'global-777777', tier: 252, globalClick: 777777, name: 'Slot Machine God', description: '777777' },
-
-  // Repeated digits - eights (260-266)
-  { id: 'global-888', tier: 260, globalClick: 888, name: 'Prosperity', description: 'Lucky in Chinese' },
-  { id: 'global-8888', tier: 261, globalClick: 8888, name: 'Very Lucky', description: '8888' },
-  { id: 'global-888888', tier: 263, globalClick: 888888, name: 'Fortune', description: '888888' },
-
-  // Repeated digits - nines (270-276)
-  { id: 'global-999', tier: 270, globalClick: 999, name: 'So Close', description: '999' },
-  { id: 'global-9999', tier: 271, globalClick: 9999, name: 'Edge Lord', description: '9999' },
-  { id: 'global-999999', tier: 273, globalClick: 999999, name: 'One Away', description: '999999' },
-
-  // Palindromes (280-290)
-  { id: 'global-101', tier: 280, globalClick: 101, name: 'Binary Palindrome', description: '101' },
-  { id: 'global-1001', tier: 281, globalClick: 1001, name: 'Bookends', description: '1001' },
-  { id: 'global-10001', tier: 282, globalClick: 10001, name: 'Symmetric', description: '10001' },
-  { id: 'global-12321', tier: 283, globalClick: 12321, name: 'Counting Palindrome', description: '12321' },
-  { id: 'global-123321', tier: 284, globalClick: 123321, name: 'Mirror Mirror', description: '123321' },
-  { id: 'global-1234321', tier: 285, globalClick: 1234321, name: 'The Mountain', description: '1234321' },
-
-  // Mathematical (300-312)
-  { id: 'global-137', tier: 300, globalClick: 137, name: 'Fine Structure', description: 'Physics constant' },
-  { id: 'global-314', tier: 301, globalClick: 314, name: 'Pi Day', description: '3.14' },
-  { id: 'global-1618', tier: 302, globalClick: 1618, name: 'Golden', description: 'Golden ratio' },
-  { id: 'global-2718', tier: 303, globalClick: 2718, name: "Euler's Click", description: "Euler's number e" },
-  { id: 'global-3141', tier: 304, globalClick: 3141, name: 'More Pi', description: '3.141' },
-  { id: 'global-31415', tier: 305, globalClick: 31415, name: 'Pi Squared', description: '3.1415' },
-  { id: 'global-314159', tier: 306, globalClick: 314159, name: 'Full Pi', description: '3.14159' },
-
-  // Powers of 2 (320-330)
-  { id: 'global-256', tier: 320, globalClick: 256, name: 'Byte', description: '2^8' },
-  { id: 'global-512', tier: 321, globalClick: 512, name: 'Half K', description: '2^9' },
-  { id: 'global-1024', tier: 322, globalClick: 1024, name: 'Kilobyte', description: '2^10' },
-  { id: 'global-2048', tier: 323, globalClick: 2048, name: 'The Game', description: '2^11' },
-  { id: 'global-4096', tier: 324, globalClick: 4096, name: '2^12', description: '2^12' },
-  { id: 'global-8192', tier: 325, globalClick: 8192, name: '2^13', description: '2^13' },
-  { id: 'global-16384', tier: 326, globalClick: 16384, name: '2^14', description: '2^14' },
-  { id: 'global-32768', tier: 327, globalClick: 32768, name: '2^15', description: '2^15' },
-  { id: 'global-65536', tier: 328, globalClick: 65536, name: '2^16', description: '2^16' },
-
-  // Cultural (340-352)
-  { id: 'global-404', tier: 340, globalClick: 404, name: 'Not Found', description: 'HTTP 404' },
-  { id: 'global-500', tier: 341, globalClick: 500, name: 'Server Error', description: 'HTTP 500' },
-  { id: 'global-747', tier: 342, globalClick: 747, name: 'Jumbo', description: 'Boeing 747' },
-  { id: 'global-911', tier: 343, globalClick: 911, name: 'Emergency', description: 'Emergency services' },
-  { id: 'global-1984', tier: 344, globalClick: 1984, name: 'Orwellian', description: 'Big Brother' },
-  { id: 'global-2001', tier: 345, globalClick: 2001, name: 'Space Odyssey', description: 'Kubrick film' },
-  { id: 'global-2012', tier: 346, globalClick: 2012, name: 'End Times', description: 'Mayan apocalypse' },
-  { id: 'global-3000', tier: 347, globalClick: 3000, name: 'Love You 3000', description: 'MCU reference' },
-  { id: 'global-525600', tier: 349, globalClick: 525600, name: 'Seasons of Love', description: 'Minutes in a year' },
+  { id: 'global-42', tier: 229, globalClick: 42, name: 'Meaning of Everything', description: 'The answer to life, the universe, and everything' },
 ];
 
 // Hidden Achievements - triggered at specific personal click numbers (don't announce!)

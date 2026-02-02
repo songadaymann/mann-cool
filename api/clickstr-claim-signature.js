@@ -67,18 +67,23 @@ const MILESTONE_TO_TIER = {
   'day-one-og': 104,
   'final-day': 105,
 
-  // Global 1/1 milestones - Main (200-213)
+  // Global 1/1 milestones - Main (200-213) - matches milestones-v2.csv
   'global-1': 200,
   'global-10': 201,
   'global-100': 202,
-  'global-1000': 206,
-  'global-10000': 208,
-  'global-100000': 209,
-  'global-1000000': 210,
-  'global-10000000': 211,
-  'global-100000000': 213,
+  'global-1000': 203,
+  'global-10000': 204,
+  'global-100000': 205,
+  'global-1000000': 206,
+  'global-10000000': 207,
+  'global-100000000': 208,
+  'global-1000000000': 209,
+  'global-10000000000': 210,
+  'global-100000000000': 211,
+  'global-1000000000000': 212,
+  'global-10000000000000': 213,
 
-  // Global 1/1 milestones - Meme numbers (220-229)
+  // Global 1/1 milestones - Meme numbers (220-229) - matches milestones-v2.csv
   'global-69': 220,
   'global-420': 221,
   'global-666': 222,
@@ -89,60 +94,6 @@ const MILESTONE_TO_TIER = {
   'global-8008135': 227,
   'global-8675309': 228,
   'global-42': 229,
-
-  // Global 1/1 milestones - Repeated digits (240-276)
-  'global-111': 240,
-  'global-1111': 241,
-  'global-11111': 242,
-  'global-111111': 243,
-  'global-7777': 250,
-  'global-77777': 251,
-  'global-777777': 252,
-  'global-888': 260,
-  'global-8888': 261,
-  'global-888888': 263,
-  'global-999': 270,
-  'global-9999': 271,
-  'global-999999': 273,
-
-  // Global 1/1 milestones - Palindromes (280-290)
-  'global-101': 280,
-  'global-1001': 281,
-  'global-10001': 282,
-  'global-12321': 283,
-  'global-123321': 284,
-  'global-1234321': 285,
-
-  // Global 1/1 milestones - Mathematical (300-312)
-  'global-137': 300,
-  'global-314': 301,
-  'global-1618': 302,
-  'global-2718': 303,
-  'global-3141': 304,
-  'global-31415': 305,
-  'global-314159': 306,
-
-  // Global 1/1 milestones - Powers of 2 (320-330)
-  'global-256': 320,
-  'global-512': 321,
-  'global-1024': 322,
-  'global-2048': 323,
-  'global-4096': 324,
-  'global-8192': 325,
-  'global-16384': 326,
-  'global-32768': 327,
-  'global-65536': 328,
-
-  // Global 1/1 milestones - Cultural (340-352)
-  'global-404': 340,
-  'global-500': 341,
-  'global-747': 342,
-  'global-911': 343,
-  'global-1984': 344,
-  'global-2001': 345,
-  'global-2012': 346,
-  'global-3000': 347,
-  'global-525600': 349,
 
   // Hidden personal achievements - Meme (500-511)
   'nice': 500,
@@ -244,18 +195,23 @@ const TIER_INFO = {
   104: { id: 'day-one-og', name: 'Day One OG', type: 'epoch' },
   105: { id: 'final-day', name: 'The Final Day', type: 'epoch' },
 
-  // Global 1/1 - Main (200-213)
+  // Global 1/1 - Main (200-213) - matches milestones-v2.csv
   200: { id: 'global-1', name: 'The First Click', type: 'global', global: true },
   201: { id: 'global-10', name: 'The Tenth', type: 'global', global: true },
   202: { id: 'global-100', name: 'Century', type: 'global', global: true },
-  206: { id: 'global-1000', name: 'Thousandaire', type: 'global', global: true },
-  208: { id: 'global-10000', name: 'Ten Grand', type: 'global', global: true },
-  209: { id: 'global-100000', name: 'The Hundred Thousandth', type: 'global', global: true },
-  210: { id: 'global-1000000', name: 'The Millionth Click', type: 'global', global: true },
-  211: { id: 'global-10000000', name: 'Ten Million', type: 'global', global: true },
-  213: { id: 'global-100000000', name: 'Hundred Million', type: 'global', global: true },
+  203: { id: 'global-1000', name: 'Thousandaire', type: 'global', global: true },
+  204: { id: 'global-10000', name: 'Ten Grand', type: 'global', global: true },
+  205: { id: 'global-100000', name: 'The Hundred Thousandth', type: 'global', global: true },
+  206: { id: 'global-1000000', name: 'The Millionth Click', type: 'global', global: true },
+  207: { id: 'global-10000000', name: 'Ten Million', type: 'global', global: true },
+  208: { id: 'global-100000000', name: 'Hundred Million', type: 'global', global: true },
+  209: { id: 'global-1000000000', name: 'Billionaire', type: 'global', global: true },
+  210: { id: 'global-10000000000', name: 'Ten Billion', type: 'global', global: true },
+  211: { id: 'global-100000000000', name: 'One Hundred Billion', type: 'global', global: true },
+  212: { id: 'global-1000000000000', name: 'One Trillion', type: 'global', global: true },
+  213: { id: 'global-10000000000000', name: 'Ten Trillion', type: 'global', global: true },
 
-  // Global 1/1 - Meme (220-229)
+  // Global 1/1 - Meme (220-229) - matches milestones-v2.csv
   220: { id: 'global-69', name: 'Nice', type: 'global', global: true },
   221: { id: 'global-420', name: 'Blaze It', type: 'global', global: true },
   222: { id: 'global-666', name: "Devil's Click", type: 'global', global: true },
@@ -266,60 +222,6 @@ const TIER_INFO = {
   227: { id: 'global-8008135', name: 'Calculator Masterpiece', type: 'global', global: true },
   228: { id: 'global-8675309', name: 'Jenny', type: 'global', global: true },
   229: { id: 'global-42', name: 'Meaning of Everything', type: 'global', global: true },
-
-  // Global 1/1 - Repeated digits (240-276)
-  240: { id: 'global-111', name: 'Triple Ones', type: 'global', global: true },
-  241: { id: 'global-1111', name: 'Quad Ones', type: 'global', global: true },
-  242: { id: 'global-11111', name: 'Make a Wish', type: 'global', global: true },
-  243: { id: 'global-111111', name: 'Six Ones', type: 'global', global: true },
-  250: { id: 'global-7777', name: 'Jackpot', type: 'global', global: true },
-  251: { id: 'global-77777', name: 'Mega Jackpot', type: 'global', global: true },
-  252: { id: 'global-777777', name: 'Slot Machine God', type: 'global', global: true },
-  260: { id: 'global-888', name: 'Prosperity', type: 'global', global: true },
-  261: { id: 'global-8888', name: 'Very Lucky', type: 'global', global: true },
-  263: { id: 'global-888888', name: 'Fortune', type: 'global', global: true },
-  270: { id: 'global-999', name: 'So Close', type: 'global', global: true },
-  271: { id: 'global-9999', name: 'Edge Lord', type: 'global', global: true },
-  273: { id: 'global-999999', name: 'One Away', type: 'global', global: true },
-
-  // Global 1/1 - Palindromes (280-290)
-  280: { id: 'global-101', name: 'Binary Palindrome', type: 'global', global: true },
-  281: { id: 'global-1001', name: 'Bookends', type: 'global', global: true },
-  282: { id: 'global-10001', name: 'Symmetric', type: 'global', global: true },
-  283: { id: 'global-12321', name: 'Counting Palindrome', type: 'global', global: true },
-  284: { id: 'global-123321', name: 'Mirror Mirror', type: 'global', global: true },
-  285: { id: 'global-1234321', name: 'The Mountain', type: 'global', global: true },
-
-  // Global 1/1 - Mathematical (300-312)
-  300: { id: 'global-137', name: 'Fine Structure', type: 'global', global: true },
-  301: { id: 'global-314', name: 'Pi Day', type: 'global', global: true },
-  302: { id: 'global-1618', name: 'Golden', type: 'global', global: true },
-  303: { id: 'global-2718', name: "Euler's Click", type: 'global', global: true },
-  304: { id: 'global-3141', name: 'More Pi', type: 'global', global: true },
-  305: { id: 'global-31415', name: 'Pi Squared', type: 'global', global: true },
-  306: { id: 'global-314159', name: 'Full Pi', type: 'global', global: true },
-
-  // Global 1/1 - Powers of 2 (320-330)
-  320: { id: 'global-256', name: 'Byte', type: 'global', global: true },
-  321: { id: 'global-512', name: 'Half K', type: 'global', global: true },
-  322: { id: 'global-1024', name: 'Kilobyte', type: 'global', global: true },
-  323: { id: 'global-2048', name: 'The Game', type: 'global', global: true },
-  324: { id: 'global-4096', name: '2^12', type: 'global', global: true },
-  325: { id: 'global-8192', name: '2^13', type: 'global', global: true },
-  326: { id: 'global-16384', name: '2^14', type: 'global', global: true },
-  327: { id: 'global-32768', name: '2^15', type: 'global', global: true },
-  328: { id: 'global-65536', name: '2^16', type: 'global', global: true },
-
-  // Global 1/1 - Cultural (340-352)
-  340: { id: 'global-404', name: 'Not Found', type: 'global', global: true },
-  341: { id: 'global-500', name: 'Server Error', type: 'global', global: true },
-  342: { id: 'global-747', name: 'Jumbo', type: 'global', global: true },
-  343: { id: 'global-911', name: 'Emergency', type: 'global', global: true },
-  344: { id: 'global-1984', name: 'Orwellian', type: 'global', global: true },
-  345: { id: 'global-2001', name: 'Space Odyssey', type: 'global', global: true },
-  346: { id: 'global-2012', name: 'End Times', type: 'global', global: true },
-  347: { id: 'global-3000', name: 'Love You 3000', type: 'global', global: true },
-  349: { id: 'global-525600', name: 'Seasons of Love', type: 'global', global: true },
 
   // Hidden personal - Meme (500-511)
   500: { id: 'nice', name: 'Nice', type: 'hidden' },
