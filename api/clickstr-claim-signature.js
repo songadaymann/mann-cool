@@ -44,6 +44,7 @@ const GLOBAL_LOCK_TTL = 30; // 30 seconds lock duration
 // =============================================================================
 
 // Maps milestone IDs to NFT tier numbers (must match contract expectations)
+// IMPORTANT: Must match clickstr.js definitions exactly!
 const MILESTONE_TO_TIER = {
   // Personal milestones (1-12)
   'first-timer': 1,
@@ -66,28 +67,163 @@ const MILESTONE_TO_TIER = {
   'day-one-og': 104,
   'final-day': 105,
 
-  // Global 1/1 milestones (200-209) - powers of 10
-  'global-1': 201,
+  // Global 1/1 milestones - Main (200-213)
+  'global-1': 200,
+  'global-10': 201,
   'global-100': 202,
-  'global-1000': 203,
-  'global-10000': 204,
-  'global-100000': 205,
-  'global-1000000': 206,
-  'global-10000000': 207,
-  'global-50000000': 208,
-  'global-100000000': 209,
+  'global-1000': 206,
+  'global-10000': 208,
+  'global-100000': 209,
+  'global-1000000': 210,
+  'global-10000000': 211,
+  'global-100000000': 213,
 
-  // Hidden achievements (500+)
+  // Global 1/1 milestones - Meme numbers (220-229)
+  'global-69': 220,
+  'global-420': 221,
+  'global-666': 222,
+  'global-777': 223,
+  'global-1337': 224,
+  'global-42069': 225,
+  'global-69420': 226,
+  'global-8008135': 227,
+  'global-8675309': 228,
+  'global-42': 229,
+
+  // Global 1/1 milestones - Repeated digits (240-276)
+  'global-111': 240,
+  'global-1111': 241,
+  'global-11111': 242,
+  'global-111111': 243,
+  'global-7777': 250,
+  'global-77777': 251,
+  'global-777777': 252,
+  'global-888': 260,
+  'global-8888': 261,
+  'global-888888': 263,
+  'global-999': 270,
+  'global-9999': 271,
+  'global-999999': 273,
+
+  // Global 1/1 milestones - Palindromes (280-290)
+  'global-101': 280,
+  'global-1001': 281,
+  'global-10001': 282,
+  'global-12321': 283,
+  'global-123321': 284,
+  'global-1234321': 285,
+
+  // Global 1/1 milestones - Mathematical (300-312)
+  'global-137': 300,
+  'global-314': 301,
+  'global-1618': 302,
+  'global-2718': 303,
+  'global-3141': 304,
+  'global-31415': 305,
+  'global-314159': 306,
+
+  // Global 1/1 milestones - Powers of 2 (320-330)
+  'global-256': 320,
+  'global-512': 321,
+  'global-1024': 322,
+  'global-2048': 323,
+  'global-4096': 324,
+  'global-8192': 325,
+  'global-16384': 326,
+  'global-32768': 327,
+  'global-65536': 328,
+
+  // Global 1/1 milestones - Cultural (340-352)
+  'global-404': 340,
+  'global-500': 341,
+  'global-747': 342,
+  'global-911': 343,
+  'global-1984': 344,
+  'global-2001': 345,
+  'global-2012': 346,
+  'global-3000': 347,
+  'global-525600': 349,
+
+  // Hidden personal achievements - Meme (500-511)
   'nice': 500,
   'blaze-it': 501,
   'devils-click': 502,
   'lucky-7s': 503,
   'elite': 504,
-  'palindrome': 505,
+  'calculator-word': 505,
+  'perfect-number': 506,
+  'ultra-nice': 507,
+  'old-school': 508,
+  'double-blaze': 509,
+  'maximum-evil': 510,
+  'nice-nice-nice': 511,
+
+  // Hidden personal - Ones family (520-523)
+  'triple-ones': 520,
+  'quad-ones': 521,
+  'make-a-wish': 522,
+  'six-ones': 523,
+
+  // Hidden personal - Sevens family (524-526)
+  'jackpot': 524,
+  'mega-jackpot': 525,
+  'slot-machine-god': 526,
+
+  // Hidden personal - Eights family (527-529)
+  'prosperity': 527,
+  'very-lucky': 528,
+  'fortune': 529,
+
+  // Hidden personal - Nines family (530-532)
+  'so-close': 530,
+  'edge-lord': 531,
+  'one-away': 532,
+
+  // Hidden personal - Palindromes (540-545)
+  'binary-palindrome': 540,
+  'bookends': 541,
+  'symmetric': 542,
+  'counting-palindrome': 543,
+  'mirror-mirror': 544,
+  'the-mountain': 545,
+
+  // Hidden personal - Mathematical (560-566)
+  'fine-structure': 560,
+  'pi-day': 561,
+  'golden': 562,
+  'eulers-click': 563,
+  'more-pi': 564,
+  'pi-squared': 565,
+  'full-pi': 566,
+
+  // Hidden personal - Powers of 2 (580-588)
+  'byte': 580,
+  'half-k': 581,
+  'kilobyte': 582,
+  'the-game': 583,
+  'pow-2-12': 584,
+  'pow-2-13': 585,
+  'pow-2-14': 586,
+  'pow-2-15': 587,
+  'pow-2-16': 588,
+
+  // Hidden personal - Cultural (600-609)
+  'not-found': 600,
+  'server-error': 601,
+  'jumbo': 602,
+  'emergency': 603,
+  'orwellian': 604,
+  'space-odyssey': 605,
+  'end-times': 606,
+  'love-you-3000': 607,
+  'meaning-of-everything': 608,
+  'seasons-of-love': 609,
 };
 
 // Reverse mapping for tier -> milestone info
+// IMPORTANT: Must match clickstr.js definitions exactly!
 const TIER_INFO = {
+  // Personal milestones (1-12)
   1: { id: 'first-timer', name: 'First Timer', clicks: 1 },
   2: { id: 'getting-started', name: 'Getting Started', clicks: 100 },
   3: { id: 'warming-up', name: 'Warming Up', clicks: 500 },
@@ -100,26 +236,165 @@ const TIER_INFO = {
   10: { id: 'ascended', name: 'Ascended', clicks: 250000 },
   11: { id: 'transcendent', name: 'Transcendent', clicks: 500000 },
   12: { id: 'click-god', name: 'Click God', clicks: 1000000 },
+
+  // Streak/Epoch (101-105)
   101: { id: 'week-warrior', name: 'Week Warrior', type: 'streak' },
   102: { id: 'month-master', name: 'Month Master', type: 'streak' },
   103: { id: 'perfect-attendance', name: 'Perfect Attendance', type: 'streak' },
   104: { id: 'day-one-og', name: 'Day One OG', type: 'epoch' },
   105: { id: 'final-day', name: 'The Final Day', type: 'epoch' },
-  201: { id: 'global-1', name: 'The First Click', type: 'global', global: true },
+
+  // Global 1/1 - Main (200-213)
+  200: { id: 'global-1', name: 'The First Click', type: 'global', global: true },
+  201: { id: 'global-10', name: 'The Tenth', type: 'global', global: true },
   202: { id: 'global-100', name: 'Century', type: 'global', global: true },
-  203: { id: 'global-1000', name: 'Thousandaire', type: 'global', global: true },
-  204: { id: 'global-10000', name: 'Ten Grand', type: 'global', global: true },
-  205: { id: 'global-100000', name: 'The Hundred Thousandth', type: 'global', global: true },
-  206: { id: 'global-1000000', name: 'The Millionth Click', type: 'global', global: true },
-  207: { id: 'global-10000000', name: 'Ten Million', type: 'global', global: true },
-  208: { id: 'global-50000000', name: 'Halfway There', type: 'global', global: true },
-  209: { id: 'global-100000000', name: 'The Final Click', type: 'global', global: true },
+  206: { id: 'global-1000', name: 'Thousandaire', type: 'global', global: true },
+  208: { id: 'global-10000', name: 'Ten Grand', type: 'global', global: true },
+  209: { id: 'global-100000', name: 'The Hundred Thousandth', type: 'global', global: true },
+  210: { id: 'global-1000000', name: 'The Millionth Click', type: 'global', global: true },
+  211: { id: 'global-10000000', name: 'Ten Million', type: 'global', global: true },
+  213: { id: 'global-100000000', name: 'Hundred Million', type: 'global', global: true },
+
+  // Global 1/1 - Meme (220-229)
+  220: { id: 'global-69', name: 'Nice', type: 'global', global: true },
+  221: { id: 'global-420', name: 'Blaze It', type: 'global', global: true },
+  222: { id: 'global-666', name: "Devil's Click", type: 'global', global: true },
+  223: { id: 'global-777', name: 'Lucky Sevens', type: 'global', global: true },
+  224: { id: 'global-1337', name: 'Elite', type: 'global', global: true },
+  225: { id: 'global-42069', name: 'The Perfect Number', type: 'global', global: true },
+  226: { id: 'global-69420', name: 'Ultra Nice', type: 'global', global: true },
+  227: { id: 'global-8008135', name: 'Calculator Masterpiece', type: 'global', global: true },
+  228: { id: 'global-8675309', name: 'Jenny', type: 'global', global: true },
+  229: { id: 'global-42', name: 'Meaning of Everything', type: 'global', global: true },
+
+  // Global 1/1 - Repeated digits (240-276)
+  240: { id: 'global-111', name: 'Triple Ones', type: 'global', global: true },
+  241: { id: 'global-1111', name: 'Quad Ones', type: 'global', global: true },
+  242: { id: 'global-11111', name: 'Make a Wish', type: 'global', global: true },
+  243: { id: 'global-111111', name: 'Six Ones', type: 'global', global: true },
+  250: { id: 'global-7777', name: 'Jackpot', type: 'global', global: true },
+  251: { id: 'global-77777', name: 'Mega Jackpot', type: 'global', global: true },
+  252: { id: 'global-777777', name: 'Slot Machine God', type: 'global', global: true },
+  260: { id: 'global-888', name: 'Prosperity', type: 'global', global: true },
+  261: { id: 'global-8888', name: 'Very Lucky', type: 'global', global: true },
+  263: { id: 'global-888888', name: 'Fortune', type: 'global', global: true },
+  270: { id: 'global-999', name: 'So Close', type: 'global', global: true },
+  271: { id: 'global-9999', name: 'Edge Lord', type: 'global', global: true },
+  273: { id: 'global-999999', name: 'One Away', type: 'global', global: true },
+
+  // Global 1/1 - Palindromes (280-290)
+  280: { id: 'global-101', name: 'Binary Palindrome', type: 'global', global: true },
+  281: { id: 'global-1001', name: 'Bookends', type: 'global', global: true },
+  282: { id: 'global-10001', name: 'Symmetric', type: 'global', global: true },
+  283: { id: 'global-12321', name: 'Counting Palindrome', type: 'global', global: true },
+  284: { id: 'global-123321', name: 'Mirror Mirror', type: 'global', global: true },
+  285: { id: 'global-1234321', name: 'The Mountain', type: 'global', global: true },
+
+  // Global 1/1 - Mathematical (300-312)
+  300: { id: 'global-137', name: 'Fine Structure', type: 'global', global: true },
+  301: { id: 'global-314', name: 'Pi Day', type: 'global', global: true },
+  302: { id: 'global-1618', name: 'Golden', type: 'global', global: true },
+  303: { id: 'global-2718', name: "Euler's Click", type: 'global', global: true },
+  304: { id: 'global-3141', name: 'More Pi', type: 'global', global: true },
+  305: { id: 'global-31415', name: 'Pi Squared', type: 'global', global: true },
+  306: { id: 'global-314159', name: 'Full Pi', type: 'global', global: true },
+
+  // Global 1/1 - Powers of 2 (320-330)
+  320: { id: 'global-256', name: 'Byte', type: 'global', global: true },
+  321: { id: 'global-512', name: 'Half K', type: 'global', global: true },
+  322: { id: 'global-1024', name: 'Kilobyte', type: 'global', global: true },
+  323: { id: 'global-2048', name: 'The Game', type: 'global', global: true },
+  324: { id: 'global-4096', name: '2^12', type: 'global', global: true },
+  325: { id: 'global-8192', name: '2^13', type: 'global', global: true },
+  326: { id: 'global-16384', name: '2^14', type: 'global', global: true },
+  327: { id: 'global-32768', name: '2^15', type: 'global', global: true },
+  328: { id: 'global-65536', name: '2^16', type: 'global', global: true },
+
+  // Global 1/1 - Cultural (340-352)
+  340: { id: 'global-404', name: 'Not Found', type: 'global', global: true },
+  341: { id: 'global-500', name: 'Server Error', type: 'global', global: true },
+  342: { id: 'global-747', name: 'Jumbo', type: 'global', global: true },
+  343: { id: 'global-911', name: 'Emergency', type: 'global', global: true },
+  344: { id: 'global-1984', name: 'Orwellian', type: 'global', global: true },
+  345: { id: 'global-2001', name: 'Space Odyssey', type: 'global', global: true },
+  346: { id: 'global-2012', name: 'End Times', type: 'global', global: true },
+  347: { id: 'global-3000', name: 'Love You 3000', type: 'global', global: true },
+  349: { id: 'global-525600', name: 'Seasons of Love', type: 'global', global: true },
+
+  // Hidden personal - Meme (500-511)
   500: { id: 'nice', name: 'Nice', type: 'hidden' },
   501: { id: 'blaze-it', name: 'Blaze It', type: 'hidden' },
   502: { id: 'devils-click', name: "Devil's Click", type: 'hidden' },
   503: { id: 'lucky-7s', name: 'Lucky 7s', type: 'hidden' },
   504: { id: 'elite', name: 'Elite', type: 'hidden' },
-  505: { id: 'palindrome', name: 'Palindrome', type: 'hidden' },
+  505: { id: 'calculator-word', name: 'Calculator Word', type: 'hidden' },
+  506: { id: 'perfect-number', name: 'The Perfect Number', type: 'hidden' },
+  507: { id: 'ultra-nice', name: 'Ultra Nice', type: 'hidden' },
+  508: { id: 'old-school', name: 'Old School', type: 'hidden' },
+  509: { id: 'double-blaze', name: 'Double Blaze', type: 'hidden' },
+  510: { id: 'maximum-evil', name: 'Maximum Evil', type: 'hidden' },
+  511: { id: 'nice-nice-nice', name: 'Nice Nice Nice', type: 'hidden' },
+
+  // Hidden personal - Ones family (520-523)
+  520: { id: 'triple-ones', name: 'Triple Ones', type: 'hidden' },
+  521: { id: 'quad-ones', name: 'Quad Ones', type: 'hidden' },
+  522: { id: 'make-a-wish', name: 'Make a Wish', type: 'hidden' },
+  523: { id: 'six-ones', name: 'Six Ones', type: 'hidden' },
+
+  // Hidden personal - Sevens family (524-526)
+  524: { id: 'jackpot', name: 'Jackpot', type: 'hidden' },
+  525: { id: 'mega-jackpot', name: 'Mega Jackpot', type: 'hidden' },
+  526: { id: 'slot-machine-god', name: 'Slot Machine God', type: 'hidden' },
+
+  // Hidden personal - Eights family (527-529)
+  527: { id: 'prosperity', name: 'Prosperity', type: 'hidden' },
+  528: { id: 'very-lucky', name: 'Very Lucky', type: 'hidden' },
+  529: { id: 'fortune', name: 'Fortune', type: 'hidden' },
+
+  // Hidden personal - Nines family (530-532)
+  530: { id: 'so-close', name: 'So Close', type: 'hidden' },
+  531: { id: 'edge-lord', name: 'Edge Lord', type: 'hidden' },
+  532: { id: 'one-away', name: 'One Away', type: 'hidden' },
+
+  // Hidden personal - Palindromes (540-545)
+  540: { id: 'binary-palindrome', name: 'Binary Palindrome', type: 'hidden' },
+  541: { id: 'bookends', name: 'Bookends', type: 'hidden' },
+  542: { id: 'symmetric', name: 'Symmetric', type: 'hidden' },
+  543: { id: 'counting-palindrome', name: 'Counting Palindrome', type: 'hidden' },
+  544: { id: 'mirror-mirror', name: 'Mirror Mirror', type: 'hidden' },
+  545: { id: 'the-mountain', name: 'The Mountain', type: 'hidden' },
+
+  // Hidden personal - Mathematical (560-566)
+  560: { id: 'fine-structure', name: 'Fine Structure', type: 'hidden' },
+  561: { id: 'pi-day', name: 'Pi Day', type: 'hidden' },
+  562: { id: 'golden', name: 'Golden', type: 'hidden' },
+  563: { id: 'eulers-click', name: "Euler's Click", type: 'hidden' },
+  564: { id: 'more-pi', name: 'More Pi', type: 'hidden' },
+  565: { id: 'pi-squared', name: 'Pi Squared', type: 'hidden' },
+  566: { id: 'full-pi', name: 'Full Pi', type: 'hidden' },
+
+  // Hidden personal - Powers of 2 (580-588)
+  580: { id: 'byte', name: 'Byte', type: 'hidden' },
+  581: { id: 'half-k', name: 'Half K', type: 'hidden' },
+  582: { id: 'kilobyte', name: 'Kilobyte', type: 'hidden' },
+  583: { id: 'the-game', name: 'The Game', type: 'hidden' },
+  584: { id: 'pow-2-12', name: '2^12', type: 'hidden' },
+  585: { id: 'pow-2-13', name: '2^13', type: 'hidden' },
+  586: { id: 'pow-2-14', name: '2^14', type: 'hidden' },
+  587: { id: 'pow-2-15', name: '2^15', type: 'hidden' },
+  588: { id: 'pow-2-16', name: '2^16', type: 'hidden' },
+
+  // Hidden personal - Cultural (600-609)
+  600: { id: 'not-found', name: 'Not Found', type: 'hidden' },
+  601: { id: 'server-error', name: 'Server Error', type: 'hidden' },
+  602: { id: 'jumbo', name: 'Jumbo', type: 'hidden' },
+  603: { id: 'emergency', name: 'Emergency', type: 'hidden' },
+  604: { id: 'orwellian', name: 'Orwellian', type: 'hidden' },
+  605: { id: 'space-odyssey', name: 'Space Odyssey', type: 'hidden' },
+  606: { id: 'end-times', name: 'End Times', type: 'hidden' },
+  607: { id: 'love-you-3000', name: 'Love You 3000', type: 'hidden' },
+  608: { id: 'meaning-of-everything', name: 'Meaning of Everything', type: 'hidden' },
+  609: { id: 'seasons-of-love', name: 'Seasons of Love', type: 'hidden' },
 };
 
 // =============================================================================
