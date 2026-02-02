@@ -11,11 +11,14 @@ import { keccak256, encodePacked } from 'viem';
  *   - stupid-clicker:clicks:{address} - Hash with cumulative stats per address
  *   - stupid-clicker:leaderboard - Sorted set for rankings by total frontend clicks
  *   - stupid-clicker:milestones:{address} - Set of unlocked milestone IDs
+ *   - stupid-clicker:heartbeat:{address} - Active frontend session (60s TTL)
  *
  * Endpoints:
  *   GET  /api/stupid-clicker?address=0x...     - Get player stats
  *   POST /api/stupid-clicker                    - Record clicks from frontend
+ *   POST /api/stupid-clicker (heartbeat=true)  - Send heartbeat for active user tracking
  *   GET  /api/stupid-clicker?leaderboard=true  - Get leaderboard
+ *   GET  /api/stupid-clicker?activeUsers=true  - Get count of active humans clicking
  *   GET  /api/stupid-clicker?eligible=true&address=0x... - Check NFT eligibility
  */
 
@@ -104,10 +107,12 @@ const GLOBAL_MILESTONES_KEY = 'stupid-clicker:global-milestones'; // Hash: miles
 const STREAK_KEY = (addr) => `stupid-clicker:streak:${addr.toLowerCase()}`;
 const TIME_CLICKS_KEY = (addr) => `stupid-clicker:time-clicks:${addr.toLowerCase()}`; // Hash for time-based tracking
 const HUMAN_SESSION_KEY = (addr) => `stupid-clicker:human-session:${addr.toLowerCase()}`; // Turnstile verification session
+const HEARTBEAT_KEY = (addr) => `stupid-clicker:heartbeat:${addr.toLowerCase()}`; // Active frontend session heartbeat
 
 // =============================================================================
 // CONSTANTS
 // =============================================================================
+const HEARTBEAT_TTL = 60; // Heartbeat expires after 60 seconds
 const HUMAN_SESSION_DURATION = 60 * 60 * 1000; // 1 hour in milliseconds
 const CLICKS_BEFORE_VERIFICATION = 500; // Require verification after this many clicks per session
 
@@ -334,6 +339,31 @@ export default async function handler(req, res) {
         });
       }
 
+      // Active users request (for "clicking now" display)
+      if (req.query.activeUsers === 'true') {
+        // Count heartbeat keys that haven't expired (TTL-based)
+        // Upstash Redis doesn't support KEYS with TTL filtering, so we scan and check
+        const heartbeatPattern = 'stupid-clicker:heartbeat:*';
+        let activeHumans = 0;
+        let cursor = 0;
+
+        // Use SCAN to find heartbeat keys (they auto-expire via TTL)
+        do {
+          const result = await redis.scan(cursor, { match: heartbeatPattern, count: 100 });
+          cursor = result[0];
+          activeHumans += result[1].length;
+        } while (cursor !== 0);
+
+        const globalClicks = parseInt(await redis.get(GLOBAL_CLICKS_KEY) || '0', 10);
+
+        return res.status(200).json({
+          success: true,
+          activeHumans,
+          activeBots: 0, // Bots are counted client-side from subgraph
+          globalClicks
+        });
+      }
+
       // Player stats request
       if (!validateAddress(address)) {
         return res.status(400).json({ error: 'Invalid or missing address' });
@@ -396,7 +426,7 @@ export default async function handler(req, res) {
     // POST - Record frontend clicks or on-chain submissions
     if (req.method === 'POST') {
       const body = req.body || {};
-      const { address, clicks, onChainClicks, txHash, name, epoch, timestamp, turnstileToken, nonces } = body;
+      const { address, clicks, onChainClicks, txHash, name, epoch, timestamp, turnstileToken, nonces, heartbeat } = body;
 
       // Validate address (required for all POST requests)
       if (!validateAddress(address)) {
@@ -404,6 +434,15 @@ export default async function handler(req, res) {
       }
 
       const addr = address.toLowerCase();
+
+      // -----------------------------------------------------------------------
+      // HEARTBEAT - Track active frontend sessions
+      // -----------------------------------------------------------------------
+      if (heartbeat === true) {
+        // Set heartbeat key with TTL (auto-expires)
+        await redis.set(HEARTBEAT_KEY(addr), Date.now().toString(), { ex: HEARTBEAT_TTL });
+        return res.status(200).json({ success: true });
+      }
 
       // Check if nonces are provided for proof-of-work validation
       const hasNonces = Array.isArray(nonces) && nonces.length > 0;
