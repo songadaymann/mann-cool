@@ -447,6 +447,62 @@ export default async function handler(req, res) {
         });
       }
 
+      // Sync achievements - retroactively grant any missing hidden achievements
+      // based on current total clicks (useful for achievements added after user played)
+      if (req.query.syncAchievements === 'true') {
+        if (!validateAddress(address)) {
+          return res.status(400).json({ error: 'Invalid or missing address' });
+        }
+
+        const addr = address.toLowerCase();
+        const stats = await redis.hgetall(CLICKS_KEY(addr));
+        const totalClicks = parseInt(stats?.totalClicks || '0', 10);
+
+        if (totalClicks === 0) {
+          return res.status(200).json({
+            success: true,
+            address: addr,
+            totalClicks: 0,
+            newAchievements: [],
+            message: 'No clicks recorded yet'
+          });
+        }
+
+        const unlockedAchievements = await redis.smembers(ACHIEVEMENTS_KEY(addr)) || [];
+        const newAchievements = [];
+
+        // Check all hidden achievements
+        for (const hidden of HIDDEN_ACHIEVEMENTS) {
+          if (totalClicks >= hidden.triggerClick && !unlockedAchievements.includes(hidden.id)) {
+            await redis.sadd(ACHIEVEMENTS_KEY(addr), hidden.id);
+            await redis.sadd(ELIGIBLE_KEY, addr);
+            newAchievements.push({ ...hidden, type: 'hidden' });
+          }
+        }
+
+        // Also check personal milestones
+        const unlockedMilestones = await redis.smembers(MILESTONES_KEY(addr)) || [];
+        const newMilestones = [];
+
+        for (const milestone of PERSONAL_MILESTONES) {
+          if (totalClicks >= milestone.clicks && !unlockedMilestones.includes(milestone.id)) {
+            await redis.sadd(MILESTONES_KEY(addr), milestone.id);
+            newMilestones.push(milestone);
+          }
+        }
+
+        return res.status(200).json({
+          success: true,
+          address: addr,
+          totalClicks,
+          newMilestones,
+          newAchievements,
+          message: newAchievements.length > 0 || newMilestones.length > 0
+            ? `Synced ${newMilestones.length} milestones and ${newAchievements.length} achievements`
+            : 'All achievements already synced'
+        });
+      }
+
       // Player stats request
       if (!validateAddress(address)) {
         return res.status(400).json({ error: 'Invalid or missing address' });
