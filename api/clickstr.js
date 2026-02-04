@@ -211,7 +211,7 @@ const CLICKS_BEFORE_VERIFICATION = 500; // Require verification after this many 
 
 // Proof-of-work constants for off-chain nonce validation
 // These should match the contract's difficulty settings
-const POW_CHAIN_ID = 11155111; // Sepolia - update for mainnet
+const POW_CHAIN_ID = 1; // Mainnet
 const POW_DIFFICULTY_TARGET = BigInt('0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'); // Max difficulty (easiest)
 
 function validateAddress(address) {
