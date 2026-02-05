@@ -1,6 +1,7 @@
 import { Redis } from '@upstash/redis';
 import { privateKeyToAccount } from 'viem/accounts';
-import { keccak256, encodePacked, toHex } from 'viem';
+import { keccak256, encodePacked, toHex, createPublicClient, http } from 'viem';
+import { mainnet, sepolia } from 'viem/chains';
 
 /**
  * Stupid Clicker - NFT Claim Signature API
@@ -306,6 +307,75 @@ const MILESTONES_KEY = (addr) => `clickstr:milestones:${addr.toLowerCase()}`;
 const ACHIEVEMENTS_KEY = (addr) => `clickstr:achievements:${addr.toLowerCase()}`;
 const NFT_CLAIMED_KEY = (addr) => `clickstr:nft-claimed:${addr.toLowerCase()}`; // Set of claimed tier numbers
 const GLOBAL_MILESTONES_KEY = 'clickstr:global-milestones'; // Hash: milestoneId -> winner address
+const V2_TOTAL_CLICKS_KEY = (addr) => `clickstr:v2:total:${addr.toLowerCase()}`; // V2 Redis clicks
+
+// =============================================================================
+// CLICK REGISTRY INTEGRATION
+// =============================================================================
+
+// Chain configuration
+const CHAIN_ID = parseInt(process.env.CHAIN_ID || '1');
+const chain = CHAIN_ID === 1 ? mainnet : sepolia;
+
+// ClickRegistry contract address (for reading lifetime clicks)
+const REGISTRY_ADDRESS = process.env.CLICKSTR_REGISTRY_ADDRESS;
+
+// Minimal ABI for reading totalClicks
+const REGISTRY_ABI = [
+  {
+    name: 'totalClicks',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [{ name: 'user', type: 'address' }],
+    outputs: [{ name: '', type: 'uint256' }]
+  }
+];
+
+/**
+ * Get user's lifetime clicks from the ClickRegistry contract
+ * Falls back to 0 if registry not configured or call fails
+ */
+async function getRegistryClicks(address) {
+  if (!REGISTRY_ADDRESS) return 0n;
+
+  try {
+    const rpcUrl = process.env.RPC_URL || (CHAIN_ID === 1
+      ? 'https://eth.llamarpc.com'
+      : 'https://sepolia.infura.io/v3/your-key');
+
+    const client = createPublicClient({
+      chain,
+      transport: http(rpcUrl)
+    });
+
+    const clicks = await client.readContract({
+      address: REGISTRY_ADDRESS,
+      abi: REGISTRY_ABI,
+      functionName: 'totalClicks',
+      args: [address]
+    });
+    return clicks;
+  } catch (error) {
+    console.error('Error reading registry clicks:', error);
+    return 0n;
+  }
+}
+
+// Click thresholds for personal milestones (must match TIER_INFO)
+const PERSONAL_CLICK_THRESHOLDS = {
+  1: 1,         // First Timer
+  2: 100,       // Getting Started
+  3: 500,       // Warming Up
+  4: 1000,      // Dedicated
+  5: 5000,      // Serious Clicker
+  6: 10000,     // Obsessed
+  7: 25000,     // No Sleep
+  8: 50000,     // Touch Grass
+  9: 100000,    // Legend
+  10: 250000,   // Ascended
+  11: 500000,   // Transcendent
+  12: 1000000,  // Click God
+};
 
 // =============================================================================
 // HELPERS
@@ -544,23 +614,61 @@ export default async function handler(req, res) {
     const isPersonal = tier >= 1 && tier <= 12;
 
     let hasUnlocked = false;
+    let totalClicks = 0;
 
     if (isGlobal || isStreak || isHidden) {
       // Check achievements key
       const achievements = await redis.smembers(ACHIEVEMENTS_KEY(addr)) || [];
       hasUnlocked = achievements.includes(milestoneId);
     } else if (isPersonal) {
-      // Check milestones key
+      // For personal milestones, check BOTH Redis AND on-chain ClickRegistry
+      // This enables cross-season eligibility - clicks from any season count
+
+      // 1. Check if already marked as unlocked in Redis (V1 behavior)
       const milestones = await redis.smembers(MILESTONES_KEY(addr)) || [];
-      hasUnlocked = milestones.includes(milestoneId);
+      if (milestones.includes(milestoneId)) {
+        hasUnlocked = true;
+      } else {
+        // 2. Check actual click counts from multiple sources
+        const requiredClicks = PERSONAL_CLICK_THRESHOLDS[tier];
+
+        // Get V1 clicks (from clickstr:clicks:{addr} hash)
+        const v1Stats = await redis.hgetall(`clickstr:clicks:${addr}`) || {};
+        const v1Clicks = parseInt(v1Stats?.totalClicks || '0', 10);
+
+        // Get V2 Redis clicks (unclaimed current season)
+        const v2RedisClicks = parseInt(await redis.get(V2_TOTAL_CLICKS_KEY(addr)) || '0', 10);
+
+        // Get on-chain registry clicks (claimed across all seasons)
+        const registryClicks = await getRegistryClicks(addr);
+
+        // Total is: max of (v1 + v2 Redis) or registry, to avoid double-counting
+        // Once clicks are claimed on-chain, they move to registry
+        // Unclaimed clicks stay in Redis
+        totalClicks = Math.max(v1Clicks + v2RedisClicks, Number(registryClicks));
+
+        console.log(`[NFT Eligibility] ${addr} tier ${tier}: v1=${v1Clicks}, v2Redis=${v2RedisClicks}, registry=${registryClicks}, total=${totalClicks}, required=${requiredClicks}`);
+
+        if (totalClicks >= requiredClicks) {
+          hasUnlocked = true;
+          // Auto-mark as unlocked in Redis for future checks
+          await redis.sadd(MILESTONES_KEY(addr), milestoneId);
+        }
+      }
     }
 
     if (!hasUnlocked) {
+      const requiredClicks = isPersonal ? PERSONAL_CLICK_THRESHOLDS[tier] : null;
       return res.status(403).json({
         error: 'Not eligible',
         message: `You haven't unlocked the "${TIER_INFO[tier]?.name || milestoneId}" milestone yet`,
         tier,
-        milestone: milestoneId
+        milestone: milestoneId,
+        ...(isPersonal && {
+          currentClicks: totalClicks,
+          requiredClicks,
+          clicksNeeded: requiredClicks - totalClicks
+        })
       });
     }
 
