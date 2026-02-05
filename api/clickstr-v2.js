@@ -22,9 +22,11 @@ import { privateKeyToAccount } from 'viem/accounts';
  * Endpoints:
  *   POST /api/clickstr-v2                     - Submit clicks (off-chain)
  *   POST /api/clickstr-v2 (action: "claim")   - Get signature to claim on-chain rewards
+ *   POST /api/clickstr-v2 (heartbeat: true)   - Track active user session
  *   GET  /api/clickstr-v2?address=0x...       - Get player stats (Redis + Registry)
  *   GET  /api/clickstr-v2?claimable=true&address=0x... - Get claimable epochs
  *   GET  /api/clickstr-v2?leaderboard=true    - Get current epoch leaderboard
+ *   GET  /api/clickstr-v2?activeUsers=true    - Get active user count + global clicks
  */
 
 // =============================================================================
@@ -413,7 +415,7 @@ export default async function handler(req, res) {
     // GET REQUESTS
     // =========================================================================
     if (req.method === 'GET') {
-      const { address, leaderboard, claimable, epoch: queryEpoch, limit = '50' } = req.query;
+      const { address, leaderboard, claimable, activeUsers, epoch: queryEpoch, limit = '50' } = req.query;
 
       // Get current game state
       const gameState = await getGameState();
@@ -450,6 +452,22 @@ export default async function handler(req, res) {
           leaderboard: parsed,
           epochTotalClicks: epochTotal,
           gameState
+        });
+      }
+
+      // Active users request
+      if (activeUsers === 'true') {
+        const cutoffTime = Date.now() - (60 * 1000); // 60 seconds ago
+        // Count users with heartbeat in last 60 seconds
+        const activeCount = await redis.zcount(ACTIVE_USERS_SET, cutoffTime, '+inf');
+        // Get global clicks
+        const globalClicks = parseInt(await redis.get(V2_GLOBAL_CLICKS_KEY) || '0', 10);
+
+        return res.status(200).json({
+          success: true,
+          activeHumans: activeCount || 0,
+          activeBots: 0, // V2 is human-only
+          globalClicks
         });
       }
 
