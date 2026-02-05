@@ -567,7 +567,7 @@ export default async function handler(req, res) {
       // -----------------------------------------------------------------------
       if (action === 'admin_reset') {
         const adminKey = req.headers['x-admin-key'];
-        const expectedKey = process.env.CLICKSTR_ADMIN_KEY;
+        const expectedKey = process.env.CLICKSTR_ADMIN_SECRET;
         if (!adminKey || adminKey !== expectedKey) {
           return res.status(403).json({ error: 'Unauthorized' });
         }
