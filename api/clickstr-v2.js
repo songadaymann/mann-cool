@@ -563,6 +563,42 @@ export default async function handler(req, res) {
       const ipHash = hashIp(clientIp);
 
       // -----------------------------------------------------------------------
+      // ADMIN RESET - Zero out user's clicks (testing only)
+      // -----------------------------------------------------------------------
+      if (action === 'admin_reset') {
+        const adminKey = req.headers['x-admin-key'];
+        const expectedKey = process.env.CLICKSTR_ADMIN_KEY;
+        if (!adminKey || adminKey !== expectedKey) {
+          return res.status(403).json({ error: 'Unauthorized' });
+        }
+
+        // Delete all V2 keys for this user
+        const keysToDelete = [];
+        for (let ep = 1; ep <= 100; ep++) {
+          keysToDelete.push(V2_CLICKS_KEY(addr, ep));
+          keysToDelete.push(V2_USED_NONCES_KEY(addr, ep));
+          keysToDelete.push(V2_CLAIM_ISSUED_KEY(addr, ep));
+          keysToDelete.push(V2_CLAIM_CHALLENGE_KEY(addr, ep));
+        }
+        keysToDelete.push(V2_TOTAL_CLICKS_KEY(addr));
+        keysToDelete.push(HUMAN_SESSION_KEY(addr));
+        keysToDelete.push(MILESTONES_KEY(addr));
+        keysToDelete.push(ACHIEVEMENTS_KEY(addr));
+
+        // Delete all keys
+        for (const key of keysToDelete) {
+          await redis.del(key);
+        }
+
+        // Remove from all epoch leaderboards
+        for (let ep = 1; ep <= 100; ep++) {
+          await redis.zrem(V2_EPOCH_LEADERBOARD_KEY(ep), JSON.stringify({ address: addr }));
+        }
+
+        return res.status(200).json({ success: true, message: `Reset all V2 data for ${addr}` });
+      }
+
+      // -----------------------------------------------------------------------
       // HEARTBEAT - Track active users
       // -----------------------------------------------------------------------
       if (heartbeat === true) {
