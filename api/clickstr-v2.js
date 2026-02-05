@@ -437,7 +437,7 @@ export default async function handler(req, res) {
             parsed.push({
               rank: Math.floor(i / 2) + 1,
               ...data,
-              clicks: parseInt(entries[i + 1], 10)
+              totalClicks: parseInt(entries[i + 1], 10)
             });
           } catch {
             // Skip malformed entries
