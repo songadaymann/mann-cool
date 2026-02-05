@@ -680,7 +680,8 @@ export default async function handler(req, res) {
           const existing = await redis.get(challengeKey);
           if (existing) {
             try {
-              challengeData = JSON.parse(existing);
+              // Upstash auto-deserializes JSON
+              challengeData = typeof existing === 'string' ? JSON.parse(existing) : existing;
             } catch {
               await redis.del(challengeKey);
             }
@@ -728,7 +729,10 @@ export default async function handler(req, res) {
 
         if (existingChallenge) {
           try {
-            const challengePayload = JSON.parse(existingChallenge);
+            // Upstash auto-deserializes JSON, so existingChallenge may already be an object
+            const challengePayload = typeof existingChallenge === 'string'
+              ? JSON.parse(existingChallenge)
+              : existingChallenge;
             challengeMessage = challengePayload.message;
           } catch {
             await redis.del(challengeKey);
@@ -769,7 +773,8 @@ export default async function handler(req, res) {
         const existingSignature = await redis.get(V2_CLAIM_ISSUED_KEY(addr, epoch));
         if (existingSignature) {
           // Return existing signature (idempotent)
-          const parsed = JSON.parse(existingSignature);
+          // Upstash auto-deserializes JSON
+          const parsed = typeof existingSignature === 'string' ? JSON.parse(existingSignature) : existingSignature;
           return res.status(200).json({
             success: true,
             signature: parsed.signature,
