@@ -662,35 +662,53 @@ export default async function handler(req, res) {
         };
 
         const walletSignature = body.walletSignature;
+        const providedChallenge = body.challenge; // Frontend sends the challenge back
+
         if (!walletSignature) {
           return await ensureChallenge('Wallet signature required');
         }
 
+        // Try to get challenge from Redis first, fall back to provided challenge
+        let challengeMessage = null;
         const existingChallenge = await redis.get(challengeKey);
-        if (!existingChallenge) {
-          return await ensureChallenge('Signature expired, please sign again');
+
+        if (existingChallenge) {
+          try {
+            const challengePayload = JSON.parse(existingChallenge);
+            challengeMessage = challengePayload.message;
+          } catch {
+            await redis.del(challengeKey);
+          }
         }
 
-        let challengePayload;
-        try {
-          challengePayload = JSON.parse(existingChallenge);
-        } catch {
-          await redis.del(challengeKey);
+        // If Redis challenge expired/missing but frontend provided the challenge, use it
+        // This handles race conditions where the TTL expires between requests
+        if (!challengeMessage && providedChallenge) {
+          // Validate the provided challenge format to prevent forgery
+          const expectedPrefix = `Clickstr V2 Claim Authentication\nAddress: ${addr}\nEpoch: ${epoch}\nChain ID: ${CHAIN_ID}`;
+          if (providedChallenge.startsWith(expectedPrefix)) {
+            challengeMessage = providedChallenge;
+          }
+        }
+
+        if (!challengeMessage) {
           return await ensureChallenge('Signature expired, please sign again');
         }
 
         try {
           const recovered = await recoverMessageAddress({
-            message: challengePayload.message,
+            message: challengeMessage,
             signature: walletSignature
           });
           if (recovered.toLowerCase() !== addr) {
             return await ensureChallenge('Invalid wallet signature');
           }
-        } catch {
+        } catch (sigError) {
+          console.error('Signature recovery error:', sigError);
           return await ensureChallenge('Invalid wallet signature');
         }
 
+        // Clear the challenge from Redis
         await redis.del(challengeKey);
 
         // Check if we already issued a signature (prevent replay farming)
