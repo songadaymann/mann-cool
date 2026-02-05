@@ -783,12 +783,30 @@ export default async function handler(req, res) {
         }
 
         // Generate signature
-        const signature = await signClaimAttestation(
-          addr,
-          epoch,
-          clicks,
-          gameState.seasonNumber
-        );
+        let signature;
+        try {
+          signature = await signClaimAttestation(
+            addr,
+            epoch,
+            clicks,
+            gameState.seasonNumber
+          );
+        } catch (signError) {
+          console.error('Signature generation failed:', signError);
+          return res.status(500).json({
+            error: 'Signature generation failed',
+            message: signError.message,
+            details: {
+              addr,
+              epoch,
+              clicks,
+              seasonNumber: gameState.seasonNumber,
+              hasPrivateKey: !!process.env.ATTESTATION_SIGNER_PRIVATE_KEY,
+              gameContractAddress: GAME_CONTRACT_ADDRESS,
+              chainId: CHAIN_ID
+            }
+          });
+        }
 
         // Store issued signature
         await redis.set(
