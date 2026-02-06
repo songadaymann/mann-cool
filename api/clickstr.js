@@ -568,14 +568,38 @@ export default async function handler(req, res) {
           }
         }
 
+        // Check global 1/1 milestones - award any that the global click count
+        // has passed but nobody has claimed yet
+        const v1GlobalClicks = parseInt(await redis.get(GLOBAL_CLICKS_KEY) || '0', 10);
+        const v2GlobalClicks = parseInt(await redis.get('clickstr:v2:global-clicks') || '0', 10);
+        const globalClicks = Math.max(v1GlobalClicks, v2GlobalClicks);
+        const newGlobalMilestones = [];
+
+        if (globalClicks > 0) {
+          for (const gm of GLOBAL_MILESTONES) {
+            if (globalClicks >= gm.globalClick) {
+              const existingWinner = await redis.hget(GLOBAL_MILESTONES_KEY, gm.id);
+              if (!existingWinner) {
+                // No one claimed this yet - award to the requesting user
+                await redis.hset(GLOBAL_MILESTONES_KEY, { [gm.id]: addr });
+                await redis.sadd(ACHIEVEMENTS_KEY(addr), gm.id);
+                await redis.sadd(ELIGIBLE_KEY, addr);
+                newGlobalMilestones.push({ ...gm, type: 'global' });
+              }
+            }
+          }
+        }
+
         return res.status(200).json({
           success: true,
           address: addr,
           totalClicks,
+          globalClicks,
           newMilestones,
           newAchievements,
-          message: newAchievements.length > 0 || newMilestones.length > 0
-            ? `Synced ${newMilestones.length} milestones and ${newAchievements.length} achievements`
+          newGlobalMilestones,
+          message: newAchievements.length > 0 || newMilestones.length > 0 || newGlobalMilestones.length > 0
+            ? `Synced ${newMilestones.length} milestones, ${newAchievements.length} achievements, and ${newGlobalMilestones.length} global 1/1s`
             : 'All achievements already synced'
         });
       }
