@@ -139,6 +139,13 @@ const GAME_ABI = [
     stateMutability: 'view',
     inputs: [],
     outputs: [{ name: '', type: 'uint256' }]
+  },
+  {
+    name: 'gameStartTime',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint256' }]
   }
 ];
 
@@ -443,16 +450,31 @@ async function getGameState() {
 
   try {
     const client = getPublicClient();
-    const [currentEpoch, seasonNumber, totalEpochs, gameStarted, gameEnded, epochDuration] = await Promise.all([
+    const [currentEpoch, seasonNumber, totalEpochs, gameStarted, gameEnded, epochDuration, gameStartTime] = await Promise.all([
       client.readContract({ address: GAME_CONTRACT_ADDRESS, abi: GAME_ABI, functionName: 'currentEpoch' }),
       client.readContract({ address: GAME_CONTRACT_ADDRESS, abi: GAME_ABI, functionName: 'SEASON_NUMBER' }),
       client.readContract({ address: GAME_CONTRACT_ADDRESS, abi: GAME_ABI, functionName: 'TOTAL_EPOCHS' }),
       client.readContract({ address: GAME_CONTRACT_ADDRESS, abi: GAME_ABI, functionName: 'gameStarted' }),
       client.readContract({ address: GAME_CONTRACT_ADDRESS, abi: GAME_ABI, functionName: 'gameEnded' }),
       client.readContract({ address: GAME_CONTRACT_ADDRESS, abi: GAME_ABI, functionName: 'EPOCH_DURATION' }),
+      client.readContract({ address: GAME_CONTRACT_ADDRESS, abi: GAME_ABI, functionName: 'gameStartTime' }),
     ]);
+
+    // Compute time-based epoch (mirrors contract's _checkAndAdvanceEpoch logic).
+    // The on-chain currentEpoch is stale until someone transacts, so we derive the
+    // real epoch from wall-clock time to avoid signing for already-finalized epochs.
+    let effectiveEpoch = Number(currentEpoch);
+    if (gameStarted && !gameEnded && Number(gameStartTime) > 0) {
+      const now = Math.floor(Date.now() / 1000);
+      const epochsSinceStart = Math.floor((now - Number(gameStartTime)) / Number(epochDuration));
+      const targetEpoch = Math.min(epochsSinceStart + 1, Number(totalEpochs));
+      if (targetEpoch > effectiveEpoch) {
+        effectiveEpoch = targetEpoch;
+      }
+    }
+
     return {
-      currentEpoch: Number(currentEpoch),
+      currentEpoch: effectiveEpoch,
       seasonNumber: Number(seasonNumber),
       totalEpochs: Number(totalEpochs),
       epochDuration: Number(epochDuration),
