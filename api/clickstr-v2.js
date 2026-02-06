@@ -89,6 +89,16 @@ const GAME_ABI = [
     outputs: [{ name: '', type: 'bool' }]
   },
   {
+    name: 'getClaimedClicks',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [
+      { name: 'user', type: 'address' },
+      { name: 'epoch', type: 'uint256' }
+    ],
+    outputs: [{ name: '', type: 'uint256' }]
+  },
+  {
     name: 'currentEpoch',
     type: 'function',
     stateMutability: 'view',
@@ -291,6 +301,28 @@ async function hasClaimedOnChain(address, epoch) {
   } catch (error) {
     console.error('Error checking claim status:', error);
     return false;
+  }
+}
+
+/**
+ * Get the number of clicks already claimed on-chain for an epoch
+ * Used for incremental claims - returns uint256, not boolean
+ */
+async function getClaimedClicksOnChain(address, epoch) {
+  if (!GAME_CONTRACT_ADDRESS) return 0;
+
+  try {
+    const client = getPublicClient();
+    const claimedClicks = await client.readContract({
+      address: GAME_CONTRACT_ADDRESS,
+      abi: GAME_ABI,
+      functionName: 'getClaimedClicks',
+      args: [address, BigInt(epoch)]
+    });
+    return Number(claimedClicks);
+  } catch (error) {
+    console.error('Error getting claimed clicks:', error);
+    return 0;
   }
 }
 
@@ -659,10 +691,14 @@ export default async function handler(req, res) {
           return res.status(400).json({ error: 'No clicks for this epoch' });
         }
 
-        // Check if already claimed on-chain
-        const alreadyClaimed = await hasClaimedOnChain(addr, epoch);
-        if (alreadyClaimed) {
-          return res.status(400).json({ error: 'Already claimed on-chain' });
+        // Check how many clicks already claimed on-chain (for incremental claims)
+        const alreadyClaimedClicks = await getClaimedClicksOnChain(addr, epoch);
+        if (clicks <= alreadyClaimedClicks) {
+          return res.status(400).json({
+            error: 'No new clicks to claim',
+            currentClicks: clicks,
+            alreadyClaimed: alreadyClaimedClicks
+          });
         }
 
         // Require a valid human session for claim attestations
@@ -801,25 +837,31 @@ export default async function handler(req, res) {
         // Clear the challenge from Redis
         await redis.del(challengeKey);
 
-        // Check if we already issued a signature (prevent replay farming)
+        // Check if we already issued a signature for this click count
+        // For incremental claims, we need to issue a NEW signature if clicks increased
         const existingSignature = await redis.get(V2_CLAIM_ISSUED_KEY(addr, epoch));
         if (existingSignature) {
-          // Return existing signature (idempotent)
-          // Upstash auto-deserializes JSON
           const parsed = typeof existingSignature === 'string' ? JSON.parse(existingSignature) : existingSignature;
-          return res.status(200).json({
-            success: true,
-            signature: parsed.signature,
-            epoch,
-            clickCount: parsed.clickCount,
-            seasonNumber: gameState.seasonNumber,
-            contractAddress: GAME_CONTRACT_ADDRESS,
-            chainId: CHAIN_ID,
-            note: 'Returning previously issued signature'
-          });
+
+          // If user has MORE clicks now, we need a new signature
+          // If same or fewer clicks, return cached signature
+          if (clicks <= parsed.clickCount) {
+            return res.status(200).json({
+              success: true,
+              signature: parsed.signature,
+              epoch,
+              clickCount: parsed.clickCount,
+              seasonNumber: gameState.seasonNumber,
+              contractAddress: GAME_CONTRACT_ADDRESS,
+              chainId: CHAIN_ID,
+              note: 'Returning previously issued signature (no new clicks)'
+            });
+          }
+          // User has more clicks - fall through to generate new signature
+          console.log(`[V2 Claim] Incremental claim: ${parsed.clickCount} -> ${clicks} clicks for ${addr} epoch ${epoch}`);
         }
 
-        // Generate signature
+        // Generate signature (new or updated for incremental claim)
         let signature;
         try {
           signature = await signClaimAttestation(
