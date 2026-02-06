@@ -51,6 +51,13 @@ const REGISTRY_ABI = [
     outputs: [{ name: '', type: 'uint256' }]
   },
   {
+    name: 'totalEarned',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [{ name: 'user', type: 'address' }],
+    outputs: [{ name: '', type: 'uint256' }]
+  },
+  {
     name: 'clicksPerSeason',
     type: 'function',
     stateMutability: 'view',
@@ -240,7 +247,28 @@ async function getRegistryClicks(address) {
     });
     return clicks;
   } catch (error) {
-    console.error('Error reading registry:', error);
+    console.error('Error reading registry clicks:', error);
+    return 0n;
+  }
+}
+
+/**
+ * Get user's lifetime earnings from the ClickRegistry contract
+ */
+async function getRegistryEarned(address) {
+  if (!REGISTRY_ADDRESS) return 0n;
+
+  try {
+    const client = getPublicClient();
+    const earned = await client.readContract({
+      address: REGISTRY_ADDRESS,
+      abi: REGISTRY_ABI,
+      functionName: 'totalEarned',
+      args: [address]
+    });
+    return earned;
+  } catch (error) {
+    console.error('Error reading registry earned:', error);
     return 0n;
   }
 }
@@ -516,7 +544,10 @@ export default async function handler(req, res) {
       const currentEpochClicks = parseInt(await redis.get(V2_CLICKS_KEY(addr, gameState.currentEpoch)) || '0', 10);
 
       // Get on-chain registry stats
-      const registryClicks = await getRegistryClicks(addr);
+      const [registryClicks, registryEarned] = await Promise.all([
+        getRegistryClicks(addr),
+        getRegistryEarned(addr)
+      ]);
 
       // Total is max of Redis (current season unclaimed) + registry (claimed across all seasons)
       // Note: Once claimed, clicks move from Redis tracking to registry
@@ -539,6 +570,7 @@ export default async function handler(req, res) {
         seasonClicks: redisTotal,
         lifetimeClicks,
         registryClicks: Number(registryClicks),
+        lifetimeEarned: registryEarned.toString(), // In wei, as string to avoid precision loss
         rank: rank !== null ? rank + 1 : null,
         milestones: unlockedMilestones,
         achievements: unlockedAchievements,
