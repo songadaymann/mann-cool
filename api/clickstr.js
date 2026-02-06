@@ -527,7 +527,13 @@ export default async function handler(req, res) {
 
         const addr = address.toLowerCase();
         const stats = await redis.hgetall(CLICKS_KEY(addr));
-        const totalClicks = parseInt(stats?.totalClicks || '0', 10);
+        let totalClicks = parseInt(stats?.totalClicks || '0', 10);
+
+        // Also check V2 clicks (V2 stores in separate Redis keys)
+        const v2Total = parseInt(await redis.get(`clickstr:v2:total:${addr}`) || '0', 10);
+        if (v2Total > totalClicks) {
+          totalClicks = v2Total;
+        }
 
         if (totalClicks === 0) {
           return res.status(200).json({

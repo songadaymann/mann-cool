@@ -182,7 +182,10 @@ const PERSONAL_MILESTONES = [
   { id: 'click-god', tier: 12, clicks: 1000000, name: 'Click God' },
 ];
 
+// Global Milestones - first person to hit X OVERALL clicks wins (1/1 NFTs)
+// Must match milestones-v2.csv and clickstr.js
 const GLOBAL_MILESTONES = [
+  // Main milestones (200-213)
   { id: 'global-1', tier: 200, globalClick: 1, name: 'The First Click' },
   { id: 'global-10', tier: 201, globalClick: 10, name: 'The Tenth' },
   { id: 'global-100', tier: 202, globalClick: 100, name: 'Century' },
@@ -190,16 +193,104 @@ const GLOBAL_MILESTONES = [
   { id: 'global-10000', tier: 204, globalClick: 10000, name: 'Ten Grand' },
   { id: 'global-100000', tier: 205, globalClick: 100000, name: 'The Hundred Thousandth' },
   { id: 'global-1000000', tier: 206, globalClick: 1000000, name: 'The Millionth Click' },
-  // ... more globals as needed
+  { id: 'global-10000000', tier: 207, globalClick: 10000000, name: 'Ten Million' },
+  { id: 'global-100000000', tier: 208, globalClick: 100000000, name: 'Hundred Million' },
+  { id: 'global-1000000000', tier: 209, globalClick: 1000000000, name: 'Billionaire' },
+  { id: 'global-10000000000', tier: 210, globalClick: 10000000000, name: 'Ten Billion' },
+  { id: 'global-100000000000', tier: 211, globalClick: 100000000000, name: 'One Hundred Billion' },
+  { id: 'global-1000000000000', tier: 212, globalClick: 1000000000000, name: 'One Trillion' },
+  { id: 'global-10000000000000', tier: 213, globalClick: 10000000000000, name: 'Ten Trillion' },
+
+  // Hidden global meme numbers (220-229)
+  { id: 'global-69', tier: 220, globalClick: 69, name: 'Nice' },
+  { id: 'global-420', tier: 221, globalClick: 420, name: 'Blaze It' },
+  { id: 'global-666', tier: 222, globalClick: 666, name: "Devil's Click" },
+  { id: 'global-777', tier: 223, globalClick: 777, name: 'Lucky Sevens' },
+  { id: 'global-1337', tier: 224, globalClick: 1337, name: 'Elite' },
+  { id: 'global-42069', tier: 225, globalClick: 42069, name: 'The Perfect Number' },
+  { id: 'global-69420', tier: 226, globalClick: 69420, name: 'Ultra Nice' },
+  { id: 'global-8008135', tier: 227, globalClick: 8008135, name: 'Calculator Masterpiece' },
+  { id: 'global-8675309', tier: 228, globalClick: 8675309, name: 'Jenny' },
+  { id: 'global-42', tier: 229, globalClick: 42, name: 'Meaning of Everything' },
 ];
 
+// Hidden Achievements - triggered at specific personal click numbers
+// Must match milestones-v2.csv and clickstr.js
 const HIDDEN_ACHIEVEMENTS = [
+  // Meme numbers (500-511)
   { id: 'nice', tier: 500, triggerClick: 69, name: 'Nice' },
   { id: 'blaze-it', tier: 501, triggerClick: 420, name: 'Blaze It' },
   { id: 'devils-click', tier: 502, triggerClick: 666, name: "Devil's Click" },
   { id: 'lucky-7s', tier: 503, triggerClick: 777, name: 'Lucky 7s' },
   { id: 'elite', tier: 504, triggerClick: 1337, name: 'Elite' },
-  // ... more hidden as needed (import full list from clickstr.js if needed)
+  { id: 'calculator-word', tier: 505, triggerClick: 8008, name: 'Calculator Word' },
+  { id: 'perfect-number', tier: 506, triggerClick: 42069, name: 'The Perfect Number' },
+  { id: 'ultra-nice', tier: 507, triggerClick: 69420, name: 'Ultra Nice' },
+  { id: 'old-school', tier: 508, triggerClick: 80085, name: 'Old School' },
+  { id: 'double-blaze', tier: 509, triggerClick: 420420, name: 'Double Blaze' },
+  { id: 'maximum-evil', tier: 510, triggerClick: 666666, name: 'Maximum Evil' },
+  { id: 'nice-nice-nice', tier: 511, triggerClick: 696969, name: 'Nice Nice Nice' },
+
+  // Ones family (520-523)
+  { id: 'triple-ones', tier: 520, triggerClick: 111, name: 'Triple Ones' },
+  { id: 'quad-ones', tier: 521, triggerClick: 1111, name: 'Quad Ones' },
+  { id: 'make-a-wish', tier: 522, triggerClick: 11111, name: 'Make a Wish' },
+  { id: 'six-ones', tier: 523, triggerClick: 111111, name: 'Six Ones' },
+
+  // Sevens family (524-526)
+  { id: 'jackpot', tier: 524, triggerClick: 7777, name: 'Jackpot' },
+  { id: 'mega-jackpot', tier: 525, triggerClick: 77777, name: 'Mega Jackpot' },
+  { id: 'slot-machine-god', tier: 526, triggerClick: 777777, name: 'Slot Machine God' },
+
+  // Eights family (527-529)
+  { id: 'prosperity', tier: 527, triggerClick: 888, name: 'Prosperity' },
+  { id: 'very-lucky', tier: 528, triggerClick: 8888, name: 'Very Lucky' },
+  { id: 'fortune', tier: 529, triggerClick: 888888, name: 'Fortune' },
+
+  // Nines family (530-532)
+  { id: 'so-close', tier: 530, triggerClick: 999, name: 'So Close' },
+  { id: 'edge-lord', tier: 531, triggerClick: 9999, name: 'Edge Lord' },
+  { id: 'one-away', tier: 532, triggerClick: 999999, name: 'One Away' },
+
+  // Palindromes (540-545)
+  { id: 'binary-palindrome', tier: 540, triggerClick: 101, name: 'Binary Palindrome' },
+  { id: 'bookends', tier: 541, triggerClick: 1001, name: 'Bookends' },
+  { id: 'symmetric', tier: 542, triggerClick: 10001, name: 'Symmetric' },
+  { id: 'counting-palindrome', tier: 543, triggerClick: 12321, name: 'Counting Palindrome' },
+  { id: 'mirror-mirror', tier: 544, triggerClick: 123321, name: 'Mirror Mirror' },
+  { id: 'the-mountain', tier: 545, triggerClick: 1234321, name: 'The Mountain' },
+
+  // Mathematical (560-566)
+  { id: 'fine-structure', tier: 560, triggerClick: 137, name: 'Fine Structure' },
+  { id: 'pi-day', tier: 561, triggerClick: 314, name: 'Pi Day' },
+  { id: 'golden', tier: 562, triggerClick: 1618, name: 'Golden' },
+  { id: 'eulers-click', tier: 563, triggerClick: 2718, name: "Euler's Click" },
+  { id: 'more-pi', tier: 564, triggerClick: 3141, name: 'More Pi' },
+  { id: 'pi-squared', tier: 565, triggerClick: 31415, name: 'Pi Squared' },
+  { id: 'full-pi', tier: 566, triggerClick: 314159, name: 'Full Pi' },
+
+  // Powers of 2 (580-588)
+  { id: 'byte', tier: 580, triggerClick: 256, name: 'Byte' },
+  { id: 'half-k', tier: 581, triggerClick: 512, name: 'Half K' },
+  { id: 'kilobyte', tier: 582, triggerClick: 1024, name: 'Kilobyte' },
+  { id: 'the-game', tier: 583, triggerClick: 2048, name: 'The Game' },
+  { id: 'pow-2-12', tier: 584, triggerClick: 4096, name: '2^12' },
+  { id: 'pow-2-13', tier: 585, triggerClick: 8192, name: '2^13' },
+  { id: 'pow-2-14', tier: 586, triggerClick: 16384, name: '2^14' },
+  { id: 'pow-2-15', tier: 587, triggerClick: 32768, name: '2^15' },
+  { id: 'pow-2-16', tier: 588, triggerClick: 65536, name: '2^16' },
+
+  // Cultural (600-609)
+  { id: 'not-found', tier: 600, triggerClick: 404, name: 'Not Found' },
+  { id: 'server-error', tier: 601, triggerClick: 500, name: 'Server Error' },
+  { id: 'jumbo', tier: 602, triggerClick: 747, name: 'Jumbo' },
+  { id: 'emergency', tier: 603, triggerClick: 911, name: 'Emergency' },
+  { id: 'orwellian', tier: 604, triggerClick: 1984, name: 'Orwellian' },
+  { id: 'space-odyssey', tier: 605, triggerClick: 2001, name: 'Space Odyssey' },
+  { id: 'end-times', tier: 606, triggerClick: 2012, name: 'End Times' },
+  { id: 'love-you-3000', tier: 607, triggerClick: 3000, name: 'Love You 3000' },
+  { id: 'meaning-of-everything', tier: 608, triggerClick: 42, name: 'Meaning of Everything' },
+  { id: 'seasons-of-love', tier: 609, triggerClick: 525600, name: 'Seasons of Love' },
 ];
 
 // =============================================================================
