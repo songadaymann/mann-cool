@@ -34,6 +34,14 @@ function validateAddress(address) {
 }
 
 export default async function handler(req, res) {
+  if (process.env.CLICKSTR_ELIGIBLE_ENABLED !== 'true') {
+    return res.status(410).json({
+      success: false,
+      deprecated: true,
+      message: 'clickstr-eligible is disabled. Set CLICKSTR_ELIGIBLE_ENABLED=true to enable.'
+    });
+  }
+
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');

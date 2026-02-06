@@ -138,15 +138,18 @@ export default async function handler(req, res) {
         if (result) deleted.push(key);
       }
 
-      // Scan and delete all player-specific keys
+      // Scan and delete all player-specific keys (V1 and V2)
       let cursor = '0';
       const patterns = [
+        // V1 keys
         'clickstr:clicks:*',
         'clickstr:milestones:*',
         'clickstr:achievements:*',
         'clickstr:streak:*',
         'clickstr:time-clicks:*',
         'clickstr:human-session:*',
+        // V2 keys
+        'clickstr:v2:*',
       ];
 
       for (const pattern of patterns) {

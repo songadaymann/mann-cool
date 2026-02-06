@@ -182,10 +182,14 @@ const ACTIVE_USERS_SET = 'clickstr:v2:active-users';
 const V2_GLOBAL_CLICKS_KEY = 'clickstr:v2:global-clicks';
 
 // Reuse V1 keys for cross-version compatibility
+const CLICKS_KEY = (addr) => `clickstr:clicks:${addr.toLowerCase()}`;
+const STREAK_KEY = (addr) => `clickstr:streak:${addr.toLowerCase()}`;
 const MILESTONES_KEY = (addr) => `clickstr:milestones:${addr.toLowerCase()}`;
 const ACHIEVEMENTS_KEY = (addr) => `clickstr:achievements:${addr.toLowerCase()}`;
 const ELIGIBLE_KEY = 'clickstr:nft-eligible';
+const GLOBAL_CLICKS_KEY = 'clickstr:global-clicks';
 const GLOBAL_MILESTONES_KEY = 'clickstr:global-milestones';
+const GLOBAL_TRIGGER_KEY = (globalClick) => `clickstr:global-trigger:${globalClick}`;
 const CLICK_LOG_KEY = 'clickstr:click-log';
 
 // =============================================================================
@@ -315,6 +319,21 @@ const HIDDEN_ACHIEVEMENTS = [
   { id: 'love-you-3000', tier: 607, triggerClick: 3000, name: 'Love You 3000' },
   { id: 'meaning-of-everything', tier: 608, triggerClick: 42, name: 'Meaning of Everything' },
   { id: 'seasons-of-love', tier: 609, triggerClick: 525600, name: 'Seasons of Love' },
+];
+
+// Streak Achievements
+// tier = NFT token ID (101-103 for streak achievements)
+const STREAK_ACHIEVEMENTS = [
+  { id: 'week-warrior', tier: 101, days: 7, name: 'Week Warrior', description: 'Clicked 7 days in a row' },
+  { id: 'month-master', tier: 102, days: 30, name: 'Month Master', description: 'Clicked 30 days in a row' },
+  { id: 'perfect-attendance', tier: 103, days: 90, name: 'Perfect Attendance', description: 'Clicked all 90 days' },
+];
+
+// Epoch-Based Achievements
+// tier = NFT token ID (104-105 for epoch achievements)
+const EPOCH_ACHIEVEMENTS = [
+  { id: 'day-one-og', tier: 104, epoch: 1, name: 'Day One OG', description: 'Clicked during epoch 1' },
+  { id: 'final-day', tier: 105, epoch: 90, name: 'The Final Day', description: 'Clicked during epoch 90' },
 ];
 
 // =============================================================================
@@ -723,7 +742,7 @@ export default async function handler(req, res) {
     // GET REQUESTS
     // =========================================================================
     if (req.method === 'GET') {
-      const { address, leaderboard, claimable, activeUsers, difficulty: difficultyQuery, epoch: queryEpoch, limit = '50' } = req.query;
+      const { address, leaderboard, claimable, activeUsers, syncAchievements, difficulty: difficultyQuery, epoch: queryEpoch, limit = '50' } = req.query;
 
       // Get current game state
       const gameState = await getGameState();
@@ -789,14 +808,103 @@ export default async function handler(req, res) {
         const cutoffTime = Date.now() - (60 * 1000); // 60 seconds ago
         // Count users with heartbeat in last 60 seconds
         const activeCount = await redis.zcount(ACTIVE_USERS_SET, cutoffTime, '+inf');
-        // Get global clicks
-        const globalClicks = parseInt(await redis.get(V2_GLOBAL_CLICKS_KEY) || '0', 10);
+        // Get global clicks (max of v1 and v2 counters)
+        const v1Global = parseInt(await redis.get(GLOBAL_CLICKS_KEY) || '0', 10);
+        const v2Global = parseInt(await redis.get(V2_GLOBAL_CLICKS_KEY) || '0', 10);
+        const globalClicks = Math.max(v1Global, v2Global);
 
         return res.status(200).json({
           success: true,
           activeHumans: activeCount || 0,
           activeBots: 0, // V2 is human-only
           globalClicks
+        });
+      }
+
+      // Sync achievements - retroactively grant any missing achievements
+      // based on current total clicks (useful for achievements added after user played)
+      if (syncAchievements === 'true') {
+        if (!validateAddress(address)) {
+          return res.status(400).json({ error: 'Invalid or missing address' });
+        }
+
+        const addr = address.toLowerCase();
+        const v1Stats = await redis.hgetall(CLICKS_KEY(addr));
+        const v1Clicks = parseInt(v1Stats?.totalClicks || '0', 10);
+        const v2Clicks = parseInt(await redis.get(V2_TOTAL_CLICKS_KEY(addr)) || '0', 10);
+        const registryClicks = await getRegistryClicks(addr);
+
+        // Total is: max of (v1 + v2 Redis) or registry, to avoid double-counting
+        const totalClicks = Math.max(v1Clicks + v2Clicks, Number(registryClicks));
+
+        if (totalClicks === 0) {
+          return res.status(200).json({
+            success: true,
+            address: addr,
+            totalClicks: 0,
+            newAchievements: [],
+            message: 'No clicks recorded yet'
+          });
+        }
+
+        const unlockedAchievements = await redis.smembers(ACHIEVEMENTS_KEY(addr)) || [];
+        const newAchievements = [];
+
+        // Check all hidden achievements
+        for (const hidden of HIDDEN_ACHIEVEMENTS) {
+          if (totalClicks >= hidden.triggerClick && !unlockedAchievements.includes(hidden.id)) {
+            await redis.sadd(ACHIEVEMENTS_KEY(addr), hidden.id);
+            await redis.sadd(ELIGIBLE_KEY, addr);
+            newAchievements.push({ ...hidden, type: 'hidden' });
+          }
+        }
+
+        // Also check personal milestones
+        const unlockedMilestones = await redis.smembers(MILESTONES_KEY(addr)) || [];
+        const newMilestones = [];
+
+        for (const milestone of PERSONAL_MILESTONES) {
+          if (totalClicks >= milestone.clicks && !unlockedMilestones.includes(milestone.id)) {
+            await redis.sadd(MILESTONES_KEY(addr), milestone.id);
+            newMilestones.push(milestone);
+          }
+        }
+
+        // Check global 1/1 milestones - only award if THIS user actually triggered
+        const v1Global = parseInt(await redis.get(GLOBAL_CLICKS_KEY) || '0', 10);
+        const v2Global = parseInt(await redis.get(V2_GLOBAL_CLICKS_KEY) || '0', 10);
+        const globalClicks = Math.max(v1Global, v2Global);
+        const newGlobalMilestones = [];
+
+        if (globalClicks > 0) {
+          for (const gm of GLOBAL_MILESTONES) {
+            if (globalClicks >= gm.globalClick) {
+              const existingWinner = await redis.hget(GLOBAL_MILESTONES_KEY, gm.id);
+              if (!existingWinner) {
+                // Verify this user actually triggered this global click number
+                const triggeredBy = await redis.get(GLOBAL_TRIGGER_KEY(gm.globalClick));
+                if (triggeredBy?.toLowerCase() === addr) {
+                  await redis.hset(GLOBAL_MILESTONES_KEY, { [gm.id]: addr });
+                  await redis.sadd(ACHIEVEMENTS_KEY(addr), gm.id);
+                  await redis.sadd(ELIGIBLE_KEY, addr);
+                  newGlobalMilestones.push({ ...gm, type: 'global' });
+                }
+              }
+            }
+          }
+        }
+
+        return res.status(200).json({
+          success: true,
+          address: addr,
+          totalClicks,
+          globalClicks,
+          newMilestones,
+          newAchievements,
+          newGlobalMilestones,
+          message: newAchievements.length > 0 || newMilestones.length > 0 || newGlobalMilestones.length > 0
+            ? `Synced ${newMilestones.length} milestones, ${newAchievements.length} achievements, and ${newGlobalMilestones.length} global 1/1s`
+            : 'All achievements already synced'
         });
       }
 
@@ -863,6 +971,7 @@ export default async function handler(req, res) {
       // Get milestones/achievements (shared with V1)
       const unlockedMilestones = await redis.smembers(MILESTONES_KEY(addr)) || [];
       const unlockedAchievements = await redis.smembers(ACHIEVEMENTS_KEY(addr)) || [];
+      const streakData = await redis.hgetall(STREAK_KEY(addr)) || {};
 
       // Include current difficulty so frontend can sync mining target
       const gameActive = gameState.gameStarted && !gameState.gameEnded;
@@ -870,17 +979,28 @@ export default async function handler(req, res) {
         ? await adjustDifficultyIfNeeded(redis, gameState)
         : MAX_DIFFICULTY_TARGET;
 
+      const v1Global = parseInt(await redis.get(GLOBAL_CLICKS_KEY) || '0', 10);
+      const v2Global = parseInt(await redis.get(V2_GLOBAL_CLICKS_KEY) || '0', 10);
+      const globalClicks = Math.max(v1Global, v2Global);
+
       return res.status(200).json({
         success: true,
         address: addr,
+        totalClicks: lifetimeClicks,
         currentEpochClicks,
         seasonClicks: redisTotal,
         lifetimeClicks,
         registryClicks: Number(registryClicks),
         lifetimeEarned: registryEarned.toString(), // In wei, as string to avoid precision loss
         rank: rank !== null ? rank + 1 : null,
+        globalClicks,
         milestones: unlockedMilestones,
         achievements: unlockedAchievements,
+        streak: {
+          current: parseInt(streakData.currentStreak || '0', 10),
+          longest: parseInt(streakData.longestStreak || '0', 10),
+          totalDays: parseInt(streakData.totalDays || '0', 10)
+        },
         difficultyTarget: '0x' + currentDifficulty.toString(16),
         gameState
       });
@@ -893,6 +1013,153 @@ export default async function handler(req, res) {
       const body = req.body || {};
       const { address, action, epoch: requestedEpoch, turnstileToken, nonces, heartbeat } = body;
 
+      // -----------------------------------------------------------------------
+      // ADMIN ACTIONS (do not require a player address)
+      // -----------------------------------------------------------------------
+      if (action === 'admin_reset' || action === 'reset_difficulty' || action === 'set_difficulty') {
+        const adminKey = req.headers['x-admin-key'];
+        const expectedKey = process.env.CLICKSTR_ADMIN_SECRET;
+        if (!adminKey || adminKey !== expectedKey) {
+          return res.status(403).json({ error: 'Unauthorized' });
+        }
+
+        if (action === 'admin_reset') {
+          if (address && !validateAddress(address)) {
+            return res.status(400).json({ error: 'Invalid address' });
+          }
+
+          // If no address provided, reset ALL V2 + shared data
+          if (!address) {
+            const patterns = [
+              'clickstr:v2:*',
+              'clickstr:milestones:*',
+              'clickstr:achievements:*',
+              'clickstr:human-session:*',
+              'clickstr:global-trigger:*',
+              'clickstr:clicks:*',
+              'clickstr:streak:*',
+              'clickstr:time-clicks:*',
+            ];
+
+            const keysToDelete = new Set([
+              ELIGIBLE_KEY,
+              GLOBAL_MILESTONES_KEY,
+              GLOBAL_CLICKS_KEY,
+              V2_GLOBAL_CLICKS_KEY,
+              CLICK_LOG_KEY,
+              ACTIVE_USERS_SET,
+              'clickstr:leaderboard',
+              'clickstr:onchain-leaderboard',
+            ]);
+
+            for (const pattern of patterns) {
+              let cursor = '0';
+              do {
+                const [nextCursor, keys] = await redis.scan(cursor, { match: pattern, count: 200 });
+                cursor = nextCursor;
+                for (const key of keys) {
+                  keysToDelete.add(key);
+                }
+              } while (cursor !== '0');
+            }
+
+            let deleted = 0;
+            for (const key of keysToDelete) {
+              const result = await redis.del(key);
+              if (result) deleted++;
+            }
+
+            return res.status(200).json({
+              success: true,
+              message: 'Reset all V2 + shared data (global + per-user)',
+              keysDeleted: deleted
+            });
+          }
+
+          // Otherwise reset a single address
+          const addr = address.toLowerCase();
+
+          // Delete all V2 keys for this user
+          const keysToDelete = [];
+          for (let ep = 1; ep <= 100; ep++) {
+            keysToDelete.push(V2_CLICKS_KEY(addr, ep));
+            keysToDelete.push(V2_USED_NONCES_KEY(addr, ep));
+            keysToDelete.push(V2_CLAIM_ISSUED_KEY(addr, ep));
+            keysToDelete.push(V2_CLAIM_CHALLENGE_KEY(addr, ep));
+          }
+          keysToDelete.push(V2_TOTAL_CLICKS_KEY(addr));
+          keysToDelete.push(HUMAN_SESSION_KEY(addr));
+          keysToDelete.push(MILESTONES_KEY(addr));
+          keysToDelete.push(ACHIEVEMENTS_KEY(addr));
+          keysToDelete.push(STREAK_KEY(addr));
+          keysToDelete.push(CLICKS_KEY(addr));
+
+          // Delete all keys
+          for (const key of keysToDelete) {
+            await redis.del(key);
+          }
+
+          // Remove from all epoch leaderboards
+          for (let ep = 1; ep <= 100; ep++) {
+            await redis.zrem(V2_EPOCH_LEADERBOARD_KEY(ep), JSON.stringify({ address: addr }));
+          }
+
+          await redis.srem(ELIGIBLE_KEY, addr);
+          await redis.zrem(ACTIVE_USERS_SET, addr);
+
+          return res.status(200).json({ success: true, message: `Reset all V2 data for ${addr}` });
+        }
+
+        if (action === 'reset_difficulty') {
+          const oldDifficulty = await getCurrentDifficulty(redis);
+          await redis.del(V2_DIFFICULTY_KEY);
+          await redis.del(V2_DIFFICULTY_EPOCH_KEY);
+          await redis.del(V2_DIFFICULTY_SEASON_KEY);
+
+          return res.status(200).json({
+            success: true,
+            message: 'Difficulty reset to default',
+            oldDifficulty: '0x' + oldDifficulty.toString(16),
+            newDifficulty: '0x' + DEFAULT_DIFFICULTY_TARGET.toString(16),
+          });
+        }
+
+        if (action === 'set_difficulty') {
+          const { difficulty: newDifficultyHex } = body;
+          if (!newDifficultyHex) {
+            return res.status(400).json({ error: 'Missing difficulty value. Pass hex string e.g. "0x00ff..."' });
+          }
+
+          let newDifficulty;
+          try {
+            newDifficulty = BigInt(newDifficultyHex);
+          } catch {
+            return res.status(400).json({ error: 'Invalid difficulty value. Must be hex or decimal BigInt string.' });
+          }
+
+          if (newDifficulty < MIN_DIFFICULTY_TARGET) {
+            return res.status(400).json({ error: `Difficulty too low. Minimum: ${MIN_DIFFICULTY_TARGET}` });
+          }
+          if (newDifficulty > MAX_DIFFICULTY_TARGET) {
+            return res.status(400).json({ error: `Difficulty too high. Maximum: 0x${MAX_DIFFICULTY_TARGET.toString(16)}` });
+          }
+
+          const gameState = await getGameState();
+          const oldDifficulty = await getCurrentDifficulty(redis);
+          await redis.set(V2_DIFFICULTY_KEY, newDifficulty.toString());
+          // Reset epoch tracking so adjustments start fresh from here
+          await redis.set(V2_DIFFICULTY_EPOCH_KEY, gameState.currentEpoch.toString());
+
+          return res.status(200).json({
+            success: true,
+            message: 'Difficulty updated',
+            oldDifficulty: '0x' + oldDifficulty.toString(16),
+            newDifficulty: '0x' + newDifficulty.toString(16),
+            epochLockedAt: gameState.currentEpoch,
+          });
+        }
+      }
+
       if (!validateAddress(address)) {
         return res.status(400).json({ error: 'Invalid or missing address' });
       }
@@ -901,108 +1168,6 @@ export default async function handler(req, res) {
       const gameState = await getGameState();
       const clientIp = getClientIp(req);
       const ipHash = hashIp(clientIp);
-
-      // -----------------------------------------------------------------------
-      // ADMIN RESET - Zero out user's clicks (testing only)
-      // -----------------------------------------------------------------------
-      if (action === 'admin_reset') {
-        const adminKey = req.headers['x-admin-key'];
-        const expectedKey = process.env.CLICKSTR_ADMIN_SECRET;
-        if (!adminKey || adminKey !== expectedKey) {
-          return res.status(403).json({ error: 'Unauthorized' });
-        }
-
-        // Delete all V2 keys for this user
-        const keysToDelete = [];
-        for (let ep = 1; ep <= 100; ep++) {
-          keysToDelete.push(V2_CLICKS_KEY(addr, ep));
-          keysToDelete.push(V2_USED_NONCES_KEY(addr, ep));
-          keysToDelete.push(V2_CLAIM_ISSUED_KEY(addr, ep));
-          keysToDelete.push(V2_CLAIM_CHALLENGE_KEY(addr, ep));
-        }
-        keysToDelete.push(V2_TOTAL_CLICKS_KEY(addr));
-        keysToDelete.push(HUMAN_SESSION_KEY(addr));
-        keysToDelete.push(MILESTONES_KEY(addr));
-        keysToDelete.push(ACHIEVEMENTS_KEY(addr));
-
-        // Delete all keys
-        for (const key of keysToDelete) {
-          await redis.del(key);
-        }
-
-        // Remove from all epoch leaderboards
-        for (let ep = 1; ep <= 100; ep++) {
-          await redis.zrem(V2_EPOCH_LEADERBOARD_KEY(ep), JSON.stringify({ address: addr }));
-        }
-
-        return res.status(200).json({ success: true, message: `Reset all V2 data for ${addr}` });
-      }
-
-      // -----------------------------------------------------------------------
-      // ADMIN: RESET DIFFICULTY - Clear difficulty back to default
-      // -----------------------------------------------------------------------
-      if (action === 'reset_difficulty') {
-        const adminKey = req.headers['x-admin-key'];
-        const expectedKey = process.env.CLICKSTR_ADMIN_SECRET;
-        if (!adminKey || adminKey !== expectedKey) {
-          return res.status(403).json({ error: 'Unauthorized' });
-        }
-
-        const oldDifficulty = await getCurrentDifficulty(redis);
-        await redis.del(V2_DIFFICULTY_KEY);
-        await redis.del(V2_DIFFICULTY_EPOCH_KEY);
-        await redis.del(V2_DIFFICULTY_SEASON_KEY);
-
-        return res.status(200).json({
-          success: true,
-          message: 'Difficulty reset to default',
-          oldDifficulty: '0x' + oldDifficulty.toString(16),
-          newDifficulty: '0x' + DEFAULT_DIFFICULTY_TARGET.toString(16),
-        });
-      }
-
-      // -----------------------------------------------------------------------
-      // ADMIN: SET DIFFICULTY - Set difficulty to a specific value
-      // -----------------------------------------------------------------------
-      if (action === 'set_difficulty') {
-        const adminKey = req.headers['x-admin-key'];
-        const expectedKey = process.env.CLICKSTR_ADMIN_SECRET;
-        if (!adminKey || adminKey !== expectedKey) {
-          return res.status(403).json({ error: 'Unauthorized' });
-        }
-
-        const { difficulty: newDifficultyHex } = body;
-        if (!newDifficultyHex) {
-          return res.status(400).json({ error: 'Missing difficulty value. Pass hex string e.g. "0x00ff..."' });
-        }
-
-        let newDifficulty;
-        try {
-          newDifficulty = BigInt(newDifficultyHex);
-        } catch {
-          return res.status(400).json({ error: 'Invalid difficulty value. Must be hex or decimal BigInt string.' });
-        }
-
-        if (newDifficulty < MIN_DIFFICULTY_TARGET) {
-          return res.status(400).json({ error: `Difficulty too low. Minimum: ${MIN_DIFFICULTY_TARGET}` });
-        }
-        if (newDifficulty > MAX_DIFFICULTY_TARGET) {
-          return res.status(400).json({ error: `Difficulty too high. Maximum: 0x${MAX_DIFFICULTY_TARGET.toString(16)}` });
-        }
-
-        const oldDifficulty = await getCurrentDifficulty(redis);
-        await redis.set(V2_DIFFICULTY_KEY, newDifficulty.toString());
-        // Reset epoch tracking so adjustments start fresh from here
-        await redis.set(V2_DIFFICULTY_EPOCH_KEY, gameState.currentEpoch.toString());
-
-        return res.status(200).json({
-          success: true,
-          message: 'Difficulty updated',
-          oldDifficulty: '0x' + oldDifficulty.toString(16),
-          newDifficulty: '0x' + newDifficulty.toString(16),
-          epochLockedAt: gameState.currentEpoch,
-        });
-      }
 
       // -----------------------------------------------------------------------
       // HEARTBEAT - Track active users
@@ -1361,13 +1526,16 @@ export default async function handler(req, res) {
       const previousTotal = parseInt(await redis.get(V2_TOTAL_CLICKS_KEY(addr)) || '0', 10);
       const newTotal = previousTotal + validCount;
 
-      const previousGlobal = parseInt(await redis.get(V2_GLOBAL_CLICKS_KEY) || '0', 10);
+      const previousGlobalV1 = parseInt(await redis.get(GLOBAL_CLICKS_KEY) || '0', 10);
+      const previousGlobalV2 = parseInt(await redis.get(V2_GLOBAL_CLICKS_KEY) || '0', 10);
+      const previousGlobal = Math.max(previousGlobalV1, previousGlobalV2);
       const newGlobal = previousGlobal + validCount;
 
       // Always update lifetime and global counts
       const updatePromises = [
         redis.set(V2_TOTAL_CLICKS_KEY(addr), newTotal),
         redis.set(V2_GLOBAL_CLICKS_KEY, newGlobal),
+        redis.set(GLOBAL_CLICKS_KEY, newGlobal),
         redis.hincrby(HUMAN_SESSION_KEY(addr), 'clicksSinceVerify', validCount)
       ];
 
@@ -1399,6 +1567,31 @@ export default async function handler(req, res) {
         v: 2 // Version marker
       }));
 
+      // Track streak (days clicked in a row)
+      const today = new Date(now).toISOString().split('T')[0]; // YYYY-MM-DD
+      const streakData = await redis.hgetall(STREAK_KEY(addr)) || {};
+      const lastClickDate = streakData.lastDate;
+      let currentStreak = parseInt(streakData.currentStreak || '0', 10);
+      let longestStreak = parseInt(streakData.longestStreak || '0', 10);
+
+      if (lastClickDate !== today) {
+        const yesterday = new Date(now - 86400000).toISOString().split('T')[0];
+        if (lastClickDate === yesterday) {
+          currentStreak += 1;
+        } else if (!lastClickDate) {
+          currentStreak = 1;
+        } else {
+          currentStreak = 1; // Streak broken
+        }
+        longestStreak = Math.max(longestStreak, currentStreak);
+        await redis.hset(STREAK_KEY(addr), {
+          lastDate: today,
+          currentStreak,
+          longestStreak,
+          totalDays: parseInt(streakData.totalDays || '0', 10) + 1
+        });
+      }
+
       // -----------------------------------------------------------------------
       // CHECK ACHIEVEMENTS (using combined total)
       // -----------------------------------------------------------------------
@@ -1407,7 +1600,9 @@ export default async function handler(req, res) {
 
       // Get registry clicks for true lifetime total
       const registryClicks = await getRegistryClicks(addr);
-      const lifetimeTotal = newTotal + Number(registryClicks);
+      const v1Stats = await redis.hgetall(CLICKS_KEY(addr));
+      const v1Clicks = parseInt(v1Stats?.totalClicks || '0', 10);
+      const lifetimeTotal = Math.max(v1Clicks + newTotal, Number(registryClicks));
 
       // Check personal milestones
       const unlockedMilestones = await redis.smembers(MILESTONES_KEY(addr)) || [];
@@ -1422,6 +1617,11 @@ export default async function handler(req, res) {
       // Check global milestones
       for (const gm of GLOBAL_MILESTONES) {
         if (previousGlobal < gm.globalClick && newGlobal >= gm.globalClick) {
+          const triggerKey = GLOBAL_TRIGGER_KEY(gm.globalClick);
+          const existingTrigger = await redis.get(triggerKey);
+          if (!existingTrigger) {
+            await redis.set(triggerKey, addr);
+          }
           const existingWinner = await redis.hget(GLOBAL_MILESTONES_KEY, gm.id);
           if (!existingWinner) {
             await redis.hset(GLOBAL_MILESTONES_KEY, { [gm.id]: addr });
@@ -1439,6 +1639,26 @@ export default async function handler(req, res) {
           await redis.sadd(ACHIEVEMENTS_KEY(addr), hidden.id);
           await redis.sadd(ELIGIBLE_KEY, addr);
           newAchievements.push({ ...hidden, type: 'hidden' });
+        }
+      }
+
+      // Check streak achievements
+      for (const streak of STREAK_ACHIEVEMENTS) {
+        if (currentStreak >= streak.days && !unlockedAchievements.includes(streak.id)) {
+          await redis.sadd(ACHIEVEMENTS_KEY(addr), streak.id);
+          await redis.sadd(ELIGIBLE_KEY, addr);
+          newAchievements.push({ ...streak, type: 'streak' });
+        }
+      }
+
+      // Check epoch achievements (only when game is active)
+      if (gameActive && epoch) {
+        for (const ea of EPOCH_ACHIEVEMENTS) {
+          if (epoch === ea.epoch && !unlockedAchievements.includes(ea.id)) {
+            await redis.sadd(ACHIEVEMENTS_KEY(addr), ea.id);
+            await redis.sadd(ELIGIBLE_KEY, addr);
+            newAchievements.push({ ...ea, type: 'epoch' });
+          }
         }
       }
 
@@ -1465,6 +1685,7 @@ export default async function handler(req, res) {
         difficultyTarget: '0x' + currentDifficulty.toString(16),
         rank,
         gameActive,
+        streak: { current: currentStreak, longest: longestStreak },
         newMilestones: newMilestones.length > 0 ? newMilestones : null,
         newAchievements: newAchievements.length > 0 ? newAchievements : null,
         nextMilestone: PERSONAL_MILESTONES.find(m => m.clicks > lifetimeTotal) || null

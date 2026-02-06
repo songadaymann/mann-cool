@@ -315,6 +315,16 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
+  // Deprecate V1 endpoint on non-mainnet environments
+  const chainId = process.env.CHAIN_ID;
+  if (chainId && chainId !== '1') {
+    return res.status(410).json({
+      success: false,
+      deprecated: true,
+      message: 'V1 endpoint deprecated for non-mainnet. Use /api/clickstr-v2.'
+    });
+  }
+
   // Verify Redis is configured
   if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {
     return res.status(500).json({ error: 'Redis not configured' });
