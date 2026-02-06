@@ -132,11 +132,27 @@ const GAME_ABI = [
     stateMutability: 'view',
     inputs: [],
     outputs: [{ name: '', type: 'bool' }]
+  },
+  {
+    name: 'EPOCH_DURATION',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint256' }]
   }
 ];
 
-// Proof-of-work configuration
-const POW_DIFFICULTY_TARGET = BigInt(process.env.POW_DIFFICULTY_TARGET || '0x00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff');
+// Proof-of-work difficulty configuration
+// Starting difficulty (same as V1 default) - used when no Redis value exists yet
+const DEFAULT_DIFFICULTY_TARGET = BigInt(process.env.POW_DIFFICULTY_TARGET || '0x00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff');
+const MAX_UINT256 = 2n ** 256n - 1n;
+const MAX_DIFFICULTY_TARGET = MAX_UINT256 / 1000n;  // Easiest possible (~1/1000 chance)
+const MIN_DIFFICULTY_TARGET = 1000n;                 // Hardest possible
+const MAX_ADJUSTMENT_FACTOR = 4n;                    // Max 4x change per epoch (same as V1)
+
+// Difficulty Redis keys
+const V2_DIFFICULTY_KEY = 'clickstr:v2:difficulty';
+const V2_DIFFICULTY_EPOCH_KEY = 'clickstr:v2:difficulty-epoch';
 
 // Session configuration
 const HUMAN_SESSION_DURATION = 60 * 60 * 1000; // 1 hour
@@ -422,35 +438,37 @@ async function getClaimedClicksOnChain(address, epoch) {
  */
 async function getGameState() {
   if (!GAME_CONTRACT_ADDRESS) {
-    return { currentEpoch: 1, seasonNumber: 2, totalEpochs: 3, gameStarted: false, gameEnded: false };
+    return { currentEpoch: 1, seasonNumber: 2, totalEpochs: 3, epochDuration: 14400, gameStarted: false, gameEnded: false };
   }
 
   try {
     const client = getPublicClient();
-    const [currentEpoch, seasonNumber, totalEpochs, gameStarted, gameEnded] = await Promise.all([
+    const [currentEpoch, seasonNumber, totalEpochs, gameStarted, gameEnded, epochDuration] = await Promise.all([
       client.readContract({ address: GAME_CONTRACT_ADDRESS, abi: GAME_ABI, functionName: 'currentEpoch' }),
       client.readContract({ address: GAME_CONTRACT_ADDRESS, abi: GAME_ABI, functionName: 'SEASON_NUMBER' }),
       client.readContract({ address: GAME_CONTRACT_ADDRESS, abi: GAME_ABI, functionName: 'TOTAL_EPOCHS' }),
       client.readContract({ address: GAME_CONTRACT_ADDRESS, abi: GAME_ABI, functionName: 'gameStarted' }),
       client.readContract({ address: GAME_CONTRACT_ADDRESS, abi: GAME_ABI, functionName: 'gameEnded' }),
+      client.readContract({ address: GAME_CONTRACT_ADDRESS, abi: GAME_ABI, functionName: 'EPOCH_DURATION' }),
     ]);
     return {
       currentEpoch: Number(currentEpoch),
       seasonNumber: Number(seasonNumber),
       totalEpochs: Number(totalEpochs),
+      epochDuration: Number(epochDuration),
       gameStarted,
       gameEnded
     };
   } catch (error) {
     console.error('Error reading game state:', error);
-    return { currentEpoch: 1, seasonNumber: 2, totalEpochs: 3, gameStarted: false, gameEnded: false };
+    return { currentEpoch: 1, seasonNumber: 2, totalEpochs: 3, epochDuration: 14400, gameStarted: false, gameEnded: false };
   }
 }
 
 /**
- * Verify a proof-of-work nonce
+ * Verify a proof-of-work nonce against a given difficulty target
  */
-function verifyNonce(address, nonceStr, epoch) {
+function verifyNonce(address, nonceStr, epoch, difficultyTarget) {
   try {
     const nonce = BigInt(nonceStr);
     const packed = encodePacked(
@@ -459,11 +477,117 @@ function verifyNonce(address, nonceStr, epoch) {
     );
     const hash = keccak256(packed);
     const hashBigInt = BigInt(hash);
-    return hashBigInt < POW_DIFFICULTY_TARGET;
+    return hashBigInt < difficultyTarget;
   } catch (error) {
     console.error('Nonce verification error:', error);
     return false;
   }
+}
+
+// =============================================================================
+// DIFFICULTY ADJUSTMENT (Bitcoin-style, ported from V1 on-chain logic)
+// =============================================================================
+
+/**
+ * Read current difficulty target from Redis (or return default)
+ */
+async function getCurrentDifficulty(redis) {
+  const stored = await redis.get(V2_DIFFICULTY_KEY);
+  if (stored) return BigInt(stored);
+  return DEFAULT_DIFFICULTY_TARGET;
+}
+
+/**
+ * Calculate new difficulty based on actual vs target clicks for an epoch.
+ *
+ * - More clicks than target → lower target (harder, slower mining)
+ * - Fewer clicks than target → higher target (easier, faster mining)
+ * - Zero clicks → 4x easier
+ * - Capped at 4x change per epoch in either direction
+ */
+function calculateNewDifficulty(currentTarget, actualClicks, targetClicks) {
+  if (actualClicks === 0n) {
+    // No clicks at all — make 4x easier (raise target)
+    let newTarget = currentTarget * MAX_ADJUSTMENT_FACTOR;
+    if (newTarget > MAX_DIFFICULTY_TARGET) newTarget = MAX_DIFFICULTY_TARGET;
+    return newTarget;
+  }
+
+  // newTarget = currentTarget * targetClicks / actualClicks
+  // If actual > target: ratio < 1 → newTarget < currentTarget (harder)
+  // If actual < target: ratio > 1 → newTarget > currentTarget (easier)
+  let newTarget = (currentTarget * targetClicks) / actualClicks;
+
+  // Cap at 4x change in either direction
+  if (newTarget > currentTarget * MAX_ADJUSTMENT_FACTOR) {
+    newTarget = currentTarget * MAX_ADJUSTMENT_FACTOR;
+  }
+  if (newTarget < currentTarget / MAX_ADJUSTMENT_FACTOR) {
+    newTarget = currentTarget / MAX_ADJUSTMENT_FACTOR;
+  }
+
+  // Enforce absolute bounds
+  if (newTarget > MAX_DIFFICULTY_TARGET) newTarget = MAX_DIFFICULTY_TARGET;
+  if (newTarget < MIN_DIFFICULTY_TARGET) newTarget = MIN_DIFFICULTY_TARGET;
+
+  return newTarget;
+}
+
+/**
+ * Check if difficulty needs adjustment for the current epoch.
+ * Adjusts based on completed epochs' click counts.
+ * Returns the current difficulty target.
+ */
+async function adjustDifficultyIfNeeded(redis, gameState) {
+  const { currentEpoch, epochDuration, gameStarted } = gameState;
+
+  // No adjustment needed if game hasn't started or epoch 0
+  if (!gameStarted || !currentEpoch || currentEpoch < 1) {
+    return await getCurrentDifficulty(redis);
+  }
+
+  const difficultySetForEpoch = parseInt(await redis.get(V2_DIFFICULTY_EPOCH_KEY) || '0', 10);
+
+  // Already adjusted for this epoch
+  if (currentEpoch <= difficultySetForEpoch) {
+    return await getCurrentDifficulty(redis);
+  }
+
+  let difficulty = await getCurrentDifficulty(redis);
+
+  // If first time, initialize for epoch 1
+  if (difficultySetForEpoch === 0) {
+    await redis.set(V2_DIFFICULTY_KEY, difficulty.toString());
+    await redis.set(V2_DIFFICULTY_EPOCH_KEY, '1');
+    if (currentEpoch === 1) return difficulty;
+  }
+
+  // Target clicks per epoch — same formula as the V2 contract's _calculateReward:
+  //   targetClicks = (1_000_000 * EPOCH_DURATION) / 86400
+  const targetClicksPerEpoch = BigInt(Math.floor(1_000_000 * epochDuration / 86400));
+
+  // Adjust for each completed epoch since last adjustment
+  // e.g. difficulty set for epoch 1, now in epoch 3 → adjust based on epochs 1, 2
+  const startFrom = Math.max(difficultySetForEpoch, 1);
+  const maxIterations = 5; // Safety cap
+  let iterations = 0;
+
+  for (let completedEpoch = startFrom; completedEpoch < currentEpoch && iterations < maxIterations; completedEpoch++) {
+    const epochClicks = parseInt(await redis.get(V2_EPOCH_TOTAL_KEY(completedEpoch)) || '0', 10);
+    const oldDifficulty = difficulty;
+    difficulty = calculateNewDifficulty(difficulty, BigInt(epochClicks), targetClicksPerEpoch);
+    console.log(
+      `[Difficulty] Epoch ${completedEpoch}: ${epochClicks} clicks (target: ${targetClicksPerEpoch}) → ` +
+      `difficulty 0x${oldDifficulty.toString(16).substring(0, 8)}... → 0x${difficulty.toString(16).substring(0, 8)}...`
+    );
+    iterations++;
+  }
+
+  // Store updated difficulty for current epoch
+  await redis.set(V2_DIFFICULTY_KEY, difficulty.toString());
+  await redis.set(V2_DIFFICULTY_EPOCH_KEY, currentEpoch.toString());
+
+  return difficulty;
 }
 
 /**
@@ -566,10 +690,31 @@ export default async function handler(req, res) {
     // GET REQUESTS
     // =========================================================================
     if (req.method === 'GET') {
-      const { address, leaderboard, claimable, activeUsers, epoch: queryEpoch, limit = '50' } = req.query;
+      const { address, leaderboard, claimable, activeUsers, difficulty: difficultyQuery, epoch: queryEpoch, limit = '50' } = req.query;
 
       // Get current game state
       const gameState = await getGameState();
+
+      // Difficulty request — returns current PoW target for mining
+      if (difficultyQuery === 'true') {
+        const gameActive = gameState.gameStarted && !gameState.gameEnded;
+        const currentDifficulty = gameActive
+          ? await adjustDifficultyIfNeeded(redis, gameState)
+          : MAX_DIFFICULTY_TARGET;
+        const targetClicksPerEpoch = Math.floor(1_000_000 * gameState.epochDuration / 86400);
+        const currentEpochClicks = parseInt(
+          await redis.get(V2_EPOCH_TOTAL_KEY(gameState.currentEpoch)) || '0', 10
+        );
+
+        return res.status(200).json({
+          success: true,
+          difficultyTarget: '0x' + currentDifficulty.toString(16),
+          epoch: gameState.currentEpoch,
+          targetClicksPerEpoch,
+          currentEpochClicks,
+          gameActive,
+        });
+      }
 
       // Leaderboard request
       if (leaderboard === 'true') {
@@ -686,6 +831,12 @@ export default async function handler(req, res) {
       const unlockedMilestones = await redis.smembers(MILESTONES_KEY(addr)) || [];
       const unlockedAchievements = await redis.smembers(ACHIEVEMENTS_KEY(addr)) || [];
 
+      // Include current difficulty so frontend can sync mining target
+      const gameActive = gameState.gameStarted && !gameState.gameEnded;
+      const currentDifficulty = gameActive
+        ? await adjustDifficultyIfNeeded(redis, gameState)
+        : MAX_DIFFICULTY_TARGET;
+
       return res.status(200).json({
         success: true,
         address: addr,
@@ -697,6 +848,7 @@ export default async function handler(req, res) {
         rank: rank !== null ? rank + 1 : null,
         milestones: unlockedMilestones,
         achievements: unlockedAchievements,
+        difficultyTarget: '0x' + currentDifficulty.toString(16),
         gameState
       });
     }
@@ -1017,6 +1169,11 @@ export default async function handler(req, res) {
       const epoch = gameActive ? gameState.currentEpoch : 0;
       const now = Date.now();
 
+      // Get current difficulty (may adjust if epoch just changed)
+      const currentDifficulty = gameActive
+        ? await adjustDifficultyIfNeeded(redis, gameState)
+        : MAX_DIFFICULTY_TARGET; // Between seasons: easiest difficulty
+
       // -----------------------------------------------------------------------
       // HUMAN VERIFICATION (Turnstile)
       // -----------------------------------------------------------------------
@@ -1070,8 +1227,8 @@ export default async function handler(req, res) {
       const validNonces = [];
 
       for (const nonceStr of nonces) {
-        // Verify PoW
-        if (!verifyNonce(addr, nonceStr, epoch)) {
+        // Verify PoW against current difficulty
+        if (!verifyNonce(addr, nonceStr, epoch, currentDifficulty)) {
           continue;
         }
 
@@ -1206,6 +1363,7 @@ export default async function handler(req, res) {
         lifetimeClicks: lifetimeTotal,
         globalClicks: newGlobal,
         epoch: gameActive ? epoch : null,
+        difficultyTarget: '0x' + currentDifficulty.toString(16),
         rank,
         gameActive,
         newMilestones: newMilestones.length > 0 ? newMilestones : null,
