@@ -23,14 +23,6 @@
       "destination": "https://pong-gold-omega.vercel.app/$1"
     },
     {
-      "source": "/punkfling",
-      "destination": "https://punk-fling.vercel.app"
-    },
-    {
-      "source": "/punkfling/(.*)",
-      "destination": "https://punk-fling.vercel.app/$1"
-    },
-    {
       "source": "/:path*",
       "destination": "/index.html"
     }

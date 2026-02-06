@@ -485,8 +485,7 @@
       "image": "/nes-game-images/punkfling.png",
       "gameUrl": "https://punk-fling.vercel.app",
       "platform": "mobile",
-      "aspectRatio": "9 / 16",
-      "controls": null,
+      "redirect": true,
       "hidden": false
     },
     {
