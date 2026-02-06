@@ -160,6 +160,7 @@ const MAX_ADJUSTMENT_FACTOR = 4n;                    // Max 4x change per epoch 
 // Difficulty Redis keys
 const V2_DIFFICULTY_KEY = 'clickstr:v2:difficulty';
 const V2_DIFFICULTY_EPOCH_KEY = 'clickstr:v2:difficulty-epoch';
+const V2_DIFFICULTY_SEASON_KEY = 'clickstr:v2:difficulty-season'; // Tracks which season the difficulty belongs to
 
 // Session configuration
 const HUMAN_SESSION_DURATION = 60 * 60 * 1000; // 1 hour
@@ -561,11 +562,21 @@ function calculateNewDifficulty(currentTarget, actualClicks, targetClicks) {
  * Returns the current difficulty target.
  */
 async function adjustDifficultyIfNeeded(redis, gameState) {
-  const { currentEpoch, epochDuration, gameStarted } = gameState;
+  const { currentEpoch, epochDuration, gameStarted, seasonNumber } = gameState;
 
   // No adjustment needed if game hasn't started or epoch 0
   if (!gameStarted || !currentEpoch || currentEpoch < 1) {
     return await getCurrentDifficulty(redis);
+  }
+
+  // Detect season change — if season number differs from what's stored,
+  // reset the epoch tracking key so difficulty adjustment runs fresh.
+  // The difficulty VALUE itself is preserved (carry-over by default).
+  const storedSeason = parseInt(await redis.get(V2_DIFFICULTY_SEASON_KEY) || '0', 10);
+  if (seasonNumber && seasonNumber !== storedSeason) {
+    console.log(`[Difficulty] New season detected: ${storedSeason} → ${seasonNumber}. Resetting epoch tracking.`);
+    await redis.set(V2_DIFFICULTY_SEASON_KEY, seasonNumber.toString());
+    await redis.set(V2_DIFFICULTY_EPOCH_KEY, '0');
   }
 
   const difficultySetForEpoch = parseInt(await redis.get(V2_DIFFICULTY_EPOCH_KEY) || '0', 10);
@@ -577,7 +588,7 @@ async function adjustDifficultyIfNeeded(redis, gameState) {
 
   let difficulty = await getCurrentDifficulty(redis);
 
-  // If first time, initialize for epoch 1
+  // If first time (or after season reset), initialize for epoch 1
   if (difficultySetForEpoch === 0) {
     await redis.set(V2_DIFFICULTY_KEY, difficulty.toString());
     await redis.set(V2_DIFFICULTY_EPOCH_KEY, '1');
@@ -925,6 +936,72 @@ export default async function handler(req, res) {
         }
 
         return res.status(200).json({ success: true, message: `Reset all V2 data for ${addr}` });
+      }
+
+      // -----------------------------------------------------------------------
+      // ADMIN: RESET DIFFICULTY - Clear difficulty back to default
+      // -----------------------------------------------------------------------
+      if (action === 'reset_difficulty') {
+        const adminKey = req.headers['x-admin-key'];
+        const expectedKey = process.env.CLICKSTR_ADMIN_SECRET;
+        if (!adminKey || adminKey !== expectedKey) {
+          return res.status(403).json({ error: 'Unauthorized' });
+        }
+
+        const oldDifficulty = await getCurrentDifficulty(redis);
+        await redis.del(V2_DIFFICULTY_KEY);
+        await redis.del(V2_DIFFICULTY_EPOCH_KEY);
+        await redis.del(V2_DIFFICULTY_SEASON_KEY);
+
+        return res.status(200).json({
+          success: true,
+          message: 'Difficulty reset to default',
+          oldDifficulty: '0x' + oldDifficulty.toString(16),
+          newDifficulty: '0x' + DEFAULT_DIFFICULTY_TARGET.toString(16),
+        });
+      }
+
+      // -----------------------------------------------------------------------
+      // ADMIN: SET DIFFICULTY - Set difficulty to a specific value
+      // -----------------------------------------------------------------------
+      if (action === 'set_difficulty') {
+        const adminKey = req.headers['x-admin-key'];
+        const expectedKey = process.env.CLICKSTR_ADMIN_SECRET;
+        if (!adminKey || adminKey !== expectedKey) {
+          return res.status(403).json({ error: 'Unauthorized' });
+        }
+
+        const { difficulty: newDifficultyHex } = body;
+        if (!newDifficultyHex) {
+          return res.status(400).json({ error: 'Missing difficulty value. Pass hex string e.g. "0x00ff..."' });
+        }
+
+        let newDifficulty;
+        try {
+          newDifficulty = BigInt(newDifficultyHex);
+        } catch {
+          return res.status(400).json({ error: 'Invalid difficulty value. Must be hex or decimal BigInt string.' });
+        }
+
+        if (newDifficulty < MIN_DIFFICULTY_TARGET) {
+          return res.status(400).json({ error: `Difficulty too low. Minimum: ${MIN_DIFFICULTY_TARGET}` });
+        }
+        if (newDifficulty > MAX_DIFFICULTY_TARGET) {
+          return res.status(400).json({ error: `Difficulty too high. Maximum: 0x${MAX_DIFFICULTY_TARGET.toString(16)}` });
+        }
+
+        const oldDifficulty = await getCurrentDifficulty(redis);
+        await redis.set(V2_DIFFICULTY_KEY, newDifficulty.toString());
+        // Reset epoch tracking so adjustments start fresh from here
+        await redis.set(V2_DIFFICULTY_EPOCH_KEY, gameState.currentEpoch.toString());
+
+        return res.status(200).json({
+          success: true,
+          message: 'Difficulty updated',
+          oldDifficulty: '0x' + oldDifficulty.toString(16),
+          newDifficulty: '0x' + newDifficulty.toString(16),
+          epochLockedAt: gameState.currentEpoch,
+        });
       }
 
       // -----------------------------------------------------------------------
