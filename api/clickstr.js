@@ -568,8 +568,8 @@ export default async function handler(req, res) {
           }
         }
 
-        // Check global 1/1 milestones - award any that the global click count
-        // has passed but nobody has claimed yet
+        // Check global 1/1 milestones - only award if THIS user actually
+        // triggered the global click number (stored in clickstr:global-trigger:{N})
         const v1GlobalClicks = parseInt(await redis.get(GLOBAL_CLICKS_KEY) || '0', 10);
         const v2GlobalClicks = parseInt(await redis.get('clickstr:v2:global-clicks') || '0', 10);
         const globalClicks = Math.max(v1GlobalClicks, v2GlobalClicks);
@@ -580,11 +580,14 @@ export default async function handler(req, res) {
             if (globalClicks >= gm.globalClick) {
               const existingWinner = await redis.hget(GLOBAL_MILESTONES_KEY, gm.id);
               if (!existingWinner) {
-                // No one claimed this yet - award to the requesting user
-                await redis.hset(GLOBAL_MILESTONES_KEY, { [gm.id]: addr });
-                await redis.sadd(ACHIEVEMENTS_KEY(addr), gm.id);
-                await redis.sadd(ELIGIBLE_KEY, addr);
-                newGlobalMilestones.push({ ...gm, type: 'global' });
+                // Verify this user actually triggered this global click number
+                const triggeredBy = await redis.get(`clickstr:global-trigger:${gm.globalClick}`);
+                if (triggeredBy?.toLowerCase() === addr) {
+                  await redis.hset(GLOBAL_MILESTONES_KEY, { [gm.id]: addr });
+                  await redis.sadd(ACHIEVEMENTS_KEY(addr), gm.id);
+                  await redis.sadd(ELIGIBLE_KEY, addr);
+                  newGlobalMilestones.push({ ...gm, type: 'global' });
+                }
               }
             }
           }
