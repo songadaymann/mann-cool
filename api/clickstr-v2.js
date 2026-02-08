@@ -180,6 +180,8 @@ const V2_CLAIM_CHALLENGE_KEY = (addr, epoch) => `clickstr:v2:claim-challenge:${a
 const HUMAN_SESSION_KEY = (addr) => `clickstr:human-session:${addr.toLowerCase()}`;
 const ACTIVE_USERS_SET = 'clickstr:v2:active-users';
 const V2_GLOBAL_CLICKS_KEY = 'clickstr:v2:global-clicks';
+const V2_ALLTIME_LEADERBOARD_KEY = 'clickstr:v2:leaderboard:alltime';
+const V2_EARNED_LEADERBOARD_KEY = 'clickstr:v2:leaderboard:earned';
 
 // Reuse V1 keys for cross-version compatibility
 const CLICKS_KEY = (addr) => `clickstr:clicks:${addr.toLowerCase()}`;
@@ -742,10 +744,22 @@ export default async function handler(req, res) {
     // GET REQUESTS
     // =========================================================================
     if (req.method === 'GET') {
-      const { address, leaderboard, claimable, activeUsers, syncAchievements, difficulty: difficultyQuery, epoch: queryEpoch, limit = '50' } = req.query;
+      const { address, leaderboard, claimable, activeUsers, syncAchievements, difficulty: difficultyQuery, epoch: queryEpoch, limit = '50', type: leaderboardType } = req.query;
 
       // Get current game state
       const gameState = await getGameState();
+
+      // Debug: show server env config (temporary)
+      if (req.query.debug === 'env') {
+        return res.status(200).json({
+          CHAIN_ID,
+          chainName: chain?.name,
+          GAME_CONTRACT_ADDRESS,
+          REGISTRY_ADDRESS,
+          RPC_URL: process.env.RPC_URL ? process.env.RPC_URL.slice(0, 40) + '...' : 'NOT SET',
+          gameState,
+        });
+      }
 
       // Difficulty request — returns current PoW target for mining
       if (difficultyQuery === 'true') {
@@ -770,10 +784,23 @@ export default async function handler(req, res) {
 
       // Leaderboard request
       if (leaderboard === 'true') {
-        const epochNum = queryEpoch ? parseInt(queryEpoch, 10) : gameState.currentEpoch;
         const limitNum = Math.min(parseInt(limit, 10) || 50, 100);
 
-        const entries = await redis.zrange(V2_EPOCH_LEADERBOARD_KEY(epochNum), 0, limitNum - 1, {
+        // Determine which sorted set to query based on type
+        let redisKey;
+        let isEarnedType = false;
+        if (leaderboardType === 'alltime') {
+          redisKey = V2_ALLTIME_LEADERBOARD_KEY;
+        } else if (leaderboardType === 'earned') {
+          redisKey = V2_EARNED_LEADERBOARD_KEY;
+          isEarnedType = true;
+        } else {
+          // Default: epoch leaderboard
+          const epochNum = queryEpoch ? parseInt(queryEpoch, 10) : gameState.currentEpoch;
+          redisKey = V2_EPOCH_LEADERBOARD_KEY(epochNum);
+        }
+
+        const entries = await redis.zrange(redisKey, 0, limitNum - 1, {
           rev: true,
           withScores: true
         });
@@ -782,25 +809,37 @@ export default async function handler(req, res) {
         for (let i = 0; i < entries.length; i += 2) {
           try {
             const data = typeof entries[i] === 'string' ? JSON.parse(entries[i]) : entries[i];
-            parsed.push({
+            const score = parseFloat(entries[i + 1]);
+            const entry = {
               rank: Math.floor(i / 2) + 1,
               ...data,
-              totalClicks: parseInt(entries[i + 1], 10)
-            });
+              totalClicks: isEarnedType ? undefined : Math.floor(score),
+            };
+            if (isEarnedType) {
+              // Score is earned in wei (as float due to Redis), convert to string
+              entry.totalEarned = BigInt(Math.floor(score)).toString();
+            }
+            parsed.push(entry);
           } catch {
             // Skip malformed entries
           }
         }
 
-        const epochTotal = parseInt(await redis.get(V2_EPOCH_TOTAL_KEY(epochNum)) || '0', 10);
-
-        return res.status(200).json({
+        const response = {
           success: true,
-          epoch: epochNum,
+          leaderboardType: leaderboardType || 'epoch',
           leaderboard: parsed,
-          epochTotalClicks: epochTotal,
           gameState
-        });
+        };
+
+        // Include epoch-specific data for epoch type
+        if (!leaderboardType || leaderboardType === 'epoch') {
+          const epochNum = queryEpoch ? parseInt(queryEpoch, 10) : gameState.currentEpoch;
+          response.epoch = epochNum;
+          response.epochTotalClicks = parseInt(await redis.get(V2_EPOCH_TOTAL_KEY(epochNum)) || '0', 10);
+        }
+
+        return res.status(200).json(response);
       }
 
       // Active users request
@@ -962,6 +1001,24 @@ export default async function handler(req, res) {
       // Note: Once claimed, clicks move from Redis tracking to registry
       const lifetimeClicks = Math.max(redisTotal, Number(registryClicks));
 
+      // Update all-time and earned leaderboards (lazily populated on user stats fetch)
+      const leaderboardUpdates = [
+        redis.zadd(V2_ALLTIME_LEADERBOARD_KEY, {
+          score: lifetimeClicks,
+          member: JSON.stringify({ address: addr })
+        })
+      ];
+      if (Number(registryEarned) > 0) {
+        leaderboardUpdates.push(
+          redis.zadd(V2_EARNED_LEADERBOARD_KEY, {
+            score: Number(registryEarned),
+            member: JSON.stringify({ address: addr })
+          })
+        );
+      }
+      // Fire-and-forget — don't block the response
+      Promise.all(leaderboardUpdates).catch(() => {});
+
       // Get rank in current epoch
       const rank = await redis.zrevrank(
         V2_EPOCH_LEADERBOARD_KEY(gameState.currentEpoch),
@@ -1048,6 +1105,8 @@ export default async function handler(req, res) {
               V2_GLOBAL_CLICKS_KEY,
               CLICK_LOG_KEY,
               ACTIVE_USERS_SET,
+              V2_ALLTIME_LEADERBOARD_KEY,
+              V2_EARNED_LEADERBOARD_KEY,
               'clickstr:leaderboard',
               'clickstr:onchain-leaderboard',
             ]);
@@ -1106,6 +1165,8 @@ export default async function handler(req, res) {
 
           await redis.srem(ELIGIBLE_KEY, addr);
           await redis.zrem(ACTIVE_USERS_SET, addr);
+          await redis.zrem(V2_ALLTIME_LEADERBOARD_KEY, JSON.stringify({ address: addr }));
+          await redis.zrem(V2_EARNED_LEADERBOARD_KEY, JSON.stringify({ address: addr }));
 
           return res.status(200).json({ success: true, message: `Reset all V2 data for ${addr}` });
         }
@@ -1536,7 +1597,12 @@ export default async function handler(req, res) {
         redis.set(V2_TOTAL_CLICKS_KEY(addr), newTotal),
         redis.set(V2_GLOBAL_CLICKS_KEY, newGlobal),
         redis.set(GLOBAL_CLICKS_KEY, newGlobal),
-        redis.hincrby(HUMAN_SESSION_KEY(addr), 'clicksSinceVerify', validCount)
+        redis.hincrby(HUMAN_SESSION_KEY(addr), 'clicksSinceVerify', validCount),
+        // Update all-time clicks leaderboard
+        redis.zadd(V2_ALLTIME_LEADERBOARD_KEY, {
+          score: newTotal,
+          member: JSON.stringify({ address: addr })
+        })
       ];
 
       // Only update epoch-specific counts when game is active
