@@ -486,12 +486,20 @@ async function getGameState() {
     // The on-chain currentEpoch is stale until someone transacts, so we derive the
     // real epoch from wall-clock time to avoid signing for already-finalized epochs.
     let effectiveEpoch = Number(currentEpoch);
+    let effectiveGameEnded = gameEnded;
     if (gameStarted && !gameEnded && Number(gameStartTime) > 0) {
       const now = Math.floor(Date.now() / 1000);
       const epochsSinceStart = Math.floor((now - Number(gameStartTime)) / Number(epochDuration));
       const targetEpoch = Math.min(epochsSinceStart + 1, Number(totalEpochs));
       if (targetEpoch > effectiveEpoch) {
         effectiveEpoch = targetEpoch;
+      }
+      // Derive gameEnded from time — the on-chain flag only flips when someone
+      // calls endGame() after the grace period, but the game is effectively over
+      // once all epochs have elapsed.
+      const gameEndTime = Number(gameStartTime) + Number(totalEpochs) * Number(epochDuration);
+      if (now >= gameEndTime) {
+        effectiveGameEnded = true;
       }
     }
 
@@ -501,7 +509,7 @@ async function getGameState() {
       totalEpochs: Number(totalEpochs),
       epochDuration: Number(epochDuration),
       gameStarted,
-      gameEnded
+      gameEnded: effectiveGameEnded
     };
   } catch (error) {
     console.error('Error reading game state:', error);
