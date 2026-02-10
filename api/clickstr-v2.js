@@ -833,6 +833,28 @@ export default async function handler(req, res) {
           redisKey = V2_EPOCH_LEADERBOARD_KEY(epochNum);
         }
 
+        // Backfill: ensure all flagged bot addresses are in the alltime sorted set.
+        // Bots may have been clicking before the alltime set existed (lazy backfill
+        // only triggers on stats fetch, and we now block bot POSTs). This reads
+        // their V2_TOTAL_CLICKS_KEY and upserts into the sorted set.
+        if (isBotTab) {
+          const backfillPromises = [];
+          for (const botAddr of FLAGGED_BOT_ADDRESSES) {
+            backfillPromises.push(
+              redis.get(V2_TOTAL_CLICKS_KEY(botAddr)).then(total => {
+                const clicks = parseInt(total || '0', 10);
+                if (clicks > 0) {
+                  return redis.zadd(V2_ALLTIME_LEADERBOARD_KEY, {
+                    score: clicks,
+                    member: JSON.stringify({ address: botAddr })
+                  });
+                }
+              })
+            );
+          }
+          await Promise.all(backfillPromises);
+        }
+
         // Over-fetch to account for bot filtering — we may need to skip several entries
         // to fill the requested limit after removing bots (or non-bots for the bot tab)
         const fetchLimit = Math.min(limitNum * 3, 300);
