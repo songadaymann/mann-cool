@@ -164,7 +164,6 @@ const V2_DIFFICULTY_SEASON_KEY = 'clickstr:v2:difficulty-season'; // Tracks whic
 
 // Session configuration
 const HUMAN_SESSION_DURATION = 60 * 60 * 1000; // 1 hour
-const CLICKS_BEFORE_VERIFICATION = 500;
 const CLAIM_CHALLENGE_TTL_SECONDS = 60 * 5; // 5 minutes
 
 // =============================================================================
@@ -182,6 +181,22 @@ const ACTIVE_USERS_SET = 'clickstr:v2:active-users';
 const V2_GLOBAL_CLICKS_KEY = 'clickstr:v2:global-clicks';
 const V2_ALLTIME_LEADERBOARD_KEY = 'clickstr:v2:leaderboard:alltime';
 const V2_EARNED_LEADERBOARD_KEY = 'clickstr:v2:leaderboard:earned';
+
+// =============================================================================
+// BOT FLAGGING - Addresses identified as bots (manual list)
+// These are filtered from normal leaderboard tabs and shown in a separate "Bots" tab
+// =============================================================================
+const FLAGGED_BOT_ADDRESSES = new Set([
+  '0xd3a954764ee75f1df4142d853e70d2b7e5884d89',
+  '0xdad91ea7b6acf1cedf3f374dfb73ffc1a5ae75e5',
+  '0x74ac3770e1c8c1580ad04e98657da2975df6c689',
+  '0x736f54a30eb7ba91a0f3486bbd7cb1dea338b6da',
+  '0x455da13a80afe335f51bb4593421d81b8f86fc89',
+]);
+
+function isFlaggedBot(address) {
+  return FLAGGED_BOT_ADDRESSES.has(address?.toLowerCase());
+}
 
 // Reuse V1 keys for cross-version compatibility
 const CLICKS_KEY = (addr) => `clickstr:clicks:${addr.toLowerCase()}`;
@@ -793,11 +808,13 @@ export default async function handler(req, res) {
       // Leaderboard request
       if (leaderboard === 'true') {
         const limitNum = Math.min(parseInt(limit, 10) || 50, 100);
+        const isBotTab = leaderboardType === 'bots';
 
         // Determine which sorted set to query based on type
+        // For bots tab, we use the alltime leaderboard and filter TO bots only
         let redisKey;
         let isEarnedType = false;
-        if (leaderboardType === 'alltime') {
+        if (leaderboardType === 'alltime' || isBotTab) {
           redisKey = V2_ALLTIME_LEADERBOARD_KEY;
         } else if (leaderboardType === 'earned') {
           redisKey = V2_EARNED_LEADERBOARD_KEY;
@@ -808,24 +825,38 @@ export default async function handler(req, res) {
           redisKey = V2_EPOCH_LEADERBOARD_KEY(epochNum);
         }
 
-        const entries = await redis.zrange(redisKey, 0, limitNum - 1, {
+        // Over-fetch to account for bot filtering — we may need to skip several entries
+        // to fill the requested limit after removing bots (or non-bots for the bot tab)
+        const fetchLimit = Math.min(limitNum * 3, 300);
+        const entries = await redis.zrange(redisKey, 0, fetchLimit - 1, {
           rev: true,
           withScores: true
         });
 
         const parsed = [];
         for (let i = 0; i < entries.length; i += 2) {
+          if (parsed.length >= limitNum) break;
+
           try {
             const data = typeof entries[i] === 'string' ? JSON.parse(entries[i]) : entries[i];
             const score = parseFloat(entries[i + 1]);
+            const addr = data.address?.toLowerCase();
+
+            // Filter: bot tab shows only bots, all other tabs exclude bots
+            if (isBotTab && !isFlaggedBot(addr)) continue;
+            if (!isBotTab && isFlaggedBot(addr)) continue;
+
             const entry = {
-              rank: Math.floor(i / 2) + 1,
+              rank: parsed.length + 1,
               ...data,
               totalClicks: isEarnedType ? undefined : Math.floor(score),
             };
             if (isEarnedType) {
               // Score is earned in wei (as float due to Redis), convert to string
               entry.totalEarned = BigInt(Math.floor(score)).toString();
+            }
+            if (isBotTab) {
+              entry.isBot = true;
             }
             parsed.push(entry);
           } catch {
@@ -1286,14 +1317,12 @@ export default async function handler(req, res) {
         const isSessionValid = sessionExpiry > now;
         const ipMismatch = ipHash && sessionIpHash && ipHash !== sessionIpHash;
         const missingIpBinding = ipHash && !sessionIpHash;
-        const needsReverification = ipMismatch || missingIpBinding || sessionClicks >= CLICKS_BEFORE_VERIFICATION;
+        const needsReverification = ipMismatch || missingIpBinding;
 
         if (!isSessionValid || needsReverification) {
           if (process.env.TURNSTILE_SECRET_KEY) {
             if (!turnstileToken) {
-              const reason = !isSessionValid
-                ? 'session_expired'
-                : (ipMismatch || missingIpBinding) ? 'ip_mismatch' : 'click_limit';
+              const reason = !isSessionValid ? 'session_expired' : 'ip_mismatch';
               return res.status(403).json({
                 error: 'Human verification required',
                 requiresVerification: true,
@@ -1517,16 +1546,12 @@ export default async function handler(req, res) {
       const isSessionValid = sessionExpiry > now;
       const ipMismatch = ipHash && sessionIpHash && ipHash !== sessionIpHash;
       const missingIpBinding = ipHash && !sessionIpHash;
-      const needsReverification = sessionClicks + nonces.length >= CLICKS_BEFORE_VERIFICATION
-        || ipMismatch
-        || missingIpBinding;
+      const needsReverification = ipMismatch || missingIpBinding;
 
       if (!isSessionValid || needsReverification) {
         if (process.env.TURNSTILE_SECRET_KEY) {
           if (!turnstileToken) {
-            const reason = !isSessionValid
-              ? 'session_expired'
-              : (ipMismatch || missingIpBinding) ? 'ip_mismatch' : 'click_limit';
+            const reason = !isSessionValid ? 'session_expired' : 'ip_mismatch';
             return res.status(403).json({
               error: 'Human verification required',
               requiresVerification: true,
