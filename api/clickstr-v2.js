@@ -166,6 +166,13 @@ const V2_DIFFICULTY_SEASON_KEY = 'clickstr:v2:difficulty-season'; // Tracks whic
 const HUMAN_SESSION_DURATION = 60 * 60 * 1000; // 1 hour
 const CLAIM_CHALLENGE_TTL_SECONDS = 60 * 5; // 5 minutes
 
+// Rate limiting — bounds nonce throughput per address
+// Frontend submits batches of 50-500 nonces on button click; a human submits
+// sporadically. An offline miner POSTs continuously. This caps total accepted
+// nonces per sliding window to something human-plausible.
+const RATE_LIMIT_WINDOW_SECONDS = 60; // 1-minute sliding window
+const RATE_LIMIT_MAX_NONCES = parseInt(process.env.RATE_LIMIT_MAX_NONCES || '300', 10); // max valid nonces per window
+
 // =============================================================================
 // REDIS KEYS (V2-specific, prefixed to avoid collision with V1)
 // =============================================================================
@@ -181,6 +188,7 @@ const ACTIVE_USERS_SET = 'clickstr:v2:active-users';
 const V2_GLOBAL_CLICKS_KEY = 'clickstr:v2:global-clicks';
 const V2_ALLTIME_LEADERBOARD_KEY = 'clickstr:v2:leaderboard:alltime';
 const V2_EARNED_LEADERBOARD_KEY = 'clickstr:v2:leaderboard:earned';
+const V2_RATE_LIMIT_KEY = (addr) => `clickstr:v2:ratelimit:${addr.toLowerCase()}`;
 
 // =============================================================================
 // BOT FLAGGING - Addresses identified as bots (manual list)
@@ -1265,6 +1273,14 @@ export default async function handler(req, res) {
       }
 
       const addr = address.toLowerCase();
+
+      // -----------------------------------------------------------------------
+      // BOT BLOCKING - Reject all actions from flagged bot addresses
+      // -----------------------------------------------------------------------
+      if (isFlaggedBot(addr)) {
+        return res.status(403).json({ error: 'Address is flagged' });
+      }
+
       const gameState = await getGameState();
       const clientIp = getClientIp(req);
       const ipHash = hashIp(clientIp);
@@ -1605,6 +1621,37 @@ export default async function handler(req, res) {
           error: 'No valid nonces',
           message: 'All nonces were invalid or already used'
         });
+      }
+
+      // -----------------------------------------------------------------------
+      // RATE LIMITING — cap valid nonces per address per sliding window
+      // Uses a simple Redis counter with TTL. If the window hasn't started yet
+      // the key won't exist; we create it and set the TTL on first use.
+      // -----------------------------------------------------------------------
+      const rateLimitKey = V2_RATE_LIMIT_KEY(addr);
+      const currentWindowCount = parseInt(await redis.get(rateLimitKey) || '0', 10);
+
+      if (currentWindowCount >= RATE_LIMIT_MAX_NONCES) {
+        return res.status(429).json({
+          error: 'Rate limit exceeded',
+          message: `Max ${RATE_LIMIT_MAX_NONCES} clicks per ${RATE_LIMIT_WINDOW_SECONDS}s window`,
+          retryAfterSeconds: await redis.ttl(rateLimitKey),
+        });
+      }
+
+      // Clamp valid nonces to remaining budget in this window
+      const remaining = RATE_LIMIT_MAX_NONCES - currentWindowCount;
+      if (validCount > remaining) {
+        // Trim to what's allowed — still accept partial batch
+        validNonces.length = remaining;
+        validCount = remaining;
+      }
+
+      // Increment the rate limit counter (set TTL on first use)
+      if (currentWindowCount === 0) {
+        await redis.set(rateLimitKey, validCount, { ex: RATE_LIMIT_WINDOW_SECONDS });
+      } else {
+        await redis.incrby(rateLimitKey, validCount);
       }
 
       // Mark nonces as used
