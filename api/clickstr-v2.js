@@ -167,11 +167,11 @@ const HUMAN_SESSION_DURATION = 60 * 60 * 1000; // 1 hour
 const CLAIM_CHALLENGE_TTL_SECONDS = 60 * 5; // 5 minutes
 
 // Rate limiting — bounds nonce throughput per address
-// Frontend submits batches of 50-500 nonces on button click; a human submits
+// Frontend submits batches of 50-3000 nonces on button click; a human submits
 // sporadically. An offline miner POSTs continuously. This caps total accepted
 // nonces per sliding window to something human-plausible.
 const RATE_LIMIT_WINDOW_SECONDS = 60; // 1-minute sliding window
-const RATE_LIMIT_MAX_NONCES = parseInt(process.env.RATE_LIMIT_MAX_NONCES || '300', 10); // max valid nonces per window
+const RATE_LIMIT_MAX_NONCES = parseInt(process.env.RATE_LIMIT_MAX_NONCES || '3000', 10); // max valid nonces per window
 
 // =============================================================================
 // REDIS KEYS (V2-specific, prefixed to avoid collision with V1)
@@ -1598,8 +1598,8 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'No nonces provided' });
       }
 
-      if (nonces.length > 1000) {
-        return res.status(400).json({ error: 'Too many nonces (max 1000)' });
+      if (nonces.length > 3000) {
+        return res.status(400).json({ error: 'Too many nonces (max 3000)' });
       }
 
       // Determine if game is active and which epoch to use
