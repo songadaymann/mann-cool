@@ -919,13 +919,46 @@ export default async function handler(req, res) {
         // Get global clicks (max of v1 and v2 counters)
         const v1Global = parseInt(await redis.get(GLOBAL_CLICKS_KEY) || '0', 10);
         const v2Global = parseInt(await redis.get(V2_GLOBAL_CLICKS_KEY) || '0', 10);
-        const globalClicks = Math.max(v1Global, v2Global);
+        const rawGlobalClicks = Math.max(v1Global, v2Global);
+
+        // Subtract flagged bot clicks from the global total
+        let botClicks = 0;
+        const botTotals = await Promise.all(
+          Array.from(FLAGGED_BOT_ADDRESSES).map(addr =>
+            redis.get(V2_TOTAL_CLICKS_KEY(addr))
+          )
+        );
+        for (const total of botTotals) {
+          botClicks += parseInt(total || '0', 10);
+        }
+        const globalClicks = Math.max(0, rawGlobalClicks - botClicks);
+
+        // Sum all-time earned from leaderboard, excluding bots
+        let globalEarned = '0';
+        try {
+          const earnedEntries = await redis.zrange(V2_EARNED_LEADERBOARD_KEY, 0, -1, {
+            withScores: true
+          });
+          const botSet = FLAGGED_BOT_ADDRESSES;
+          let totalWei = BigInt(0);
+          for (let i = 0; i < earnedEntries.length; i += 2) {
+            const member = JSON.parse(earnedEntries[i]);
+            const score = BigInt(Math.floor(earnedEntries[i + 1]));
+            if (!botSet.has(member.address?.toLowerCase())) {
+              totalWei += score;
+            }
+          }
+          globalEarned = totalWei.toString();
+        } catch (e) {
+          // Non-critical — fall back to '0'
+        }
 
         return res.status(200).json({
           success: true,
           activeHumans: activeCount || 0,
           activeBots: 0, // V2 is human-only
-          globalClicks
+          globalClicks,
+          globalEarned
         });
       }
 
