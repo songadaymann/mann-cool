@@ -999,12 +999,22 @@ export default async function handler(req, res) {
         const issuedAt = Date.now();
         const expiresAt = issuedAt + (MINING_CHALLENGE_TTL_SECONDS * 1000);
 
-        // Store in Redis with TTL
+        // Save previous challenge before overwriting so nonces mined under it are still valid.
+        // Nonces carry their own challenge, so we need to accept both current and previous.
+        const previousStored = await redis.get(V2_MINING_CHALLENGE_KEY(addr));
+        let previousChallenge = null;
+        if (previousStored) {
+          const prev = typeof previousStored === 'string' ? JSON.parse(previousStored) : previousStored;
+          previousChallenge = prev.challenge;
+        }
+
+        // Store in Redis with TTL — includes previous challenge for per-nonce validation
         await redis.set(V2_MINING_CHALLENGE_KEY(addr), JSON.stringify({
           challenge: challengeToken,
+          previousChallenge,
           issuedAt,
           expiresAt,
-        }), { ex: MINING_CHALLENGE_TTL_SECONDS + 5 }); // +5s grace for network latency
+        }), { ex: MINING_CHALLENGE_TTL_SECONDS + 120 }); // +120s grace for per-nonce validation of older nonces
 
         return res.status(200).json({
           success: true,
@@ -2111,39 +2121,55 @@ export default async function handler(req, res) {
       }
 
       // -----------------------------------------------------------------------
-      // MINING CHALLENGE VALIDATION
-      // Verify the client submitted a valid, unexpired mining challenge.
-      // The challenge is included in the PoW hash to prevent offline mining.
+      // MINING CHALLENGE VALIDATION & NONCE VERIFICATION
+      // Supports two formats:
+      //   Legacy: nonces = ["123", "456"], miningChallenge = "abc" (single challenge for all)
+      //   New:    nonces = [{ nonce: "123", challenge: "abc" }, ...] (per-nonce challenge)
+      // The new format prevents stale-challenge rejections when challenges rotate
+      // mid-session, since each nonce carries the challenge it was actually mined with.
       // -----------------------------------------------------------------------
-      // Mining challenge is REQUIRED — reject submissions without one
-      if (!miningChallenge) {
-        console.log(`[Challenge] REJECTED — no challenge sent by ${addr.slice(0,10)}.. (old client or bot)`);
-        return res.status(400).json({
-          error: 'Mining challenge required',
-          message: 'Please refresh the page to get the latest client version'
-        });
-      }
 
-      let activeChallenge = null;
+      // Detect format: if first element is an object with .nonce, it's the new format
+      const isPerNonceChallenge = nonces.length > 0 && typeof nonces[0] === 'object' && nonces[0] !== null && 'nonce' in nonces[0];
+
+      // Load valid challenges for this address from Redis
+      // Accept both current and previous challenge (covers one rotation cycle)
       const stored = await redis.get(V2_MINING_CHALLENGE_KEY(addr));
+      const validChallenges = new Set();
+      let currentStoredChallenge = null;
       if (stored) {
         const parsed = typeof stored === 'string' ? JSON.parse(stored) : stored;
-        if (parsed.challenge === miningChallenge && parsed.expiresAt > Date.now()) {
-          activeChallenge = miningChallenge;
-          console.log(`[Challenge] VALID challenge for ${addr.slice(0,10)}.. (expires in ${Math.round((parsed.expiresAt - Date.now())/1000)}s)`);
-        } else {
-          console.log(`[Challenge] REJECTED for ${addr.slice(0,10)}.. — ${parsed.challenge !== miningChallenge ? 'mismatch' : 'expired'}`);
+        if (parsed.challenge) {
+          validChallenges.add(parsed.challenge);
+          currentStoredChallenge = parsed.challenge;
+        }
+        if (parsed.previousChallenge) {
+          validChallenges.add(parsed.previousChallenge);
+        }
+      }
+
+      if (!isPerNonceChallenge) {
+        // Legacy format: single miningChallenge for entire batch
+        if (!miningChallenge) {
+          console.log(`[Challenge] REJECTED — no challenge sent by ${addr.slice(0,10)}.. (old client or bot)`);
+          return res.status(400).json({
+            error: 'Mining challenge required',
+            message: 'Please refresh the page to get the latest client version'
+          });
+        }
+
+        if (!validChallenges.has(miningChallenge)) {
+          console.log(`[Challenge] REJECTED for ${addr.slice(0,10)}.. — ${validChallenges.size === 0 ? 'not found' : 'mismatch'}`);
           return res.status(400).json({
             error: 'Invalid or expired mining challenge',
             message: 'Your mining challenge has expired. Please try again.'
           });
         }
+        console.log(`[Challenge] VALID legacy challenge for ${addr.slice(0,10)}..`);
       } else {
-        console.log(`[Challenge] NOT FOUND in Redis for ${addr.slice(0,10)}.. (expired from store?)`);
-        return res.status(400).json({
-          error: 'Mining challenge not found',
-          message: 'Your mining challenge has expired. Please try again.'
-        });
+        // New format: per-nonce challenges — validate that at least some are legitimate
+        // We don't reject the whole batch; invalid per-nonce challenges just fail verification
+        console.log(`[Challenge] Per-nonce challenge format from ${addr.slice(0,10)}.. (${nonces.length} nonces)`);
       }
 
       // -----------------------------------------------------------------------
@@ -2153,9 +2179,27 @@ export default async function handler(req, res) {
       let validCount = 0;
       const validNonces = [];
 
-      for (const nonceStr of nonces) {
-        // Verify nonce with the required mining challenge
-        const valid = verifyNonce(addr, nonceStr, epoch, currentDifficulty, activeChallenge);
+      for (const entry of nonces) {
+        let nonceStr, nonceChallenge;
+
+        if (isPerNonceChallenge) {
+          // New format: { nonce: string, challenge: string | null }
+          nonceStr = entry.nonce;
+          nonceChallenge = entry.challenge || null;
+
+          // Each nonce's challenge must be one we've recently issued (current or previous)
+          // This prevents fabricated challenges while allowing challenge rotation
+          if (!nonceChallenge || !validChallenges.has(nonceChallenge)) {
+            continue; // Silently skip — challenge was rotated out or fabricated
+          }
+        } else {
+          // Legacy format: bare nonce string, single challenge for all
+          nonceStr = entry;
+          nonceChallenge = miningChallenge;
+        }
+
+        // Verify nonce PoW with its specific challenge
+        const valid = verifyNonce(addr, nonceStr, epoch, currentDifficulty, nonceChallenge);
         if (!valid) {
           continue;
         }
