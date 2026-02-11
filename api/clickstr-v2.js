@@ -153,7 +153,7 @@ const GAME_ABI = [
 // Starting difficulty (same as V1 default) - used when no Redis value exists yet
 const DEFAULT_DIFFICULTY_TARGET = BigInt(process.env.POW_DIFFICULTY_TARGET || '0x00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff');
 const MAX_UINT256 = 2n ** 256n - 1n;
-const MAX_DIFFICULTY_TARGET = MAX_UINT256 / 10n;  // Easiest possible (~1/10 chance)
+const MAX_DIFFICULTY_TARGET = MAX_UINT256 / 1000n;  // Easiest possible (~1/1000 chance)
 const MIN_DIFFICULTY_TARGET = 1000n;                 // Hardest possible
 const MAX_ADJUSTMENT_FACTOR = 4n;                    // Max 4x change per epoch (same as V1)
 
@@ -165,6 +165,7 @@ const V2_DIFFICULTY_SEASON_KEY = 'clickstr:v2:difficulty-season'; // Tracks whic
 // Session configuration
 const HUMAN_SESSION_DURATION = 60 * 60 * 1000; // 1 hour
 const CLAIM_CHALLENGE_TTL_SECONDS = 60 * 5; // 5 minutes
+const CLICKS_BEFORE_REVERIFICATION = parseInt(process.env.CLICKS_BEFORE_REVERIFICATION || '5000', 10); // Re-verify Turnstile every N clicks
 
 // Rate limiting — bounds nonce throughput per address
 // Frontend submits batches of 50-3000 nonces on button click; a human submits
@@ -205,11 +206,22 @@ const V2_EPOCH_ATTESTED_KEY = (epoch) => `clickstr:v2:epoch-attested:${epoch}`; 
 // These are filtered from normal leaderboard tabs and shown in a separate "Bots" tab
 // =============================================================================
 const FLAGGED_BOT_ADDRESSES = new Set([
+  // Wave 1 (Season 2)
   '0xd3a954764ee75f1df4142d853e70d2b7e5884d89',
   '0xdad91ea7b6acf1cedf3f374dfb73ffc1a5ae75e5',
   '0x74ac3770e1c8c1580ad04e98657da2975df6c689',
   '0x736f54a30eb7ba91a0f3486bbd7cb1dea338b6da',
   '0x455da13a80afe335f51bb4593421d81b8f86fc89',
+  // Wave 2 (Season 3 — clustered ~85-108K clicks, 0 earned)
+  '0x101da2ec62ad6b0803fd2a4795383eea1ef4cee0',
+  '0xfee73680e66d7c83b284754bd340818aa1f832f6',
+  '0x34e8129ead70f91ac0947e5e244fdaec69588a10',
+  '0x064cb7a5737511f451247604c773ab50c0fb981b',
+  '0xecf7b64b019ff2356a869e57e4d5f21d511f597d',
+  '0xf270888287dc409fc5a45d62fbc0749e69841f6d',
+  '0xd2f5e949629b6ae0310573c99fbe1d6776796ea7',
+  '0x9a342959008c5716d332d0b4d15bfcea24bad61c',
+  '0x6ecc573832439b593c2717c27adea0f76c75ce17',
 ]);
 
 function isFlaggedBot(address) {
@@ -1267,6 +1279,8 @@ export default async function handler(req, res) {
         const cutoffTime = Date.now() - (60 * 1000); // 60 seconds ago
         // Count users with heartbeat in last 60 seconds
         const activeCount = await redis.zcount(ACTIVE_USERS_SET, cutoffTime, '+inf');
+        // Get list of active addresses (for dashboard highlighting)
+        const activeMembers = await redis.zrange(ACTIVE_USERS_SET, cutoffTime, '+inf', { byScore: true });
         // Get global clicks (max of v1 and v2 counters)
         const v1Global = parseInt(await redis.get(GLOBAL_CLICKS_KEY) || '0', 10);
         const v2Global = parseInt(await redis.get(V2_GLOBAL_CLICKS_KEY) || '0', 10);
@@ -1313,6 +1327,7 @@ export default async function handler(req, res) {
           success: true,
           activeHumans: activeCount || 0,
           activeBots: 0, // V2 is human-only
+          activeAddresses: activeMembers || [],
           globalClicks,
           globalEarned,
           _debug: { botClicks, rawGlobalClicks }
@@ -1745,12 +1760,15 @@ export default async function handler(req, res) {
         const isSessionValid = sessionExpiry > now;
         const ipMismatch = ipHash && sessionIpHash && ipHash !== sessionIpHash;
         const missingIpBinding = ipHash && !sessionIpHash;
-        const needsReverification = ipMismatch || missingIpBinding;
+        const clickThresholdExceeded = sessionClicks >= CLICKS_BEFORE_REVERIFICATION;
+        const needsReverification = ipMismatch || missingIpBinding || clickThresholdExceeded;
 
         if (!isSessionValid || needsReverification) {
           if (process.env.TURNSTILE_SECRET_KEY) {
             if (!turnstileToken) {
-              const reason = !isSessionValid ? 'session_expired' : 'ip_mismatch';
+              const reason = !isSessionValid ? 'session_expired'
+                : clickThresholdExceeded ? 'click_threshold'
+                : 'ip_mismatch';
               return res.status(403).json({
                 error: 'Human verification required',
                 requiresVerification: true,
@@ -1997,12 +2015,15 @@ export default async function handler(req, res) {
       const isSessionValid = sessionExpiry > now;
       const ipMismatch = ipHash && sessionIpHash && ipHash !== sessionIpHash;
       const missingIpBinding = ipHash && !sessionIpHash;
-      const needsReverification = ipMismatch || missingIpBinding;
+      const clickThresholdExceeded = sessionClicks >= CLICKS_BEFORE_REVERIFICATION;
+      const needsReverification = ipMismatch || missingIpBinding || clickThresholdExceeded;
 
       if (!isSessionValid || needsReverification) {
         if (process.env.TURNSTILE_SECRET_KEY) {
           if (!turnstileToken) {
-            const reason = !isSessionValid ? 'session_expired' : 'ip_mismatch';
+            const reason = !isSessionValid ? 'session_expired'
+              : clickThresholdExceeded ? 'click_threshold'
+              : 'ip_mismatch';
             return res.status(403).json({
               error: 'Human verification required',
               requiresVerification: true,
