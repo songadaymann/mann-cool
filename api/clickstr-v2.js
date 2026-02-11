@@ -787,7 +787,10 @@ async function maybeSnapshot(redis, gameState) {
 
     // Prune old snapshot index entries (beyond 30 days)
     const cutoff = now - SNAPSHOTS_MAX_AGE;
-    await redis.zremrangebyscore(V2_SNAPSHOTS_INDEX_KEY, 0, cutoff);
+    const oldKeys = await redis.zrange(V2_SNAPSHOTS_INDEX_KEY, 0, cutoff, { byScore: true });
+    if (oldKeys.length > 0) {
+      await redis.zrem(V2_SNAPSHOTS_INDEX_KEY, ...oldKeys);
+    }
 
     console.log(`[Snapshot] Captured at ${new Date(now).toISOString()} — epoch ${currentEpoch}, ${snapshot.activeUsers} active, ${snapshot.epochClicks} epoch clicks`);
   } catch (err) {
@@ -807,7 +810,8 @@ async function trackClickVelocity(redis, clickCount) {
     const velocityWindowKey = 'clickstr:v2:velocity-window';
     await redis.zadd(velocityWindowKey, { score: now, member: `${now}:${clickCount}` });
     // Remove entries older than 60 seconds
-    await redis.zremrangebyscore(velocityWindowKey, 0, now - 60000);
+    const oldEntries = await redis.zrange(velocityWindowKey, 0, now - 60000, { byScore: true });
+    if (oldEntries.length > 0) await redis.zrem(velocityWindowKey, ...oldEntries);
     // Sum all entries in the window for clicks-per-minute
     const entries = await redis.zrange(velocityWindowKey, 0, -1);
     let totalInWindow = 0;
@@ -993,7 +997,7 @@ export default async function handler(req, res) {
         const uniqueClickers = await redis.zcard(V2_EPOCH_LEADERBOARD_KEY(gameState.currentEpoch));
 
         // 2. Time-series snapshots
-        const snapshotKeys = await redis.zrangebyscore(V2_SNAPSHOTS_INDEX_KEY, from, now);
+        const snapshotKeys = await redis.zrange(V2_SNAPSHOTS_INDEX_KEY, from, now, { byScore: true });
         const snapshots = [];
         if (snapshotKeys.length > 0) {
           // Batch fetch snapshots (limit to 500 for sanity)
@@ -1011,13 +1015,13 @@ export default async function handler(req, res) {
         }
 
         // 3. Difficulty events
-        const diffEvents = await redis.zrangebyscore(V2_DIFFICULTY_EVENTS_KEY, from, now);
+        const diffEvents = await redis.zrange(V2_DIFFICULTY_EVENTS_KEY, from, now, { byScore: true });
         const difficultyHistory = diffEvents.map(e => {
           try { return typeof e === 'string' ? JSON.parse(e) : e; } catch { return null; }
         }).filter(Boolean);
 
         // 4. Claim events
-        const claimEvents = await redis.zrangebyscore(V2_CLAIM_EVENTS_KEY, from, now);
+        const claimEvents = await redis.zrange(V2_CLAIM_EVENTS_KEY, from, now, { byScore: true });
         const claimHistory = claimEvents.map(e => {
           try { return typeof e === 'string' ? JSON.parse(e) : e; } catch { return null; }
         }).filter(Boolean);
@@ -1085,7 +1089,7 @@ export default async function handler(req, res) {
         const to = parseInt(req.query.to || '0', 10) || Date.now();
 
         if (history === 'snapshots') {
-          const keys = await redis.zrangebyscore(V2_SNAPSHOTS_INDEX_KEY, from, to);
+          const keys = await redis.zrange(V2_SNAPSHOTS_INDEX_KEY, from, to, { byScore: true });
           const data = [];
           for (const tsKey of keys.slice(-1000)) {
             const raw = await redis.get(V2_SNAPSHOT_KEY(tsKey));
@@ -1097,7 +1101,7 @@ export default async function handler(req, res) {
         }
 
         if (history === 'difficulty') {
-          const events = await redis.zrangebyscore(V2_DIFFICULTY_EVENTS_KEY, from, to);
+          const events = await redis.zrange(V2_DIFFICULTY_EVENTS_KEY, from, to, { byScore: true });
           const data = events.map(e => {
             try { return typeof e === 'string' ? JSON.parse(e) : e; } catch { return null; }
           }).filter(Boolean);
@@ -1105,7 +1109,7 @@ export default async function handler(req, res) {
         }
 
         if (history === 'claims') {
-          const events = await redis.zrangebyscore(V2_CLAIM_EVENTS_KEY, from, to);
+          const events = await redis.zrange(V2_CLAIM_EVENTS_KEY, from, to, { byScore: true });
           const data = events.map(e => {
             try { return typeof e === 'string' ? JSON.parse(e) : e; } catch { return null; }
           }).filter(Boolean);
