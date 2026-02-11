@@ -153,7 +153,7 @@ const GAME_ABI = [
 // Starting difficulty (same as V1 default) - used when no Redis value exists yet
 const DEFAULT_DIFFICULTY_TARGET = BigInt(process.env.POW_DIFFICULTY_TARGET || '0x00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff');
 const MAX_UINT256 = 2n ** 256n - 1n;
-const MAX_DIFFICULTY_TARGET = MAX_UINT256 / 1000n;  // Easiest possible (~1/1000 chance)
+const MAX_DIFFICULTY_TARGET = MAX_UINT256 / 10n;  // Easiest possible (~1/10 chance)
 const MIN_DIFFICULTY_TARGET = 1000n;                 // Hardest possible
 const MAX_ADJUSTMENT_FACTOR = 4n;                    // Max 4x change per epoch (same as V1)
 
@@ -198,6 +198,7 @@ const V2_SNAPSHOTS_INDEX_KEY = 'clickstr:v2:snapshots:index';        // Sorted s
 const V2_EPOCH_HISTORY_KEY = (season, epoch) => `clickstr:v2:history:epoch:${season}:${epoch}`;
 const V2_CLICK_VELOCITY_KEY = 'clickstr:v2:velocity';                // Rolling click counter for velocity calc
 const V2_LAST_SNAPSHOT_KEY = 'clickstr:v2:snapshots:last-ts';        // Timestamp of last snapshot
+const V2_EPOCH_ATTESTED_KEY = (epoch) => `clickstr:v2:epoch-attested:${epoch}`; // Clicks with claim attestations issued
 
 // =============================================================================
 // BOT FLAGGING - Addresses identified as bots (manual list)
@@ -582,16 +583,21 @@ async function getCurrentDifficulty(redis) {
 }
 
 /**
- * Calculate new difficulty based on actual vs target clicks for an epoch.
+ * Calculate new difficulty based on actual vs target ATTESTED clicks for an epoch.
  *
- * - More clicks than target → lower target (harder, slower mining)
- * - Fewer clicks than target → higher target (easier, faster mining)
- * - Zero clicks → 4x easier
+ * Difficulty is driven by claim attestations, NOT raw mining clicks.
+ * This means bots that mine but never claim have ZERO effect on difficulty.
+ * The goal: distribute ~1M $CLICK per epoch. If claims are high, slow it down.
+ * If claims are low, speed it up.
+ *
+ * - More attested clicks than target → lower target (harder, slower mining)
+ * - Fewer attested clicks than target → higher target (easier, faster mining)
+ * - Zero attested clicks → 4x easier
  * - Capped at 4x change per epoch in either direction
  */
 function calculateNewDifficulty(currentTarget, actualClicks, targetClicks) {
   if (actualClicks === 0n) {
-    // No clicks at all — make 4x easier (raise target)
+    // No attested clicks at all — make 4x easier (raise target)
     let newTarget = currentTarget * MAX_ADJUSTMENT_FACTOR;
     if (newTarget > MAX_DIFFICULTY_TARGET) newTarget = MAX_DIFFICULTY_TARGET;
     return newTarget;
@@ -619,7 +625,8 @@ function calculateNewDifficulty(currentTarget, actualClicks, targetClicks) {
 
 /**
  * Check if difficulty needs adjustment for the current epoch.
- * Adjusts based on completed epochs' click counts.
+ * Adjusts based on completed epochs' ATTESTED click counts (claims only).
+ * Raw mining clicks are ignored — only clicks with claim attestations count.
  * Returns the current difficulty target.
  */
 async function adjustDifficultyIfNeeded(redis, gameState) {
@@ -667,11 +674,14 @@ async function adjustDifficultyIfNeeded(redis, gameState) {
   let iterations = 0;
 
   for (let completedEpoch = startFrom; completedEpoch < currentEpoch && iterations < maxIterations; completedEpoch++) {
-    const epochClicks = parseInt(await redis.get(V2_EPOCH_TOTAL_KEY(completedEpoch)) || '0', 10);
+    // Use ATTESTED clicks (claims only) instead of raw mining clicks.
+    // This means bots that mine but never claim don't inflate difficulty.
+    const attestedClicks = parseInt(await redis.get(V2_EPOCH_ATTESTED_KEY(completedEpoch)) || '0', 10);
+    const rawClicks = parseInt(await redis.get(V2_EPOCH_TOTAL_KEY(completedEpoch)) || '0', 10);
     const oldDifficulty = difficulty;
-    difficulty = calculateNewDifficulty(difficulty, BigInt(epochClicks), targetClicksPerEpoch);
+    difficulty = calculateNewDifficulty(difficulty, BigInt(attestedClicks), targetClicksPerEpoch);
     console.log(
-      `[Difficulty] Epoch ${completedEpoch}: ${epochClicks} clicks (target: ${targetClicksPerEpoch}) → ` +
+      `[Difficulty] Epoch ${completedEpoch}: ${attestedClicks} attested clicks (${rawClicks} raw, target: ${targetClicksPerEpoch}) → ` +
       `difficulty 0x${oldDifficulty.toString(16).substring(0, 8)}... → 0x${difficulty.toString(16).substring(0, 8)}...`
     );
 
@@ -682,7 +692,8 @@ async function adjustDifficultyIfNeeded(redis, gameState) {
       epoch: completedEpoch,
       oldDifficulty: '0x' + oldDifficulty.toString(16),
       newDifficulty: '0x' + difficulty.toString(16),
-      epochClicks,
+      attestedClicks,
+      rawClicks,
       targetClicks: Number(targetClicksPerEpoch),
     });
     await redis.zadd(V2_DIFFICULTY_EVENTS_KEY, { score: Date.now(), member: diffEvent });
@@ -961,14 +972,16 @@ export default async function handler(req, res) {
           ? await adjustDifficultyIfNeeded(redis, gameState)
           : MAX_DIFFICULTY_TARGET;
         const targetClicksPerEpoch = Math.floor(1_000_000 * gameState.epochDuration / 86400);
-        const [epochClicksRaw, globalClicksRaw, activeCount, velocityRaw] = await Promise.all([
+        const [epochClicksRaw, globalClicksRaw, activeCount, velocityRaw, epochAttestedRaw] = await Promise.all([
           redis.get(V2_EPOCH_TOTAL_KEY(gameState.currentEpoch)),
           redis.get(V2_GLOBAL_CLICKS_KEY),
           redis.zcount(ACTIVE_USERS_SET, now - 60000, '+inf'),
           redis.get(V2_CLICK_VELOCITY_KEY),
+          redis.get(V2_EPOCH_ATTESTED_KEY(gameState.currentEpoch)),
         ]);
         const epochClicks = parseInt(epochClicksRaw || '0', 10);
         const globalClicks = parseInt(globalClicksRaw || '0', 10);
+        const epochAttested = parseInt(epochAttestedRaw || '0', 10);
 
         // Bot stats
         let botClicks = 0;
@@ -1029,10 +1042,14 @@ export default async function handler(req, res) {
         // 5. Per-epoch data (all epochs for current season)
         const epochs = [];
         for (let ep = 1; ep <= gameState.totalEpochs; ep++) {
-          const epClicks = parseInt(await redis.get(V2_EPOCH_TOTAL_KEY(ep)) || '0', 10);
-          const epUnique = await redis.zcard(V2_EPOCH_LEADERBOARD_KEY(ep));
-          // Check for stored epoch history
-          const historyRaw = await redis.get(V2_EPOCH_HISTORY_KEY(gameState.seasonNumber, ep));
+          const [epClicksRaw, epAttestedRaw, epUnique, historyRaw] = await Promise.all([
+            redis.get(V2_EPOCH_TOTAL_KEY(ep)),
+            redis.get(V2_EPOCH_ATTESTED_KEY(ep)),
+            redis.zcard(V2_EPOCH_LEADERBOARD_KEY(ep)),
+            redis.get(V2_EPOCH_HISTORY_KEY(gameState.seasonNumber, ep)),
+          ]);
+          const epClicks = parseInt(epClicksRaw || '0', 10);
+          const epAttested = parseInt(epAttestedRaw || '0', 10);
           let history = null;
           if (historyRaw) {
             try { history = typeof historyRaw === 'string' ? JSON.parse(historyRaw) : historyRaw; } catch {}
@@ -1041,6 +1058,7 @@ export default async function handler(req, res) {
             epoch: ep,
             status: ep < gameState.currentEpoch ? 'completed' : ep === gameState.currentEpoch ? 'active' : 'upcoming',
             totalClicks: epClicks,
+            attestedClicks: epAttested,
             targetClicks: targetClicksPerEpoch,
             uniquePlayers: epUnique || 0,
             history,
@@ -1059,8 +1077,10 @@ export default async function handler(req, res) {
             defaultDifficulty: '0x' + DEFAULT_DIFFICULTY_TARGET.toString(16),
             difficultyRatio: Number(DEFAULT_DIFFICULTY_TARGET / currentDifficulty).toFixed(2),
             epochClicks,
+            epochAttestedClicks: epochAttested,
             targetClicksPerEpoch,
             epochProgress: ((epochClicks / targetClicksPerEpoch) * 100).toFixed(1),
+            attestedProgress: ((epochAttested / targetClicksPerEpoch) * 100).toFixed(1),
             globalClicks,
             botClicks,
             humanClicks: Math.max(0, globalClicks - botClicks),
@@ -1129,6 +1149,9 @@ export default async function handler(req, res) {
         const currentEpochClicks = parseInt(
           await redis.get(V2_EPOCH_TOTAL_KEY(gameState.currentEpoch)) || '0', 10
         );
+        const currentEpochAttested = parseInt(
+          await redis.get(V2_EPOCH_ATTESTED_KEY(gameState.currentEpoch)) || '0', 10
+        );
 
         return res.status(200).json({
           success: true,
@@ -1136,6 +1159,7 @@ export default async function handler(req, res) {
           epoch: gameState.currentEpoch,
           targetClicksPerEpoch,
           currentEpochClicks,
+          currentEpochAttested,
           gameActive,
         });
       }
@@ -1904,12 +1928,23 @@ export default async function handler(req, res) {
           { ex: 86400 * 30 } // 30 day expiry
         );
 
+        // Track attested clicks for difficulty adjustment.
+        // For incremental claims, only count the NEW clicks (delta), not the full total.
+        const previouslyAttested = existingSignature
+          ? (typeof existingSignature === 'string' ? JSON.parse(existingSignature) : existingSignature).clickCount || 0
+          : 0;
+        const newAttestedClicks = clicks - previouslyAttested;
+        if (newAttestedClicks > 0) {
+          await redis.incrby(V2_EPOCH_ATTESTED_KEY(epoch), newAttestedClicks);
+        }
+
         // Log claim event for dashboard history
         const claimEvent = JSON.stringify({
           ts: claimIssuedAt,
           address: addr,
           epoch,
           clicks,
+          newAttested: newAttestedClicks,
           season: gameState.seasonNumber,
           incremental: !!existingSignature,
         });
