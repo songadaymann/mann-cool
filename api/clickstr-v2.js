@@ -190,6 +190,15 @@ const V2_ALLTIME_LEADERBOARD_KEY = 'clickstr:v2:leaderboard:alltime';
 const V2_EARNED_LEADERBOARD_KEY = 'clickstr:v2:leaderboard:earned';
 const V2_RATE_LIMIT_KEY = (addr) => `clickstr:v2:ratelimit:${addr.toLowerCase()}`;
 
+// Dashboard / analytics keys
+const V2_DIFFICULTY_EVENTS_KEY = 'clickstr:v2:events:difficulty';     // Sorted set: score=timestamp, member=JSON
+const V2_CLAIM_EVENTS_KEY = 'clickstr:v2:events:claims';             // Sorted set: score=timestamp, member=JSON
+const V2_SNAPSHOT_KEY = (ts) => `clickstr:v2:snapshot:${ts}`;        // Point-in-time snapshot
+const V2_SNAPSHOTS_INDEX_KEY = 'clickstr:v2:snapshots:index';        // Sorted set of snapshot timestamps
+const V2_EPOCH_HISTORY_KEY = (season, epoch) => `clickstr:v2:history:epoch:${season}:${epoch}`;
+const V2_CLICK_VELOCITY_KEY = 'clickstr:v2:velocity';                // Rolling click counter for velocity calc
+const V2_LAST_SNAPSHOT_KEY = 'clickstr:v2:snapshots:last-ts';        // Timestamp of last snapshot
+
 // =============================================================================
 // BOT FLAGGING - Addresses identified as bots (manual list)
 // These are filtered from normal leaderboard tabs and shown in a separate "Bots" tab
@@ -665,6 +674,19 @@ async function adjustDifficultyIfNeeded(redis, gameState) {
       `[Difficulty] Epoch ${completedEpoch}: ${epochClicks} clicks (target: ${targetClicksPerEpoch}) → ` +
       `difficulty 0x${oldDifficulty.toString(16).substring(0, 8)}... → 0x${difficulty.toString(16).substring(0, 8)}...`
     );
+
+    // Log difficulty change event for dashboard history
+    const diffEvent = JSON.stringify({
+      ts: Date.now(),
+      season: seasonNumber,
+      epoch: completedEpoch,
+      oldDifficulty: '0x' + oldDifficulty.toString(16),
+      newDifficulty: '0x' + difficulty.toString(16),
+      epochClicks,
+      targetClicks: Number(targetClicksPerEpoch),
+    });
+    await redis.zadd(V2_DIFFICULTY_EVENTS_KEY, { score: Date.now(), member: diffEvent });
+
     iterations++;
   }
 
@@ -673,6 +695,128 @@ async function adjustDifficultyIfNeeded(redis, gameState) {
   await redis.set(V2_DIFFICULTY_EPOCH_KEY, currentEpoch.toString());
 
   return difficulty;
+}
+
+// =============================================================================
+// DASHBOARD SNAPSHOT SYSTEM
+// =============================================================================
+
+const SNAPSHOT_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+const SNAPSHOT_TTL_SECONDS = 30 * 24 * 60 * 60; // 30 days retention
+const SNAPSHOTS_MAX_AGE = 30 * 24 * 60 * 60 * 1000; // 30 days in ms
+
+/**
+ * Take a point-in-time snapshot of all key metrics.
+ * Called lazily on API requests if >5 min since last snapshot.
+ */
+async function maybeSnapshot(redis, gameState) {
+  try {
+    const now = Date.now();
+    const lastTs = parseInt(await redis.get(V2_LAST_SNAPSHOT_KEY) || '0', 10);
+    if (now - lastTs < SNAPSHOT_INTERVAL_MS) return; // Too soon
+
+    const { currentEpoch, seasonNumber, totalEpochs, epochDuration, gameStarted, gameEnded } = gameState;
+    const gameActive = gameStarted && !gameEnded;
+
+    // Gather metrics
+    const [
+      difficultyRaw,
+      epochClicksRaw,
+      globalClicksRaw,
+      activeCount,
+      velocityRaw,
+    ] = await Promise.all([
+      redis.get(V2_DIFFICULTY_KEY),
+      redis.get(V2_EPOCH_TOTAL_KEY(currentEpoch)),
+      redis.get(V2_GLOBAL_CLICKS_KEY),
+      redis.zcount(ACTIVE_USERS_SET, now - 60000, '+inf'),
+      redis.get(V2_CLICK_VELOCITY_KEY),
+    ]);
+
+    // Count bot clicks
+    let botClicks = 0;
+    const botTotals = await Promise.all(
+      Array.from(FLAGGED_BOT_ADDRESSES).map(addr => redis.get(V2_TOTAL_CLICKS_KEY(addr)))
+    );
+    for (const total of botTotals) botClicks += parseInt(total || '0', 10);
+
+    // Count unique clickers this epoch from leaderboard
+    const uniqueClickers = await redis.zcard(V2_EPOCH_LEADERBOARD_KEY(currentEpoch));
+
+    // Get earned total
+    let globalEarnedWei = '0';
+    try {
+      const earnedEntries = await redis.zrange(V2_EARNED_LEADERBOARD_KEY, 0, -1, { withScores: true });
+      let totalWei = BigInt(0);
+      for (let i = 0; i < earnedEntries.length; i += 2) {
+        try {
+          const raw = earnedEntries[i];
+          const data = typeof raw === 'string' ? JSON.parse(raw) : raw;
+          const score = BigInt(Math.floor(earnedEntries[i + 1]));
+          if (!FLAGGED_BOT_ADDRESSES.has(data.address?.toLowerCase())) {
+            totalWei += score;
+          }
+        } catch { /* skip */ }
+      }
+      globalEarnedWei = totalWei.toString();
+    } catch { /* non-critical */ }
+
+    const snapshot = {
+      ts: now,
+      season: seasonNumber,
+      epoch: currentEpoch,
+      gameActive,
+      difficulty: difficultyRaw || DEFAULT_DIFFICULTY_TARGET.toString(),
+      epochClicks: parseInt(epochClicksRaw || '0', 10),
+      globalClicks: parseInt(globalClicksRaw || '0', 10),
+      botClicks,
+      humanClicks: Math.max(0, parseInt(globalClicksRaw || '0', 10) - botClicks),
+      activeUsers: activeCount || 0,
+      uniqueClickers: uniqueClickers || 0,
+      globalEarnedWei,
+      clicksPerMin: parseInt(velocityRaw || '0', 10),
+    };
+
+    // Store snapshot
+    const tsKey = Math.floor(now / 1000); // second-precision key
+    await Promise.all([
+      redis.set(V2_SNAPSHOT_KEY(tsKey), JSON.stringify(snapshot), { ex: SNAPSHOT_TTL_SECONDS }),
+      redis.zadd(V2_SNAPSHOTS_INDEX_KEY, { score: now, member: String(tsKey) }),
+      redis.set(V2_LAST_SNAPSHOT_KEY, String(now)),
+    ]);
+
+    // Prune old snapshot index entries (beyond 30 days)
+    const cutoff = now - SNAPSHOTS_MAX_AGE;
+    await redis.zremrangebyscore(V2_SNAPSHOTS_INDEX_KEY, 0, cutoff);
+
+    console.log(`[Snapshot] Captured at ${new Date(now).toISOString()} — epoch ${currentEpoch}, ${snapshot.activeUsers} active, ${snapshot.epochClicks} epoch clicks`);
+  } catch (err) {
+    console.error('[Snapshot] Error:', err.message);
+    // Non-fatal — don't break the request
+  }
+}
+
+/**
+ * Track click velocity — called on each successful click submission.
+ * Stores clicks-per-minute using a simple rolling window.
+ */
+async function trackClickVelocity(redis, clickCount) {
+  try {
+    const now = Date.now();
+    // Use a sorted set with timestamp scores; members are click counts
+    const velocityWindowKey = 'clickstr:v2:velocity-window';
+    await redis.zadd(velocityWindowKey, { score: now, member: `${now}:${clickCount}` });
+    // Remove entries older than 60 seconds
+    await redis.zremrangebyscore(velocityWindowKey, 0, now - 60000);
+    // Sum all entries in the window for clicks-per-minute
+    const entries = await redis.zrange(velocityWindowKey, 0, -1);
+    let totalInWindow = 0;
+    for (const entry of entries) {
+      const parts = entry.split(':');
+      totalInWindow += parseInt(parts[1] || '0', 10);
+    }
+    await redis.set(V2_CLICK_VELOCITY_KEY, totalInWindow);
+  } catch { /* non-critical */ }
 }
 
 /**
@@ -775,10 +919,13 @@ export default async function handler(req, res) {
     // GET REQUESTS
     // =========================================================================
     if (req.method === 'GET') {
-      const { address, leaderboard, claimable, activeUsers, syncAchievements, difficulty: difficultyQuery, epoch: queryEpoch, limit = '50', type: leaderboardType } = req.query;
+      const { address, leaderboard, claimable, activeUsers, syncAchievements, difficulty: difficultyQuery, epoch: queryEpoch, limit = '50', type: leaderboardType, dashboard, history } = req.query;
 
       // Get current game state
       const gameState = await getGameState();
+
+      // Lazily capture a snapshot (self-throttles to every 5 min)
+      maybeSnapshot(redis, gameState).catch(() => {});
 
       // Debug: show server env config (temporary)
       if (req.query.debug === 'env') {
@@ -790,6 +937,182 @@ export default async function handler(req, res) {
           RPC_URL: process.env.RPC_URL ? process.env.RPC_URL.slice(0, 40) + '...' : 'NOT SET',
           gameState,
         });
+      }
+
+      // =====================================================================
+      // DASHBOARD — comprehensive admin stats
+      // GET /api/clickstr-v2?dashboard=true&range=24h|7d|30d
+      // =====================================================================
+      if (dashboard === 'true') {
+        const range = req.query.range || '24h';
+        const rangeMs = range === '30d' ? 30*24*60*60*1000
+                      : range === '7d'  ? 7*24*60*60*1000
+                      : 24*60*60*1000;
+        const now = Date.now();
+        const from = now - rangeMs;
+
+        // 1. Current state
+        const gameActive = gameState.gameStarted && !gameState.gameEnded;
+        const currentDifficulty = gameActive
+          ? await adjustDifficultyIfNeeded(redis, gameState)
+          : MAX_DIFFICULTY_TARGET;
+        const targetClicksPerEpoch = Math.floor(1_000_000 * gameState.epochDuration / 86400);
+        const [epochClicksRaw, globalClicksRaw, activeCount, velocityRaw] = await Promise.all([
+          redis.get(V2_EPOCH_TOTAL_KEY(gameState.currentEpoch)),
+          redis.get(V2_GLOBAL_CLICKS_KEY),
+          redis.zcount(ACTIVE_USERS_SET, now - 60000, '+inf'),
+          redis.get(V2_CLICK_VELOCITY_KEY),
+        ]);
+        const epochClicks = parseInt(epochClicksRaw || '0', 10);
+        const globalClicks = parseInt(globalClicksRaw || '0', 10);
+
+        // Bot stats
+        let botClicks = 0;
+        const botTotals = await Promise.all(
+          Array.from(FLAGGED_BOT_ADDRESSES).map(addr => redis.get(V2_TOTAL_CLICKS_KEY(addr)))
+        );
+        for (const total of botTotals) botClicks += parseInt(total || '0', 10);
+
+        // Earned total
+        let globalEarnedWei = '0';
+        try {
+          const earnedEntries = await redis.zrange(V2_EARNED_LEADERBOARD_KEY, 0, -1, { withScores: true });
+          let totalWei = BigInt(0);
+          for (let i = 0; i < earnedEntries.length; i += 2) {
+            try {
+              const raw = earnedEntries[i];
+              const data = typeof raw === 'string' ? JSON.parse(raw) : raw;
+              const score = BigInt(Math.floor(earnedEntries[i + 1]));
+              if (!FLAGGED_BOT_ADDRESSES.has(data.address?.toLowerCase())) totalWei += score;
+            } catch { /* skip */ }
+          }
+          globalEarnedWei = totalWei.toString();
+        } catch { /* non-critical */ }
+
+        // Unique clickers this epoch
+        const uniqueClickers = await redis.zcard(V2_EPOCH_LEADERBOARD_KEY(gameState.currentEpoch));
+
+        // 2. Time-series snapshots
+        const snapshotKeys = await redis.zrangebyscore(V2_SNAPSHOTS_INDEX_KEY, from, now);
+        const snapshots = [];
+        if (snapshotKeys.length > 0) {
+          // Batch fetch snapshots (limit to 500 for sanity)
+          const keysToFetch = snapshotKeys.slice(-500);
+          const snapshotData = await Promise.all(
+            keysToFetch.map(tsKey => redis.get(V2_SNAPSHOT_KEY(tsKey)))
+          );
+          for (const raw of snapshotData) {
+            if (!raw) continue;
+            try {
+              const s = typeof raw === 'string' ? JSON.parse(raw) : raw;
+              snapshots.push(s);
+            } catch { /* skip */ }
+          }
+        }
+
+        // 3. Difficulty events
+        const diffEvents = await redis.zrangebyscore(V2_DIFFICULTY_EVENTS_KEY, from, now);
+        const difficultyHistory = diffEvents.map(e => {
+          try { return typeof e === 'string' ? JSON.parse(e) : e; } catch { return null; }
+        }).filter(Boolean);
+
+        // 4. Claim events
+        const claimEvents = await redis.zrangebyscore(V2_CLAIM_EVENTS_KEY, from, now);
+        const claimHistory = claimEvents.map(e => {
+          try { return typeof e === 'string' ? JSON.parse(e) : e; } catch { return null; }
+        }).filter(Boolean);
+
+        // 5. Per-epoch data (all epochs for current season)
+        const epochs = [];
+        for (let ep = 1; ep <= gameState.totalEpochs; ep++) {
+          const epClicks = parseInt(await redis.get(V2_EPOCH_TOTAL_KEY(ep)) || '0', 10);
+          const epUnique = await redis.zcard(V2_EPOCH_LEADERBOARD_KEY(ep));
+          // Check for stored epoch history
+          const historyRaw = await redis.get(V2_EPOCH_HISTORY_KEY(gameState.seasonNumber, ep));
+          let history = null;
+          if (historyRaw) {
+            try { history = typeof historyRaw === 'string' ? JSON.parse(historyRaw) : historyRaw; } catch {}
+          }
+          epochs.push({
+            epoch: ep,
+            status: ep < gameState.currentEpoch ? 'completed' : ep === gameState.currentEpoch ? 'active' : 'upcoming',
+            totalClicks: epClicks,
+            targetClicks: targetClicksPerEpoch,
+            uniquePlayers: epUnique || 0,
+            history,
+          });
+        }
+
+        return res.status(200).json({
+          success: true,
+          currentState: {
+            season: gameState.seasonNumber,
+            epoch: gameState.currentEpoch,
+            totalEpochs: gameState.totalEpochs,
+            epochDuration: gameState.epochDuration,
+            gameActive,
+            difficulty: '0x' + currentDifficulty.toString(16),
+            defaultDifficulty: '0x' + DEFAULT_DIFFICULTY_TARGET.toString(16),
+            difficultyRatio: Number(DEFAULT_DIFFICULTY_TARGET / currentDifficulty).toFixed(2),
+            epochClicks,
+            targetClicksPerEpoch,
+            epochProgress: ((epochClicks / targetClicksPerEpoch) * 100).toFixed(1),
+            globalClicks,
+            botClicks,
+            humanClicks: Math.max(0, globalClicks - botClicks),
+            botPercentage: globalClicks > 0 ? ((botClicks / globalClicks) * 100).toFixed(1) : '0',
+            activeUsers: activeCount || 0,
+            uniqueClickers: uniqueClickers || 0,
+            clicksPerMin: parseInt(velocityRaw || '0', 10),
+            globalEarnedWei,
+            flaggedBots: Array.from(FLAGGED_BOT_ADDRESSES),
+          },
+          epochs,
+          timeseries: snapshots,
+          difficultyHistory,
+          claimHistory,
+          range,
+          gameState,
+        });
+      }
+
+      // =====================================================================
+      // HISTORY — targeted historical data queries
+      // GET /api/clickstr-v2?history=snapshots|difficulty|claims&from=TS&to=TS
+      // =====================================================================
+      if (history) {
+        const from = parseInt(req.query.from || '0', 10) || (Date.now() - 24*60*60*1000);
+        const to = parseInt(req.query.to || '0', 10) || Date.now();
+
+        if (history === 'snapshots') {
+          const keys = await redis.zrangebyscore(V2_SNAPSHOTS_INDEX_KEY, from, to);
+          const data = [];
+          for (const tsKey of keys.slice(-1000)) {
+            const raw = await redis.get(V2_SNAPSHOT_KEY(tsKey));
+            if (raw) {
+              try { data.push(typeof raw === 'string' ? JSON.parse(raw) : raw); } catch {}
+            }
+          }
+          return res.status(200).json({ success: true, type: 'snapshots', from, to, data });
+        }
+
+        if (history === 'difficulty') {
+          const events = await redis.zrangebyscore(V2_DIFFICULTY_EVENTS_KEY, from, to);
+          const data = events.map(e => {
+            try { return typeof e === 'string' ? JSON.parse(e) : e; } catch { return null; }
+          }).filter(Boolean);
+          return res.status(200).json({ success: true, type: 'difficulty', from, to, data });
+        }
+
+        if (history === 'claims') {
+          const events = await redis.zrangebyscore(V2_CLAIM_EVENTS_KEY, from, to);
+          const data = events.map(e => {
+            try { return typeof e === 'string' ? JSON.parse(e) : e; } catch { return null; }
+          }).filter(Boolean);
+          return res.status(200).json({ success: true, type: 'claims', from, to, data });
+        }
+
+        return res.status(400).json({ error: 'Invalid history type. Use: snapshots, difficulty, claims' });
       }
 
       // Difficulty request — returns current PoW target for mining
@@ -1570,11 +1893,23 @@ export default async function handler(req, res) {
         }
 
         // Store issued signature
+        const claimIssuedAt = Date.now();
         await redis.set(
           V2_CLAIM_ISSUED_KEY(addr, epoch),
-          JSON.stringify({ signature, clickCount: clicks, issuedAt: Date.now() }),
+          JSON.stringify({ signature, clickCount: clicks, issuedAt: claimIssuedAt }),
           { ex: 86400 * 30 } // 30 day expiry
         );
+
+        // Log claim event for dashboard history
+        const claimEvent = JSON.stringify({
+          ts: claimIssuedAt,
+          address: addr,
+          epoch,
+          clicks,
+          season: gameState.seasonNumber,
+          incremental: !!existingSignature,
+        });
+        await redis.zadd(V2_CLAIM_EVENTS_KEY, { score: claimIssuedAt, member: claimEvent });
 
         return res.status(200).json({
           success: true,
@@ -1763,6 +2098,9 @@ export default async function handler(req, res) {
       }
 
       await Promise.all(updatePromises);
+
+      // Track click velocity for dashboard
+      trackClickVelocity(redis, validCount).catch(() => {});
 
       // Log for retroactive attribution
       await redis.rpush(CLICK_LOG_KEY, JSON.stringify({

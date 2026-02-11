@@ -1,4 +1,10 @@
 {
+  "crons": [
+    {
+      "path": "/api/clickstr-v2?dashboard=true&range=24h",
+      "schedule": "*/5 * * * *"
+    }
+  ],
   "headers": [
     {
       "source": "/api/(.*)",
