@@ -174,6 +174,11 @@ const CLICKS_BEFORE_REVERIFICATION = parseInt(process.env.CLICKS_BEFORE_REVERIFI
 const RATE_LIMIT_WINDOW_SECONDS = 60; // 1-minute sliding window
 const RATE_LIMIT_MAX_NONCES = parseInt(process.env.RATE_LIMIT_MAX_NONCES || '3000', 10); // max valid nonces per window
 
+// Mining challenge configuration — short-lived server-issued tokens that must
+// be included in the PoW hash to prevent offline/pre-computed nonce mining.
+const MINING_CHALLENGE_TTL_SECONDS = 30; // Challenge valid for 30 seconds
+const MINING_CHALLENGE_RATE_LIMIT_MS = 500; // Min 500ms between challenge requests
+
 // =============================================================================
 // REDIS KEYS (V2-specific, prefixed to avoid collision with V1)
 // =============================================================================
@@ -190,6 +195,8 @@ const V2_GLOBAL_CLICKS_KEY = 'clickstr:v2:global-clicks';
 const V2_ALLTIME_LEADERBOARD_KEY = 'clickstr:v2:leaderboard:alltime';
 const V2_EARNED_LEADERBOARD_KEY = 'clickstr:v2:leaderboard:earned';
 const V2_RATE_LIMIT_KEY = (addr) => `clickstr:v2:ratelimit:${addr.toLowerCase()}`;
+const V2_MINING_CHALLENGE_KEY = (addr) => `clickstr:v2:mining-challenge:${addr.toLowerCase()}`;
+const V2_MINING_CHALLENGE_RATE_KEY = (addr) => `clickstr:v2:mining-challenge-rate:${addr.toLowerCase()}`;
 
 // Dashboard / analytics keys
 const V2_DIFFICULTY_EVENTS_KEY = 'clickstr:v2:events:difficulty';     // Sorted set: score=timestamp, member=JSON
@@ -222,6 +229,8 @@ const FLAGGED_BOT_ADDRESSES = new Set([
   '0xd2f5e949629b6ae0310573c99fbe1d6776796ea7',
   '0x9a342959008c5716d332d0b4d15bfcea24bad61c',
   '0x6ecc573832439b593c2717c27adea0f76c75ce17',
+  // Wave 3 (Season 3 — 230K clicks, not in active users)
+  '0xc1e9952ba846bf4ac408b39d05d18ce9623131cd',
 ]);
 
 function isFlaggedBot(address) {
@@ -563,15 +572,26 @@ async function getGameState() {
 }
 
 /**
- * Verify a proof-of-work nonce against a given difficulty target
+ * Verify a proof-of-work nonce against a given difficulty target.
+ * When a mining challenge is provided, it's included in the hash to prove
+ * the nonce was mined in real-time (not pre-computed offline).
+ *
+ * Hash format:
+ *   Without challenge: keccak256(address || nonce || epoch || chainId)      — 116 bytes
+ *   With challenge:    keccak256(address || nonce || epoch || chainId || challenge) — 148 bytes
  */
-function verifyNonce(address, nonceStr, epoch, difficultyTarget) {
+function verifyNonce(address, nonceStr, epoch, difficultyTarget, challenge = null) {
   try {
     const nonce = BigInt(nonceStr);
-    const packed = encodePacked(
-      ['address', 'uint256', 'uint256', 'uint256'],
-      [address, nonce, BigInt(epoch), BigInt(CHAIN_ID)]
-    );
+    const types = ['address', 'uint256', 'uint256', 'uint256'];
+    const values = [address, nonce, BigInt(epoch), BigInt(CHAIN_ID)];
+
+    if (challenge) {
+      types.push('bytes32');
+      values.push('0x' + challenge.padEnd(64, '0'));
+    }
+
+    const packed = encodePacked(types, values);
     const hash = keccak256(packed);
     const hashBigInt = BigInt(hash);
     return hashBigInt < difficultyTarget;
@@ -953,6 +973,47 @@ export default async function handler(req, res) {
 
       // Lazily capture a snapshot (self-throttles to every 5 min)
       maybeSnapshot(redis, gameState).catch(() => {});
+
+      // =====================================================================
+      // MINING CHALLENGE — issue a short-lived token for PoW mining
+      // GET /api/clickstr-v2?challenge=true&address=0x...
+      // The frontend must include this challenge in the PoW hash to prove
+      // nonces were mined in real-time (prevents offline pre-computation).
+      // =====================================================================
+      if (req.query.challenge === 'true') {
+        if (!validateAddress(address)) {
+          return res.status(400).json({ error: 'Invalid or missing address' });
+        }
+        const addr = address.toLowerCase();
+
+        // Rate limit: one challenge per MINING_CHALLENGE_RATE_LIMIT_MS
+        const rateKey = V2_MINING_CHALLENGE_RATE_KEY(addr);
+        const lastRequest = await redis.get(rateKey);
+        if (lastRequest) {
+          return res.status(429).json({ error: 'Too many challenge requests', retryAfterMs: MINING_CHALLENGE_RATE_LIMIT_MS });
+        }
+        await redis.set(rateKey, '1', { px: MINING_CHALLENGE_RATE_LIMIT_MS });
+
+        // Generate random 16-byte hex challenge
+        const challengeToken = randomBytes(16).toString('hex');
+        const issuedAt = Date.now();
+        const expiresAt = issuedAt + (MINING_CHALLENGE_TTL_SECONDS * 1000);
+
+        // Store in Redis with TTL
+        await redis.set(V2_MINING_CHALLENGE_KEY(addr), JSON.stringify({
+          challenge: challengeToken,
+          issuedAt,
+          expiresAt,
+        }), { ex: MINING_CHALLENGE_TTL_SECONDS + 5 }); // +5s grace for network latency
+
+        return res.status(200).json({
+          success: true,
+          challenge: challengeToken,
+          issuedAt,
+          expiresAt,
+          ttlSeconds: MINING_CHALLENGE_TTL_SECONDS,
+        });
+      }
 
       // Debug: show server env config (temporary)
       if (req.query.debug === 'env') {
@@ -1542,7 +1603,7 @@ export default async function handler(req, res) {
     // =========================================================================
     if (req.method === 'POST') {
       const body = req.body || {};
-      const { address, action, epoch: requestedEpoch, turnstileToken, nonces, heartbeat } = body;
+      const { address, action, epoch: requestedEpoch, turnstileToken, nonces, heartbeat, miningChallenge } = body;
 
       // -----------------------------------------------------------------------
       // ADMIN ACTIONS (do not require a player address)
@@ -2050,6 +2111,30 @@ export default async function handler(req, res) {
       }
 
       // -----------------------------------------------------------------------
+      // MINING CHALLENGE VALIDATION
+      // Verify the client submitted a valid, unexpired mining challenge.
+      // The challenge is included in the PoW hash to prevent offline mining.
+      // During rollout grace period: accept nonces without a challenge too.
+      // -----------------------------------------------------------------------
+      let activeChallenge = null;
+      if (miningChallenge) {
+        const stored = await redis.get(V2_MINING_CHALLENGE_KEY(addr));
+        if (stored) {
+          const parsed = typeof stored === 'string' ? JSON.parse(stored) : stored;
+          if (parsed.challenge === miningChallenge && parsed.expiresAt > Date.now()) {
+            activeChallenge = miningChallenge;
+            console.log(`[Challenge] VALID challenge for ${addr.slice(0,10)}.. (expires in ${Math.round((parsed.expiresAt - Date.now())/1000)}s)`);
+          } else {
+            console.log(`[Challenge] REJECTED for ${addr.slice(0,10)}.. — ${parsed.challenge !== miningChallenge ? 'mismatch' : 'expired'}`);
+          }
+        } else {
+          console.log(`[Challenge] NOT FOUND in Redis for ${addr.slice(0,10)}.. (expired from store?)`);
+        }
+      } else {
+        console.log(`[Challenge] NONE sent by ${addr.slice(0,10)}.. (old client or bot)`);
+      }
+
+      // -----------------------------------------------------------------------
       // NONCE VERIFICATION & DEDUPLICATION
       // -----------------------------------------------------------------------
       const usedNoncesKey = V2_USED_NONCES_KEY(addr, epoch);
@@ -2057,8 +2142,20 @@ export default async function handler(req, res) {
       const validNonces = [];
 
       for (const nonceStr of nonces) {
-        // Verify PoW against current difficulty
-        if (!verifyNonce(addr, nonceStr, epoch, currentDifficulty)) {
+        // Try with challenge first, then without (grace period for rollout)
+        let valid = false;
+        let validatedWith = null;
+        if (activeChallenge) {
+          valid = verifyNonce(addr, nonceStr, epoch, currentDifficulty, activeChallenge);
+          if (valid) validatedWith = 'challenge';
+        }
+        if (!valid) {
+          // Grace period: also accept nonces without challenge
+          // TODO: Remove this fallback after all clients are updated
+          valid = verifyNonce(addr, nonceStr, epoch, currentDifficulty, null);
+          if (valid) validatedWith = 'no-challenge';
+        }
+        if (!valid) {
           continue;
         }
 
@@ -2070,7 +2167,13 @@ export default async function handler(req, res) {
 
         validNonces.push(nonceStr);
         validCount++;
+        // Log first nonce's validation method as representative
+        if (validCount === 1) {
+          console.log(`[Challenge] ${addr.slice(0,10)}.. nonces validated via: ${validatedWith}`);
+        }
       }
+
+      console.log(`[Challenge] ${addr.slice(0,10)}.. result: ${validCount}/${nonces.length} valid, mode=${activeChallenge ? 'challenge' : 'grace-period'}`);
 
       if (validCount === 0) {
         return res.status(400).json({
