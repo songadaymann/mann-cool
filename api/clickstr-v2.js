@@ -942,10 +942,15 @@ export default async function handler(req, res) {
           const botSet = FLAGGED_BOT_ADDRESSES;
           let totalWei = BigInt(0);
           for (let i = 0; i < earnedEntries.length; i += 2) {
-            const member = JSON.parse(earnedEntries[i]);
-            const score = BigInt(Math.floor(earnedEntries[i + 1]));
-            if (!botSet.has(member.address?.toLowerCase())) {
-              totalWei += score;
+            try {
+              const raw = earnedEntries[i];
+              const data = typeof raw === 'string' ? JSON.parse(raw) : raw;
+              const score = BigInt(Math.floor(earnedEntries[i + 1]));
+              if (!botSet.has(data.address?.toLowerCase())) {
+                totalWei += score;
+              }
+            } catch {
+              // Skip malformed entry
             }
           }
           globalEarned = totalWei.toString();
@@ -958,7 +963,8 @@ export default async function handler(req, res) {
           activeHumans: activeCount || 0,
           activeBots: 0, // V2 is human-only
           globalClicks,
-          globalEarned
+          globalEarned,
+          _debug: { botClicks, rawGlobalClicks }
         });
       }
 
