@@ -2114,24 +2114,36 @@ export default async function handler(req, res) {
       // MINING CHALLENGE VALIDATION
       // Verify the client submitted a valid, unexpired mining challenge.
       // The challenge is included in the PoW hash to prevent offline mining.
-      // During rollout grace period: accept nonces without a challenge too.
       // -----------------------------------------------------------------------
+      // Mining challenge is REQUIRED — reject submissions without one
+      if (!miningChallenge) {
+        console.log(`[Challenge] REJECTED — no challenge sent by ${addr.slice(0,10)}.. (old client or bot)`);
+        return res.status(400).json({
+          error: 'Mining challenge required',
+          message: 'Please refresh the page to get the latest client version'
+        });
+      }
+
       let activeChallenge = null;
-      if (miningChallenge) {
-        const stored = await redis.get(V2_MINING_CHALLENGE_KEY(addr));
-        if (stored) {
-          const parsed = typeof stored === 'string' ? JSON.parse(stored) : stored;
-          if (parsed.challenge === miningChallenge && parsed.expiresAt > Date.now()) {
-            activeChallenge = miningChallenge;
-            console.log(`[Challenge] VALID challenge for ${addr.slice(0,10)}.. (expires in ${Math.round((parsed.expiresAt - Date.now())/1000)}s)`);
-          } else {
-            console.log(`[Challenge] REJECTED for ${addr.slice(0,10)}.. — ${parsed.challenge !== miningChallenge ? 'mismatch' : 'expired'}`);
-          }
+      const stored = await redis.get(V2_MINING_CHALLENGE_KEY(addr));
+      if (stored) {
+        const parsed = typeof stored === 'string' ? JSON.parse(stored) : stored;
+        if (parsed.challenge === miningChallenge && parsed.expiresAt > Date.now()) {
+          activeChallenge = miningChallenge;
+          console.log(`[Challenge] VALID challenge for ${addr.slice(0,10)}.. (expires in ${Math.round((parsed.expiresAt - Date.now())/1000)}s)`);
         } else {
-          console.log(`[Challenge] NOT FOUND in Redis for ${addr.slice(0,10)}.. (expired from store?)`);
+          console.log(`[Challenge] REJECTED for ${addr.slice(0,10)}.. — ${parsed.challenge !== miningChallenge ? 'mismatch' : 'expired'}`);
+          return res.status(400).json({
+            error: 'Invalid or expired mining challenge',
+            message: 'Your mining challenge has expired. Please try again.'
+          });
         }
       } else {
-        console.log(`[Challenge] NONE sent by ${addr.slice(0,10)}.. (old client or bot)`);
+        console.log(`[Challenge] NOT FOUND in Redis for ${addr.slice(0,10)}.. (expired from store?)`);
+        return res.status(400).json({
+          error: 'Mining challenge not found',
+          message: 'Your mining challenge has expired. Please try again.'
+        });
       }
 
       // -----------------------------------------------------------------------
@@ -2142,19 +2154,8 @@ export default async function handler(req, res) {
       const validNonces = [];
 
       for (const nonceStr of nonces) {
-        // Try with challenge first, then without (grace period for rollout)
-        let valid = false;
-        let validatedWith = null;
-        if (activeChallenge) {
-          valid = verifyNonce(addr, nonceStr, epoch, currentDifficulty, activeChallenge);
-          if (valid) validatedWith = 'challenge';
-        }
-        if (!valid) {
-          // Grace period: also accept nonces without challenge
-          // TODO: Remove this fallback after all clients are updated
-          valid = verifyNonce(addr, nonceStr, epoch, currentDifficulty, null);
-          if (valid) validatedWith = 'no-challenge';
-        }
+        // Verify nonce with the required mining challenge
+        const valid = verifyNonce(addr, nonceStr, epoch, currentDifficulty, activeChallenge);
         if (!valid) {
           continue;
         }
@@ -2167,13 +2168,9 @@ export default async function handler(req, res) {
 
         validNonces.push(nonceStr);
         validCount++;
-        // Log first nonce's validation method as representative
-        if (validCount === 1) {
-          console.log(`[Challenge] ${addr.slice(0,10)}.. nonces validated via: ${validatedWith}`);
-        }
       }
 
-      console.log(`[Challenge] ${addr.slice(0,10)}.. result: ${validCount}/${nonces.length} valid, mode=${activeChallenge ? 'challenge' : 'grace-period'}`);
+      console.log(`[Challenge] ${addr.slice(0,10)}.. result: ${validCount}/${nonces.length} valid`);
 
       if (validCount === 0) {
         return res.status(400).json({
