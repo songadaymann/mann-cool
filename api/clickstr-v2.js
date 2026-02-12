@@ -184,6 +184,7 @@ const RATE_LIMIT_MAX_NONCES = parseInt(process.env.RATE_LIMIT_MAX_NONCES || '300
 // be included in the PoW hash to prevent offline/pre-computed nonce mining.
 const MINING_CHALLENGE_TTL_SECONDS = 30; // Challenge valid for 30 seconds
 const MINING_CHALLENGE_RATE_LIMIT_MS = 500; // Min 500ms between challenge requests
+const MINING_CHALLENGE_HISTORY_LIMIT = parseInt(process.env.MINING_CHALLENGE_HISTORY_LIMIT || '24', 10); // Keep N prior challenges per address
 
 // =============================================================================
 // REDIS KEYS (V2-specific, prefixed to avoid collision with V1)
@@ -1102,19 +1103,35 @@ export default async function handler(req, res) {
         const issuedAt = Date.now();
         const expiresAt = issuedAt + (MINING_CHALLENGE_TTL_SECONDS * 1000);
 
-        // Save previous challenge before overwriting so nonces mined under it are still valid.
-        // Nonces carry their own challenge, so we need to accept both current and previous.
+        // Save recent challenges before overwriting so nonces mined a little earlier
+        // are still valid when users submit larger batches.
         const previousStored = await redis.get(V2_MINING_CHALLENGE_KEY(addr));
-        let previousChallenge = null;
+        const challengeHistory = [];
         if (previousStored) {
           const prev = typeof previousStored === 'string' ? JSON.parse(previousStored) : previousStored;
-          previousChallenge = prev.challenge;
+          if (prev.challenge) {
+            challengeHistory.push(prev.challenge);
+          }
+          if (Array.isArray(prev.previousChallenges)) {
+            for (const oldChallenge of prev.previousChallenges) {
+              if (typeof oldChallenge === 'string' && oldChallenge.length > 0) {
+                challengeHistory.push(oldChallenge);
+              }
+            }
+          } else if (typeof prev.previousChallenge === 'string' && prev.previousChallenge.length > 0) {
+            // Backwards-compatible with older payload shape.
+            challengeHistory.push(prev.previousChallenge);
+          }
         }
+        const previousChallenges = [...new Set(challengeHistory)]
+          .filter(c => c !== challengeToken)
+          .slice(0, MINING_CHALLENGE_HISTORY_LIMIT);
 
-        // Store in Redis with TTL — includes previous challenge for per-nonce validation
+        // Store in Redis with TTL — includes short challenge history for per-nonce validation
         await redis.set(V2_MINING_CHALLENGE_KEY(addr), JSON.stringify({
           challenge: challengeToken,
-          previousChallenge,
+          previousChallenge: previousChallenges[0] || null, // backwards-compatible field
+          previousChallenges,
           issuedAt,
           expiresAt,
         }), { ex: MINING_CHALLENGE_TTL_SECONDS + 120 }); // +120s grace for per-nonce validation of older nonces
@@ -2248,6 +2265,13 @@ export default async function handler(req, res) {
         }
         if (parsed.previousChallenge) {
           validChallenges.add(parsed.previousChallenge);
+        }
+        if (Array.isArray(parsed.previousChallenges)) {
+          for (const oldChallenge of parsed.previousChallenges) {
+            if (typeof oldChallenge === 'string' && oldChallenge.length > 0) {
+              validChallenges.add(oldChallenge);
+            }
+          }
         }
       }
 
