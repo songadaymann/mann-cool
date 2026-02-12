@@ -156,11 +156,17 @@ const MAX_UINT256 = 2n ** 256n - 1n;
 const MAX_DIFFICULTY_TARGET = MAX_UINT256 / 1000n;  // Easiest possible (~1/1000 chance)
 const MIN_DIFFICULTY_TARGET = 1000n;                 // Hardest possible
 const MAX_ADJUSTMENT_FACTOR = 4n;                    // Max 4x change per epoch (same as V1)
+const INTRA_EPOCH_ADJUST_INTERVAL_SECONDS = parseInt(process.env.INTRA_EPOCH_ADJUST_INTERVAL_SECONDS || '300', 10); // every 5 min
+const INTRA_EPOCH_MIN_ELAPSED_SECONDS = parseInt(process.env.INTRA_EPOCH_MIN_ELAPSED_SECONDS || '300', 10); // wait 5 min into epoch
+const INTRA_EPOCH_DEADBAND_BPS = parseInt(process.env.INTRA_EPOCH_DEADBAND_BPS || '1500', 10); // +/-15% no-op band
+const INTRA_EPOCH_MAX_STEP_BPS = parseInt(process.env.INTRA_EPOCH_MAX_STEP_BPS || '1200', 10); // max +/-12% per intra step
 
 // Difficulty Redis keys
 const V2_DIFFICULTY_KEY = 'clickstr:v2:difficulty';
 const V2_DIFFICULTY_EPOCH_KEY = 'clickstr:v2:difficulty-epoch';
 const V2_DIFFICULTY_SEASON_KEY = 'clickstr:v2:difficulty-season'; // Tracks which season the difficulty belongs to
+const V2_DIFFICULTY_INTRA_EPOCH_KEY = 'clickstr:v2:difficulty-intra-epoch';
+const V2_DIFFICULTY_INTRA_TS_KEY = 'clickstr:v2:difficulty-intra-ts';
 
 // Session configuration
 const HUMAN_SESSION_DURATION = 60 * 60 * 1000; // 1 hour
@@ -521,7 +527,7 @@ async function getClaimedClicksOnChain(address, epoch) {
  */
 async function getGameState() {
   if (!GAME_CONTRACT_ADDRESS) {
-    return { currentEpoch: 1, seasonNumber: 2, totalEpochs: 3, epochDuration: 14400, gameStarted: false, gameEnded: false };
+    return { currentEpoch: 1, seasonNumber: 2, totalEpochs: 3, epochDuration: 14400, gameStarted: false, gameEnded: false, gameStartTime: 0 };
   }
 
   try {
@@ -562,12 +568,13 @@ async function getGameState() {
       seasonNumber: Number(seasonNumber),
       totalEpochs: Number(totalEpochs),
       epochDuration: Number(epochDuration),
+      gameStartTime: Number(gameStartTime),
       gameStarted,
       gameEnded: effectiveGameEnded
     };
   } catch (error) {
     console.error('Error reading game state:', error);
-    return { currentEpoch: 1, seasonNumber: 2, totalEpochs: 3, epochDuration: 14400, gameStarted: false, gameEnded: false };
+    return { currentEpoch: 1, seasonNumber: 2, totalEpochs: 3, epochDuration: 14400, gameStarted: false, gameEnded: false, gameStartTime: 0 };
   }
 }
 
@@ -656,9 +663,103 @@ function calculateNewDifficulty(currentTarget, actualClicks, targetClicks) {
 }
 
 /**
+ * Apply small intra-epoch difficulty nudges so throughput tracks target more
+ * tightly during an active epoch (instead of waiting for epoch rollover).
+ *
+ * Uses accepted raw epoch clicks for responsiveness, while epoch-to-epoch
+ * re-targeting still uses attested clicks to reduce bot influence.
+ */
+async function applyIntraEpochDifficultyTuning(redis, gameState, difficulty, targetClicksPerEpoch) {
+  const { currentEpoch, epochDuration, gameStartTime, seasonNumber } = gameState;
+  if (!currentEpoch || !epochDuration || !gameStartTime) return difficulty;
+
+  const nowMs = Date.now();
+  const nowSec = Math.floor(nowMs / 1000);
+  const epochStart = gameStartTime + ((currentEpoch - 1) * epochDuration);
+  const elapsed = nowSec - epochStart;
+  if (elapsed < INTRA_EPOCH_MIN_ELAPSED_SECONDS) return difficulty;
+
+  const lastIntraEpoch = parseInt(await redis.get(V2_DIFFICULTY_INTRA_EPOCH_KEY) || '0', 10);
+  const lastIntraTs = parseInt(await redis.get(V2_DIFFICULTY_INTRA_TS_KEY) || '0', 10);
+
+  // Reset intra-epoch tracker when epoch changes.
+  if (lastIntraEpoch !== currentEpoch) {
+    await redis.set(V2_DIFFICULTY_INTRA_EPOCH_KEY, currentEpoch.toString());
+    await redis.set(V2_DIFFICULTY_INTRA_TS_KEY, '0');
+  } else if (lastIntraTs > 0 && (nowMs - lastIntraTs) < (INTRA_EPOCH_ADJUST_INTERVAL_SECONDS * 1000)) {
+    return difficulty;
+  }
+
+  const rawClicks = parseInt(await redis.get(V2_EPOCH_TOTAL_KEY(currentEpoch)) || '0', 10);
+  const elapsedClamped = Math.min(Math.max(elapsed, 1), epochDuration);
+  const expectedByNow = Math.max(
+    1,
+    Math.floor((Number(targetClicksPerEpoch) * elapsedClamped) / epochDuration)
+  );
+
+  // Use basis points ratio for stable integer math.
+  const ratioBps = Math.floor((rawClicks * 10000) / expectedByNow);
+  const lower = 10000 - INTRA_EPOCH_DEADBAND_BPS;
+  const upper = 10000 + INTRA_EPOCH_DEADBAND_BPS;
+
+  let newDifficulty = difficulty;
+  let stepBps = 0;
+
+  if (ratioBps < lower) {
+    // Behind pace -> easier (raise target).
+    const behindBps = 10000 - ratioBps;
+    stepBps = Math.min(
+      INTRA_EPOCH_MAX_STEP_BPS,
+      Math.max(100, Math.floor(behindBps / 2))
+    );
+    newDifficulty = (difficulty * BigInt(10000 + stepBps)) / 10000n;
+  } else if (ratioBps > upper) {
+    // Ahead of pace -> harder (lower target).
+    const aheadBps = ratioBps - 10000;
+    stepBps = Math.min(
+      INTRA_EPOCH_MAX_STEP_BPS,
+      Math.max(100, Math.floor(aheadBps / 2))
+    );
+    newDifficulty = (difficulty * BigInt(10000 - stepBps)) / 10000n;
+  }
+
+  if (newDifficulty > MAX_DIFFICULTY_TARGET) newDifficulty = MAX_DIFFICULTY_TARGET;
+  if (newDifficulty < MIN_DIFFICULTY_TARGET) newDifficulty = MIN_DIFFICULTY_TARGET;
+
+  await redis.set(V2_DIFFICULTY_INTRA_EPOCH_KEY, currentEpoch.toString());
+  await redis.set(V2_DIFFICULTY_INTRA_TS_KEY, nowMs.toString());
+
+  if (newDifficulty !== difficulty) {
+    await redis.set(V2_DIFFICULTY_KEY, newDifficulty.toString());
+
+    const diffEvent = JSON.stringify({
+      ts: nowMs,
+      kind: 'intra',
+      season: seasonNumber,
+      epoch: currentEpoch,
+      oldDifficulty: '0x' + difficulty.toString(16),
+      newDifficulty: '0x' + newDifficulty.toString(16),
+      rawClicks,
+      expectedClicks: expectedByNow,
+      ratioBps,
+      stepBps,
+      targetClicks: Number(targetClicksPerEpoch),
+    });
+    await redis.zadd(V2_DIFFICULTY_EVENTS_KEY, { score: nowMs, member: diffEvent });
+
+    console.log(
+      `[Difficulty][Intra] Epoch ${currentEpoch}: raw ${rawClicks}/${expectedByNow} (${ratioBps} bps) -> ` +
+      `0x${difficulty.toString(16).substring(0, 8)}... to 0x${newDifficulty.toString(16).substring(0, 8)}...`
+    );
+  }
+
+  return newDifficulty;
+}
+
+/**
  * Check if difficulty needs adjustment for the current epoch.
  * Adjusts based on completed epochs' ATTESTED click counts (claims only).
- * Raw mining clicks are ignored — only clicks with claim attestations count.
+ * Also applies small intra-epoch nudges using current raw click pace.
  * Returns the current difficulty target.
  */
 async function adjustDifficultyIfNeeded(redis, gameState) {
@@ -677,65 +778,67 @@ async function adjustDifficultyIfNeeded(redis, gameState) {
     console.log(`[Difficulty] New season detected: ${storedSeason} → ${seasonNumber}. Resetting epoch tracking.`);
     await redis.set(V2_DIFFICULTY_SEASON_KEY, seasonNumber.toString());
     await redis.set(V2_DIFFICULTY_EPOCH_KEY, '0');
+    await redis.del(V2_DIFFICULTY_INTRA_EPOCH_KEY);
+    await redis.del(V2_DIFFICULTY_INTRA_TS_KEY);
   }
 
   const difficultySetForEpoch = parseInt(await redis.get(V2_DIFFICULTY_EPOCH_KEY) || '0', 10);
-
-  // Already adjusted for this epoch
-  if (currentEpoch <= difficultySetForEpoch) {
-    return await getCurrentDifficulty(redis);
-  }
-
   let difficulty = await getCurrentDifficulty(redis);
 
   // If first time (or after season reset), initialize for epoch 1
   if (difficultySetForEpoch === 0) {
     await redis.set(V2_DIFFICULTY_KEY, difficulty.toString());
     await redis.set(V2_DIFFICULTY_EPOCH_KEY, '1');
-    if (currentEpoch === 1) return difficulty;
   }
 
   // Target clicks per epoch — same formula as the V2 contract's _calculateReward:
   //   targetClicks = (1_000_000 * EPOCH_DURATION) / 86400
   const targetClicksPerEpoch = BigInt(Math.floor(1_000_000 * epochDuration / 86400));
 
-  // Adjust for each completed epoch since last adjustment
-  // e.g. difficulty set for epoch 1, now in epoch 3 → adjust based on epochs 1, 2
-  const startFrom = Math.max(difficultySetForEpoch, 1);
-  const maxIterations = 5; // Safety cap
-  let iterations = 0;
+  // Epoch-to-epoch retargeting (attested clicks) if we crossed into a new epoch.
+  if (currentEpoch > difficultySetForEpoch) {
+    // Adjust for each completed epoch since last adjustment
+    // e.g. difficulty set for epoch 1, now in epoch 3 -> adjust based on epochs 1, 2
+    const startFrom = Math.max(difficultySetForEpoch, 1);
+    const maxIterations = 5; // Safety cap
+    let iterations = 0;
 
-  for (let completedEpoch = startFrom; completedEpoch < currentEpoch && iterations < maxIterations; completedEpoch++) {
-    // Use ATTESTED clicks (claims only) instead of raw mining clicks.
-    // This means bots that mine but never claim don't inflate difficulty.
-    const attestedClicks = parseInt(await redis.get(V2_EPOCH_ATTESTED_KEY(completedEpoch)) || '0', 10);
-    const rawClicks = parseInt(await redis.get(V2_EPOCH_TOTAL_KEY(completedEpoch)) || '0', 10);
-    const oldDifficulty = difficulty;
-    difficulty = calculateNewDifficulty(difficulty, BigInt(attestedClicks), targetClicksPerEpoch);
-    console.log(
-      `[Difficulty] Epoch ${completedEpoch}: ${attestedClicks} attested clicks (${rawClicks} raw, target: ${targetClicksPerEpoch}) → ` +
-      `difficulty 0x${oldDifficulty.toString(16).substring(0, 8)}... → 0x${difficulty.toString(16).substring(0, 8)}...`
-    );
+    for (let completedEpoch = startFrom; completedEpoch < currentEpoch && iterations < maxIterations; completedEpoch++) {
+      // Use ATTESTED clicks (claims only) instead of raw mining clicks.
+      // This means bots that mine but never claim don't inflate long-term difficulty.
+      const attestedClicks = parseInt(await redis.get(V2_EPOCH_ATTESTED_KEY(completedEpoch)) || '0', 10);
+      const rawClicks = parseInt(await redis.get(V2_EPOCH_TOTAL_KEY(completedEpoch)) || '0', 10);
+      const oldDifficulty = difficulty;
+      difficulty = calculateNewDifficulty(difficulty, BigInt(attestedClicks), targetClicksPerEpoch);
+      console.log(
+        `[Difficulty] Epoch ${completedEpoch}: ${attestedClicks} attested clicks (${rawClicks} raw, target: ${targetClicksPerEpoch}) -> ` +
+        `difficulty 0x${oldDifficulty.toString(16).substring(0, 8)}... -> 0x${difficulty.toString(16).substring(0, 8)}...`
+      );
 
-    // Log difficulty change event for dashboard history
-    const diffEvent = JSON.stringify({
-      ts: Date.now(),
-      season: seasonNumber,
-      epoch: completedEpoch,
-      oldDifficulty: '0x' + oldDifficulty.toString(16),
-      newDifficulty: '0x' + difficulty.toString(16),
-      attestedClicks,
-      rawClicks,
-      targetClicks: Number(targetClicksPerEpoch),
-    });
-    await redis.zadd(V2_DIFFICULTY_EVENTS_KEY, { score: Date.now(), member: diffEvent });
+      // Log difficulty change event for dashboard history
+      const diffEvent = JSON.stringify({
+        ts: Date.now(),
+        kind: 'epoch',
+        season: seasonNumber,
+        epoch: completedEpoch,
+        oldDifficulty: '0x' + oldDifficulty.toString(16),
+        newDifficulty: '0x' + difficulty.toString(16),
+        attestedClicks,
+        rawClicks,
+        targetClicks: Number(targetClicksPerEpoch),
+      });
+      await redis.zadd(V2_DIFFICULTY_EVENTS_KEY, { score: Date.now(), member: diffEvent });
 
-    iterations++;
+      iterations++;
+    }
+
+    // Store updated difficulty for current epoch boundary.
+    await redis.set(V2_DIFFICULTY_KEY, difficulty.toString());
+    await redis.set(V2_DIFFICULTY_EPOCH_KEY, currentEpoch.toString());
   }
 
-  // Store updated difficulty for current epoch
-  await redis.set(V2_DIFFICULTY_KEY, difficulty.toString());
-  await redis.set(V2_DIFFICULTY_EPOCH_KEY, currentEpoch.toString());
+  // Intra-epoch tuning (small nudges) to keep throughput on pace within the epoch.
+  difficulty = await applyIntraEpochDifficultyTuning(redis, gameState, difficulty, targetClicksPerEpoch);
 
   return difficulty;
 }
