@@ -238,6 +238,8 @@ const FLAGGED_BOT_ADDRESSES = new Set([
   '0x6ecc573832439b593c2717c27adea0f76c75ce17',
   // Wave 3 (Season 3 — 230K clicks, not in active users)
   '0xc1e9952ba846bf4ac408b39d05d18ce9623131cd',
+  // Wave 4 (Season 3 — sustained cap-rate throughput, dominant epoch share)
+  '0x701cbf1d4d6033b0ad5be367b705dad09e0f5845',
 ]);
 
 function isFlaggedBot(address) {
