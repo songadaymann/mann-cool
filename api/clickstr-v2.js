@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from 'crypto';
 import { Redis } from '@upstash/redis';
 import { keccak256, encodePacked, createPublicClient, http, recoverMessageAddress } from 'viem';
-import { mainnet, sepolia } from 'viem/chains';
+import { mainnet, sepolia, base } from 'viem/chains';
 import { privateKeyToAccount } from 'viem/accounts';
 
 /**
@@ -34,8 +34,13 @@ import { privateKeyToAccount } from 'viem/accounts';
 // =============================================================================
 
 // Chain configuration
-const CHAIN_ID = parseInt(process.env.CHAIN_ID || '1'); // Default mainnet
-const chain = CHAIN_ID === 1 ? mainnet : sepolia;
+const CHAIN_ID = parseInt(process.env.CHAIN_ID || '8453'); // Default Base
+const CHAIN_CONFIG = CHAIN_ID === 1
+  ? { chain: mainnet, defaultRpcUrl: 'https://eth.llamarpc.com' }
+  : CHAIN_ID === 8453
+    ? { chain: base, defaultRpcUrl: 'https://mainnet.base.org' }
+    : { chain: sepolia, defaultRpcUrl: 'https://sepolia.infura.io/v3/your-key' };
+const chain = CHAIN_CONFIG.chain;
 
 // Contract addresses (set via environment)
 const GAME_CONTRACT_ADDRESS = process.env.CLICKSTR_GAME_V2_ADDRESS;
@@ -648,9 +653,7 @@ function extractChallengeRecords(payload, fallbackEpoch, fallbackDifficulty, fal
  * Create a viem public client for reading from contracts
  */
 function getPublicClient() {
-  const rpcUrl = process.env.RPC_URL || (CHAIN_ID === 1
-    ? 'https://eth.llamarpc.com'
-    : 'https://sepolia.infura.io/v3/your-key');
+  const rpcUrl = process.env.RPC_URL || CHAIN_CONFIG.defaultRpcUrl;
 
   return createPublicClient({
     chain,

@@ -1,7 +1,7 @@
 import { Redis } from '@upstash/redis';
 import { privateKeyToAccount } from 'viem/accounts';
 import { keccak256, encodePacked, toHex, createPublicClient, http } from 'viem';
-import { mainnet, sepolia } from 'viem/chains';
+import { mainnet, sepolia, base } from 'viem/chains';
 
 /**
  * Stupid Clicker - NFT Claim Signature API
@@ -314,8 +314,13 @@ const V2_TOTAL_CLICKS_KEY = (addr) => `clickstr:v2:total:${addr.toLowerCase()}`;
 // =============================================================================
 
 // Chain configuration
-const CHAIN_ID = parseInt(process.env.CHAIN_ID || '1');
-const chain = CHAIN_ID === 1 ? mainnet : sepolia;
+const CHAIN_ID = parseInt(process.env.CHAIN_ID || '8453');
+const CHAIN_CONFIG = CHAIN_ID === 1
+  ? { chain: mainnet, defaultRpcUrl: 'https://eth.llamarpc.com' }
+  : CHAIN_ID === 8453
+    ? { chain: base, defaultRpcUrl: 'https://mainnet.base.org' }
+    : { chain: sepolia, defaultRpcUrl: 'https://sepolia.infura.io/v3/your-key' };
+const chain = CHAIN_CONFIG.chain;
 
 // ClickRegistry contract address (for reading lifetime clicks)
 const REGISTRY_ADDRESS = process.env.CLICKSTR_REGISTRY_ADDRESS;
@@ -339,9 +344,7 @@ async function getRegistryClicks(address) {
   if (!REGISTRY_ADDRESS) return 0n;
 
   try {
-    const rpcUrl = process.env.RPC_URL || (CHAIN_ID === 1
-      ? 'https://eth.llamarpc.com'
-      : 'https://sepolia.infura.io/v3/your-key');
+    const rpcUrl = process.env.RPC_URL || CHAIN_CONFIG.defaultRpcUrl;
 
     const client = createPublicClient({
       chain,
