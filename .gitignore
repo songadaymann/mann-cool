@@ -5,3 +5,8 @@ dist
 .vercel
 .env
 .env*.local
+
+# Local docs/assets not intended for commit
+CLICKSTR_V1_ARCHITECTURE.md
+public/nes-game-images-originals/
+public/nes-game-images/perilouspenguins.png
