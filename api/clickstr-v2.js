@@ -427,6 +427,63 @@ function hashIp(ip) {
 }
 
 /**
+ * Parse and normalize challenge metadata records from Redis payload.
+ * Keeps backwards compatibility with older payloads that only stored token strings.
+ */
+function extractChallengeRecords(payload, fallbackEpoch, fallbackDifficulty, fallbackIpHash = '') {
+  const rawRecords = [];
+
+  const addRecord = (token, source = {}) => {
+    if (typeof token !== 'string' || token.length === 0) return;
+    const issuedAt = Number(source.issuedAt);
+    const expiresAt = Number(source.expiresAt);
+    const epochNum = Number(source.epoch);
+    rawRecords.push({
+      token,
+      issuedAt: Number.isFinite(issuedAt) ? issuedAt : 0,
+      expiresAt: Number.isFinite(expiresAt) ? expiresAt : 0,
+      epoch: Number.isInteger(epochNum) ? epochNum : fallbackEpoch,
+      difficulty: (typeof source.difficulty === 'string' && source.difficulty.length > 0)
+        ? source.difficulty
+        : fallbackDifficulty,
+      ipHash: (typeof source.ipHash === 'string' && source.ipHash.length > 0)
+        ? source.ipHash
+        : fallbackIpHash,
+    });
+  };
+
+  if (payload && typeof payload === 'object') {
+    if (Array.isArray(payload.challengeRecords)) {
+      for (const entry of payload.challengeRecords) {
+        if (!entry || typeof entry !== 'object') continue;
+        addRecord(entry.token, entry);
+      }
+    }
+
+    // Legacy payload shapes
+    addRecord(payload.challenge, payload);
+    if (Array.isArray(payload.previousChallenges)) {
+      for (const token of payload.previousChallenges) {
+        addRecord(token, payload);
+      }
+    } else {
+      addRecord(payload.previousChallenge, payload);
+    }
+  }
+
+  // De-duplicate by token while preserving first-seen order.
+  const seen = new Set();
+  const deduped = [];
+  for (const record of rawRecords) {
+    if (seen.has(record.token)) continue;
+    seen.add(record.token);
+    deduped.push(record);
+  }
+
+  return deduped;
+}
+
+/**
  * Create a viem public client for reading from contracts
  */
 function getPublicClient() {
@@ -1072,7 +1129,20 @@ export default async function handler(req, res) {
     // GET REQUESTS
     // =========================================================================
     if (req.method === 'GET') {
-      const { address, leaderboard, claimable, activeUsers, syncAchievements, difficulty: difficultyQuery, epoch: queryEpoch, limit = '50', type: leaderboardType, dashboard, history } = req.query;
+      const {
+        address,
+        leaderboard,
+        claimable,
+        activeUsers,
+        syncAchievements,
+        difficulty: difficultyQuery,
+        epoch: queryEpoch,
+        limit = '50',
+        type: leaderboardType,
+        dashboard,
+        history,
+        turnstileToken: challengeTurnstileTokenRaw,
+      } = req.query;
 
       // Get current game state
       const gameState = await getGameState();
@@ -1091,6 +1161,62 @@ export default async function handler(req, res) {
           return res.status(400).json({ error: 'Invalid or missing address' });
         }
         const addr = address.toLowerCase();
+        const challengeTurnstileToken =
+          typeof challengeTurnstileTokenRaw === 'string'
+            ? challengeTurnstileTokenRaw
+            : Array.isArray(challengeTurnstileTokenRaw)
+              ? challengeTurnstileTokenRaw[0]
+              : null;
+
+        // Refuse to issue mining challenges to already-flagged bot addresses.
+        if (isFlaggedBot(addr)) {
+          return res.status(403).json({ error: 'Address is flagged' });
+        }
+
+        // Require a valid human session before issuing mining challenges.
+        // If session expired/missing and a Turnstile token is provided, renew it inline.
+        const now = Date.now();
+        const clientIp = getClientIp(req);
+        const ipHash = hashIp(clientIp);
+        const humanSession = await redis.hgetall(HUMAN_SESSION_KEY(addr));
+        const sessionExpiry = parseInt(humanSession?.expiresAt || '0', 10);
+        const sessionClicks = parseInt(humanSession?.clicksSinceVerify || '0', 10);
+        const sessionIpHash = humanSession?.ipHash || '';
+        const isSessionValid = sessionExpiry > now;
+        const ipMismatch = ipHash && sessionIpHash && ipHash !== sessionIpHash;
+        const missingIpBinding = ipHash && !sessionIpHash;
+        const clickThresholdExceeded = sessionClicks >= CLICKS_BEFORE_REVERIFICATION;
+        const needsReverification = ipMismatch || missingIpBinding || clickThresholdExceeded;
+
+        if (!isSessionValid || needsReverification) {
+          if (process.env.TURNSTILE_SECRET_KEY) {
+            if (!challengeTurnstileToken) {
+              const reason = !isSessionValid ? 'session_expired'
+                : clickThresholdExceeded ? 'click_threshold'
+                : 'ip_mismatch';
+              return res.status(403).json({
+                error: 'Human verification required',
+                requiresVerification: true,
+                reason
+              });
+            }
+
+            const verification = await verifyTurnstile(challengeTurnstileToken);
+            if (!verification.success) {
+              return res.status(403).json({
+                error: 'Verification failed',
+                requiresVerification: true
+              });
+            }
+
+            await redis.hset(HUMAN_SESSION_KEY(addr), {
+              verifiedAt: now,
+              expiresAt: now + HUMAN_SESSION_DURATION,
+              clicksSinceVerify: 0,
+              ipHash
+            });
+          }
+        }
 
         // Rate limit: one challenge per MINING_CHALLENGE_RATE_LIMIT_MS
         const rateKey = V2_MINING_CHALLENGE_RATE_KEY(addr);
@@ -1104,29 +1230,47 @@ export default async function handler(req, res) {
         const challengeToken = randomBytes(16).toString('hex');
         const issuedAt = Date.now();
         const expiresAt = issuedAt + (MINING_CHALLENGE_TTL_SECONDS * 1000);
+        const gameActive = gameState.gameStarted && !gameState.gameEnded;
+        const challengeEpoch = gameActive ? gameState.currentEpoch : 0;
+        const challengeDifficulty = gameActive
+          ? await adjustDifficultyIfNeeded(redis, gameState)
+          : MAX_DIFFICULTY_TARGET;
+        const challengeDifficultyStr = challengeDifficulty.toString();
 
         // Save recent challenges before overwriting so nonces mined a little earlier
         // are still valid when users submit larger batches.
         const previousStored = await redis.get(V2_MINING_CHALLENGE_KEY(addr));
-        const challengeHistory = [];
+        let previousPayload = null;
         if (previousStored) {
-          const prev = typeof previousStored === 'string' ? JSON.parse(previousStored) : previousStored;
-          if (prev.challenge) {
-            challengeHistory.push(prev.challenge);
-          }
-          if (Array.isArray(prev.previousChallenges)) {
-            for (const oldChallenge of prev.previousChallenges) {
-              if (typeof oldChallenge === 'string' && oldChallenge.length > 0) {
-                challengeHistory.push(oldChallenge);
-              }
-            }
-          } else if (typeof prev.previousChallenge === 'string' && prev.previousChallenge.length > 0) {
-            // Backwards-compatible with older payload shape.
-            challengeHistory.push(prev.previousChallenge);
+          previousPayload = typeof previousStored === 'string' ? JSON.parse(previousStored) : previousStored;
+        }
+        const historicalRecords = extractChallengeRecords(
+          previousPayload,
+          challengeEpoch,
+          challengeDifficultyStr,
+          ipHash
+        );
+        const currentRecord = {
+          token: challengeToken,
+          issuedAt,
+          expiresAt,
+          epoch: challengeEpoch,
+          difficulty: challengeDifficultyStr,
+          ipHash,
+        };
+        const mergedRecords = [];
+        const seenTokens = new Set();
+        for (const record of [currentRecord, ...historicalRecords]) {
+          if (!record?.token || seenTokens.has(record.token)) continue;
+          seenTokens.add(record.token);
+          mergedRecords.push(record);
+          if (mergedRecords.length >= MINING_CHALLENGE_HISTORY_LIMIT + 1) {
+            break;
           }
         }
-        const previousChallenges = [...new Set(challengeHistory)]
-          .filter(c => c !== challengeToken)
+        const previousChallenges = mergedRecords
+          .slice(1)
+          .map(r => r.token)
           .slice(0, MINING_CHALLENGE_HISTORY_LIMIT);
 
         // Store in Redis with TTL — includes short challenge history for per-nonce validation
@@ -1134,6 +1278,7 @@ export default async function handler(req, res) {
           challenge: challengeToken,
           previousChallenge: previousChallenges[0] || null, // backwards-compatible field
           previousChallenges,
+          challengeRecords: mergedRecords,
           issuedAt,
           expiresAt,
         }), { ex: MINING_CHALLENGE_TTL_SECONDS + 120 }); // +120s grace for per-nonce validation of older nonces
@@ -2255,25 +2400,22 @@ export default async function handler(req, res) {
       const isPerNonceChallenge = nonces.length > 0 && typeof nonces[0] === 'object' && nonces[0] !== null && 'nonce' in nonces[0];
 
       // Load valid challenges for this address from Redis
-      // Accept both current and previous challenge (covers one rotation cycle)
+      // Accept current + short rolling history, and use challenge metadata
+      // (difficulty/epoch/ip) captured at challenge-issue time.
       const stored = await redis.get(V2_MINING_CHALLENGE_KEY(addr));
       const validChallenges = new Set();
-      let currentStoredChallenge = null;
+      const challengeRecordsByToken = new Map();
       if (stored) {
         const parsed = typeof stored === 'string' ? JSON.parse(stored) : stored;
-        if (parsed.challenge) {
-          validChallenges.add(parsed.challenge);
-          currentStoredChallenge = parsed.challenge;
-        }
-        if (parsed.previousChallenge) {
-          validChallenges.add(parsed.previousChallenge);
-        }
-        if (Array.isArray(parsed.previousChallenges)) {
-          for (const oldChallenge of parsed.previousChallenges) {
-            if (typeof oldChallenge === 'string' && oldChallenge.length > 0) {
-              validChallenges.add(oldChallenge);
-            }
-          }
+        const challengeRecords = extractChallengeRecords(
+          parsed,
+          epoch,
+          currentDifficulty.toString(),
+          ''
+        );
+        for (const record of challengeRecords) {
+          validChallenges.add(record.token);
+          challengeRecordsByToken.set(record.token, record);
         }
       }
 
@@ -2307,9 +2449,18 @@ export default async function handler(req, res) {
       const usedNoncesKey = V2_USED_NONCES_KEY(addr, epoch);
       let validCount = 0;
       const validNonces = [];
+      const rejectionReasons = {
+        missingChallenge: 0,
+        invalidChallenge: 0,
+        challengeIpMismatch: 0,
+        invalidPow: 0,
+        duplicateNonce: 0,
+        rateLimited: 0,
+      };
 
       for (const entry of nonces) {
-        let nonceStr, nonceChallenge;
+        let nonceStr;
+        let nonceChallenge = null;
 
         if (isPerNonceChallenge) {
           // New format: { nonce: string, challenge: string | null }
@@ -2318,7 +2469,12 @@ export default async function handler(req, res) {
 
           // Each nonce's challenge must be one we've recently issued (current or previous)
           // This prevents fabricated challenges while allowing challenge rotation
-          if (!nonceChallenge || !validChallenges.has(nonceChallenge)) {
+          if (!nonceChallenge) {
+            rejectionReasons.missingChallenge++;
+            continue;
+          }
+          if (!validChallenges.has(nonceChallenge)) {
+            rejectionReasons.invalidChallenge++;
             continue; // Silently skip — challenge was rotated out or fabricated
           }
         } else {
@@ -2327,15 +2483,37 @@ export default async function handler(req, res) {
           nonceChallenge = miningChallenge;
         }
 
-        // Verify nonce PoW with its specific challenge
-        const valid = verifyNonce(addr, nonceStr, epoch, currentDifficulty, nonceChallenge);
+        const challengeRecord = nonceChallenge ? challengeRecordsByToken.get(nonceChallenge) : null;
+        if (challengeRecord?.ipHash && ipHash && challengeRecord.ipHash !== ipHash) {
+          rejectionReasons.challengeIpMismatch++;
+          continue;
+        }
+
+        if (challengeRecord && Number.isInteger(challengeRecord.epoch) && challengeRecord.epoch !== epoch) {
+          rejectionReasons.invalidChallenge++;
+          continue;
+        }
+        const nonceEpoch = epoch;
+        let nonceDifficulty = currentDifficulty;
+        if (challengeRecord?.difficulty) {
+          try {
+            nonceDifficulty = BigInt(challengeRecord.difficulty);
+          } catch {
+            nonceDifficulty = currentDifficulty;
+          }
+        }
+
+        // Verify nonce PoW against the difficulty/epoch associated with the issued challenge.
+        const valid = verifyNonce(addr, nonceStr, nonceEpoch, nonceDifficulty, nonceChallenge);
         if (!valid) {
+          rejectionReasons.invalidPow++;
           continue;
         }
 
         // Check if already used (deduplication)
         const alreadyUsed = await redis.sismember(usedNoncesKey, nonceStr);
         if (alreadyUsed) {
+          rejectionReasons.duplicateNonce++;
           continue;
         }
 
@@ -2371,6 +2549,8 @@ export default async function handler(req, res) {
       // Clamp valid nonces to remaining budget in this window
       const remaining = RATE_LIMIT_MAX_NONCES - currentWindowCount;
       if (validCount > remaining) {
+        const trimmed = validCount - remaining;
+        rejectionReasons.rateLimited += trimmed;
         // Trim to what's allowed — still accept partial batch
         validNonces.length = remaining;
         validCount = remaining;
@@ -2555,6 +2735,7 @@ export default async function handler(req, res) {
         address: addr,
         validClicks: validCount,
         invalidClicks: nonces.length - validCount,
+        rejectionReasons,
         epochClicks: gameActive ? newEpochClicks : null,
         seasonClicks: newTotal,
         lifetimeClicks: lifetimeTotal,
