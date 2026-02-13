@@ -178,7 +178,31 @@ const CLICKS_BEFORE_REVERIFICATION = parseInt(process.env.CLICKS_BEFORE_REVERIFI
 // sporadically. An offline miner POSTs continuously. This caps total accepted
 // nonces per sliding window to something human-plausible.
 const RATE_LIMIT_WINDOW_SECONDS = 60; // 1-minute sliding window
-const RATE_LIMIT_MAX_NONCES = parseInt(process.env.RATE_LIMIT_MAX_NONCES || '3000', 10); // max valid nonces per window
+const RATE_LIMIT_MAX_NONCES = parseInt(process.env.RATE_LIMIT_MAX_NONCES || '700', 10); // max valid nonces per window
+const RATE_LIMIT_STRIKE_TTL_SECONDS = parseInt(process.env.RATE_LIMIT_STRIKE_TTL_SECONDS || '900', 10);
+const RATE_LIMIT_STRIKES_TO_FLAG = parseInt(process.env.RATE_LIMIT_STRIKES_TO_FLAG || '2', 10);
+const RATE_LIMIT_REVERIFY_ON_STRIKE = (process.env.RATE_LIMIT_REVERIFY_ON_STRIKE || 'true').toLowerCase() !== 'false';
+const RATE_LIMIT_CONSECUTIVE_WINDOW_THRESHOLD = parseInt(
+  process.env.RATE_LIMIT_CONSECUTIVE_WINDOW_THRESHOLD || String(RATE_LIMIT_MAX_NONCES),
+  10
+);
+const RATE_LIMIT_CONSECUTIVE_WINDOWS_TO_FLAG = parseInt(
+  process.env.RATE_LIMIT_CONSECUTIVE_WINDOWS_TO_FLAG || '2',
+  10
+);
+
+// IP-level throughput limits — catches bot farms cycling many addresses
+const IP_RATE_LIMIT_WINDOW_SECONDS = parseInt(
+  process.env.IP_RATE_LIMIT_WINDOW_SECONDS || String(RATE_LIMIT_WINDOW_SECONDS),
+  10
+);
+const IP_RATE_LIMIT_MAX_NONCES = parseInt(
+  process.env.IP_RATE_LIMIT_MAX_NONCES || String(Math.max(RATE_LIMIT_MAX_NONCES * 2, 1000)),
+  10
+);
+const IP_RATE_LIMIT_STRIKE_TTL_SECONDS = parseInt(process.env.IP_RATE_LIMIT_STRIKE_TTL_SECONDS || '900', 10);
+const IP_RATE_LIMIT_STRIKES_TO_BLOCK = parseInt(process.env.IP_RATE_LIMIT_STRIKES_TO_BLOCK || '2', 10);
+const IP_RATE_LIMIT_BLOCK_SECONDS = parseInt(process.env.IP_RATE_LIMIT_BLOCK_SECONDS || '3600', 10);
 
 // Mining challenge configuration — short-lived server-issued tokens that must
 // be included in the PoW hash to prevent offline/pre-computed nonce mining.
@@ -202,8 +226,15 @@ const V2_GLOBAL_CLICKS_KEY = 'clickstr:v2:global-clicks';
 const V2_ALLTIME_LEADERBOARD_KEY = 'clickstr:v2:leaderboard:alltime';
 const V2_EARNED_LEADERBOARD_KEY = 'clickstr:v2:leaderboard:earned';
 const V2_RATE_LIMIT_KEY = (addr) => `clickstr:v2:ratelimit:${addr.toLowerCase()}`;
+const V2_RATE_LIMIT_STRIKES_KEY = (addr) => `clickstr:v2:ratelimit:strikes:${addr.toLowerCase()}`;
+const V2_RATE_LIMIT_WINDOW_HIT_KEY = (addr, windowBucket) => `clickstr:v2:ratelimit:window-hit:${addr.toLowerCase()}:${windowBucket}`;
+const V2_RATE_LIMIT_IP_KEY = (ipHash) => `clickstr:v2:ratelimit-ip:${ipHash}`;
+const V2_RATE_LIMIT_IP_STRIKES_KEY = (ipHash) => `clickstr:v2:ratelimit-ip:strikes:${ipHash}`;
+const V2_RATE_LIMIT_IP_BLOCK_KEY = (ipHash) => `clickstr:v2:ratelimit-ip:block:${ipHash}`;
 const V2_MINING_CHALLENGE_KEY = (addr) => `clickstr:v2:mining-challenge:${addr.toLowerCase()}`;
 const V2_MINING_CHALLENGE_RATE_KEY = (addr) => `clickstr:v2:mining-challenge-rate:${addr.toLowerCase()}`;
+const V2_DYNAMIC_BOT_SET_KEY = 'clickstr:v2:flagged-bots:dynamic';
+const V2_DYNAMIC_BOT_META_KEY = (addr) => `clickstr:v2:flagged-bots:meta:${addr.toLowerCase()}`;
 
 // Dashboard / analytics keys
 const V2_DIFFICULTY_EVENTS_KEY = 'clickstr:v2:events:difficulty';     // Sorted set: score=timestamp, member=JSON
@@ -244,6 +275,136 @@ const FLAGGED_BOT_ADDRESSES = new Set([
 
 function isFlaggedBot(address) {
   return FLAGGED_BOT_ADDRESSES.has(address?.toLowerCase());
+}
+
+function normalizeAddress(address) {
+  return typeof address === 'string' ? address.toLowerCase() : '';
+}
+
+function isRedisSetMember(value) {
+  return value === 1 || value === true || value === '1';
+}
+
+async function getFlaggedBotSet(redis) {
+  const merged = new Set(FLAGGED_BOT_ADDRESSES);
+  try {
+    const dynamicBots = await redis.smembers(V2_DYNAMIC_BOT_SET_KEY);
+    if (Array.isArray(dynamicBots)) {
+      for (const addr of dynamicBots) {
+        if (typeof addr === 'string' && addr.length > 0) {
+          merged.add(addr.toLowerCase());
+        }
+      }
+    }
+  } catch (err) {
+    console.error('[Bots] Failed to read dynamic bot set:', err.message);
+  }
+  return merged;
+}
+
+async function isAddressFlaggedBot(redis, address, botSet = null) {
+  const addr = normalizeAddress(address);
+  if (!addr) return false;
+  if (botSet) return botSet.has(addr);
+  if (isFlaggedBot(addr)) return true;
+  try {
+    const member = await redis.sismember(V2_DYNAMIC_BOT_SET_KEY, addr);
+    return isRedisSetMember(member);
+  } catch {
+    return false;
+  }
+}
+
+async function flagAddressAsBot(redis, address, reason, metadata = {}) {
+  const addr = normalizeAddress(address);
+  if (!addr || FLAGGED_BOT_ADDRESSES.has(addr)) return;
+
+  const payload = {
+    address: addr,
+    reason,
+    flaggedAt: Date.now(),
+    ...metadata,
+  };
+
+  await Promise.all([
+    redis.sadd(V2_DYNAMIC_BOT_SET_KEY, addr),
+    redis.set(V2_DYNAMIC_BOT_META_KEY(addr), JSON.stringify(payload)),
+  ]);
+
+  console.log(`[Bots] Flagged ${addr} (${reason})`);
+}
+
+async function registerAddressRateLimitStrike(redis, address, reason, metadata = {}) {
+  const addr = normalizeAddress(address);
+  if (!addr) return { strikes: 0, flagged: false, requiresVerification: false };
+
+  const strikes = parseInt(await redis.incrby(V2_RATE_LIMIT_STRIKES_KEY(addr), 1) || '0', 10);
+  if (strikes === 1) {
+    await redis.expire(V2_RATE_LIMIT_STRIKES_KEY(addr), RATE_LIMIT_STRIKE_TTL_SECONDS);
+  }
+
+  if (RATE_LIMIT_REVERIFY_ON_STRIKE) {
+    await redis.hset(HUMAN_SESSION_KEY(addr), {
+      expiresAt: 0,
+      strikeReason: reason,
+      strikeAt: Date.now(),
+    });
+  }
+
+  const flagged = strikes >= RATE_LIMIT_STRIKES_TO_FLAG;
+  if (flagged) {
+    await flagAddressAsBot(redis, addr, 'address_rate_limit', {
+      strikes,
+      strikeWindowSeconds: RATE_LIMIT_STRIKE_TTL_SECONDS,
+      sourceReason: reason,
+      ...metadata,
+    });
+  }
+
+  return { strikes, flagged, requiresVerification: RATE_LIMIT_REVERIFY_ON_STRIKE };
+}
+
+async function registerIpRateLimitStrike(redis, ipHash, address, reason, metadata = {}) {
+  if (!ipHash) return { strikes: 0, blocked: false, retryAfterSeconds: 0 };
+
+  const strikes = parseInt(await redis.incrby(V2_RATE_LIMIT_IP_STRIKES_KEY(ipHash), 1) || '0', 10);
+  if (strikes === 1) {
+    await redis.expire(V2_RATE_LIMIT_IP_STRIKES_KEY(ipHash), IP_RATE_LIMIT_STRIKE_TTL_SECONDS);
+  }
+
+  const blocked = strikes >= IP_RATE_LIMIT_STRIKES_TO_BLOCK;
+  if (blocked) {
+    const blockedAt = Date.now();
+    const blockedUntil = blockedAt + (IP_RATE_LIMIT_BLOCK_SECONDS * 1000);
+    await redis.set(
+      V2_RATE_LIMIT_IP_BLOCK_KEY(ipHash),
+      JSON.stringify({
+        ipHash,
+        blockedAt,
+        blockedUntil,
+        strikes,
+        address: normalizeAddress(address),
+        sourceReason: reason,
+        ...metadata,
+      }),
+      { ex: IP_RATE_LIMIT_BLOCK_SECONDS }
+    );
+
+    if (address) {
+      await flagAddressAsBot(redis, address, 'ip_rate_limit', {
+        ipHash,
+        ipStrikes: strikes,
+        sourceReason: reason,
+        ...metadata,
+      });
+    }
+  }
+
+  return {
+    strikes,
+    blocked,
+    retryAfterSeconds: blocked ? IP_RATE_LIMIT_BLOCK_SECONDS : 0,
+  };
 }
 
 // Reuse V1 keys for cross-version compatibility
@@ -939,10 +1100,12 @@ async function maybeSnapshot(redis, gameState) {
       redis.get(V2_CLICK_VELOCITY_KEY),
     ]);
 
+    const flaggedBots = await getFlaggedBotSet(redis);
+
     // Count bot clicks
     let botClicks = 0;
     const botTotals = await Promise.all(
-      Array.from(FLAGGED_BOT_ADDRESSES).map(addr => redis.get(V2_TOTAL_CLICKS_KEY(addr)))
+      Array.from(flaggedBots).map(addr => redis.get(V2_TOTAL_CLICKS_KEY(addr)))
     );
     for (const total of botTotals) botClicks += parseInt(total || '0', 10);
 
@@ -959,7 +1122,7 @@ async function maybeSnapshot(redis, gameState) {
           const raw = earnedEntries[i];
           const data = typeof raw === 'string' ? JSON.parse(raw) : raw;
           const score = BigInt(Math.floor(earnedEntries[i + 1]));
-          if (!FLAGGED_BOT_ADDRESSES.has(data.address?.toLowerCase())) {
+          if (!flaggedBots.has(data.address?.toLowerCase())) {
             totalWei += score;
           }
         } catch { /* skip */ }
@@ -1169,7 +1332,7 @@ export default async function handler(req, res) {
               : null;
 
         // Refuse to issue mining challenges to already-flagged bot addresses.
-        if (isFlaggedBot(addr)) {
+        if (await isAddressFlaggedBot(redis, addr)) {
           return res.status(403).json({ error: 'Address is flagged' });
         }
 
@@ -1178,6 +1341,15 @@ export default async function handler(req, res) {
         const now = Date.now();
         const clientIp = getClientIp(req);
         const ipHash = hashIp(clientIp);
+        if (ipHash) {
+          const blockedTtl = await redis.ttl(V2_RATE_LIMIT_IP_BLOCK_KEY(ipHash));
+          if (typeof blockedTtl === 'number' && blockedTtl > 0) {
+            return res.status(403).json({
+              error: 'IP temporarily blocked',
+              retryAfterSeconds: blockedTtl,
+            });
+          }
+        }
         const humanSession = await redis.hgetall(HUMAN_SESSION_KEY(addr));
         const sessionExpiry = parseInt(humanSession?.expiresAt || '0', 10);
         const sessionClicks = parseInt(humanSession?.clicksSinceVerify || '0', 10);
@@ -1332,11 +1504,12 @@ export default async function handler(req, res) {
         const epochClicks = parseInt(epochClicksRaw || '0', 10);
         const globalClicks = parseInt(globalClicksRaw || '0', 10);
         const epochAttested = parseInt(epochAttestedRaw || '0', 10);
+        const flaggedBots = await getFlaggedBotSet(redis);
 
         // Bot stats
         let botClicks = 0;
         const botTotals = await Promise.all(
-          Array.from(FLAGGED_BOT_ADDRESSES).map(addr => redis.get(V2_TOTAL_CLICKS_KEY(addr)))
+          Array.from(flaggedBots).map(addr => redis.get(V2_TOTAL_CLICKS_KEY(addr)))
         );
         for (const total of botTotals) botClicks += parseInt(total || '0', 10);
 
@@ -1350,7 +1523,7 @@ export default async function handler(req, res) {
               const raw = earnedEntries[i];
               const data = typeof raw === 'string' ? JSON.parse(raw) : raw;
               const score = BigInt(Math.floor(earnedEntries[i + 1]));
-              if (!FLAGGED_BOT_ADDRESSES.has(data.address?.toLowerCase())) totalWei += score;
+              if (!flaggedBots.has(data.address?.toLowerCase())) totalWei += score;
             } catch { /* skip */ }
           }
           globalEarnedWei = totalWei.toString();
@@ -1439,7 +1612,7 @@ export default async function handler(req, res) {
             uniqueClickers: uniqueClickers || 0,
             clicksPerMin: parseInt(velocityRaw || '0', 10),
             globalEarnedWei,
-            flaggedBots: Array.from(FLAGGED_BOT_ADDRESSES),
+            flaggedBots: Array.from(flaggedBots),
           },
           epochs,
           timeseries: snapshots,
@@ -1518,6 +1691,7 @@ export default async function handler(req, res) {
       if (leaderboard === 'true') {
         const limitNum = Math.min(parseInt(limit, 10) || 50, 100);
         const isBotTab = leaderboardType === 'bots';
+        const flaggedBots = await getFlaggedBotSet(redis);
 
         // Determine which sorted set to query based on type
         // For bots tab, we use the alltime leaderboard and filter TO bots only
@@ -1540,7 +1714,7 @@ export default async function handler(req, res) {
         // their V2_TOTAL_CLICKS_KEY and upserts into the sorted set.
         if (isBotTab) {
           const backfillPromises = [];
-          for (const botAddr of FLAGGED_BOT_ADDRESSES) {
+          for (const botAddr of flaggedBots) {
             backfillPromises.push(
               redis.get(V2_TOTAL_CLICKS_KEY(botAddr)).then(total => {
                 const clicks = parseInt(total || '0', 10);
@@ -1574,8 +1748,8 @@ export default async function handler(req, res) {
             const addr = data.address?.toLowerCase();
 
             // Filter: bot tab shows only bots, all other tabs exclude bots
-            if (isBotTab && !isFlaggedBot(addr)) continue;
-            if (!isBotTab && isFlaggedBot(addr)) continue;
+            if (isBotTab && !flaggedBots.has(addr)) continue;
+            if (!isBotTab && flaggedBots.has(addr)) continue;
 
             const entry = {
               rank: parsed.length + 1,
@@ -1615,6 +1789,7 @@ export default async function handler(req, res) {
       // Active users request
       if (activeUsers === 'true') {
         const cutoffTime = Date.now() - (60 * 1000); // 60 seconds ago
+        const flaggedBots = await getFlaggedBotSet(redis);
         // Count users with heartbeat in last 60 seconds
         const activeCount = await redis.zcount(ACTIVE_USERS_SET, cutoffTime, '+inf');
         // Get list of active addresses (for dashboard highlighting)
@@ -1627,7 +1802,7 @@ export default async function handler(req, res) {
         // Subtract flagged bot clicks from the global total
         let botClicks = 0;
         const botTotals = await Promise.all(
-          Array.from(FLAGGED_BOT_ADDRESSES).map(addr =>
+          Array.from(flaggedBots).map(addr =>
             redis.get(V2_TOTAL_CLICKS_KEY(addr))
           )
         );
@@ -1642,7 +1817,7 @@ export default async function handler(req, res) {
           const earnedEntries = await redis.zrange(V2_EARNED_LEADERBOARD_KEY, 0, -1, {
             withScores: true
           });
-          const botSet = FLAGGED_BOT_ADDRESSES;
+          const botSet = flaggedBots;
           let totalWei = BigInt(0);
           for (let i = 0; i < earnedEntries.length; i += 2) {
             try {
@@ -1960,6 +2135,9 @@ export default async function handler(req, res) {
           }
           keysToDelete.push(V2_TOTAL_CLICKS_KEY(addr));
           keysToDelete.push(HUMAN_SESSION_KEY(addr));
+          keysToDelete.push(V2_RATE_LIMIT_KEY(addr));
+          keysToDelete.push(V2_RATE_LIMIT_STRIKES_KEY(addr));
+          keysToDelete.push(V2_DYNAMIC_BOT_META_KEY(addr));
           keysToDelete.push(MILESTONES_KEY(addr));
           keysToDelete.push(ACHIEVEMENTS_KEY(addr));
           keysToDelete.push(STREAK_KEY(addr));
@@ -1976,6 +2154,7 @@ export default async function handler(req, res) {
           }
 
           await redis.srem(ELIGIBLE_KEY, addr);
+          await redis.srem(V2_DYNAMIC_BOT_SET_KEY, addr);
           await redis.zrem(ACTIVE_USERS_SET, addr);
           await redis.zrem(V2_ALLTIME_LEADERBOARD_KEY, JSON.stringify({ address: addr }));
           await redis.zrem(V2_EARNED_LEADERBOARD_KEY, JSON.stringify({ address: addr }));
@@ -2042,7 +2221,7 @@ export default async function handler(req, res) {
       // -----------------------------------------------------------------------
       // BOT BLOCKING - Reject all actions from flagged bot addresses
       // -----------------------------------------------------------------------
-      if (isFlaggedBot(addr)) {
+      if (await isAddressFlaggedBot(redis, addr)) {
         return res.status(403).json({ error: 'Address is flagged' });
       }
 
@@ -2324,6 +2503,16 @@ export default async function handler(req, res) {
       // -----------------------------------------------------------------------
       // CLICK SUBMISSION - Validate and record clicks
       // -----------------------------------------------------------------------
+      if (ipHash) {
+        const blockedTtl = await redis.ttl(V2_RATE_LIMIT_IP_BLOCK_KEY(ipHash));
+        if (typeof blockedTtl === 'number' && blockedTtl > 0) {
+          return res.status(403).json({
+            error: 'IP temporarily blocked',
+            retryAfterSeconds: blockedTtl,
+          });
+        }
+      }
+
       if (!Array.isArray(nonces) || nonces.length === 0) {
         return res.status(400).json({ error: 'No nonces provided' });
       }
@@ -2536,18 +2725,67 @@ export default async function handler(req, res) {
       // the key won't exist; we create it and set the TTL on first use.
       // -----------------------------------------------------------------------
       const rateLimitKey = V2_RATE_LIMIT_KEY(addr);
-      const currentWindowCount = parseInt(await redis.get(rateLimitKey) || '0', 10);
+      const ipRateLimitKey = ipHash ? V2_RATE_LIMIT_IP_KEY(ipHash) : null;
+      const [currentWindowRaw, currentIpWindowRaw] = await Promise.all([
+        redis.get(rateLimitKey),
+        ipRateLimitKey ? redis.get(ipRateLimitKey) : Promise.resolve('0'),
+      ]);
+      const currentWindowCount = parseInt(currentWindowRaw || '0', 10);
+      const currentIpWindowCount = parseInt(currentIpWindowRaw || '0', 10);
 
       if (currentWindowCount >= RATE_LIMIT_MAX_NONCES) {
+        const strike = await registerAddressRateLimitStrike(redis, addr, 'address_window_full', {
+          currentWindowCount,
+          limit: RATE_LIMIT_MAX_NONCES,
+          ipHash,
+        });
+        const retryAfterSeconds = await redis.ttl(rateLimitKey);
+        if (strike.flagged) {
+          return res.status(403).json({
+            error: 'Address is flagged',
+            reason: 'address_rate_limit',
+            strikes: strike.strikes,
+            retryAfterSeconds,
+          });
+        }
+
         return res.status(429).json({
           error: 'Rate limit exceeded',
           message: `Max ${RATE_LIMIT_MAX_NONCES} clicks per ${RATE_LIMIT_WINDOW_SECONDS}s window`,
-          retryAfterSeconds: await redis.ttl(rateLimitKey),
+          retryAfterSeconds,
+          strikes: strike.strikes,
+          requiresVerification: strike.requiresVerification,
+        });
+      }
+
+      if (ipRateLimitKey && currentIpWindowCount >= IP_RATE_LIMIT_MAX_NONCES) {
+        const ipStrike = await registerIpRateLimitStrike(redis, ipHash, addr, 'ip_window_full', {
+          currentIpWindowCount,
+          ipLimit: IP_RATE_LIMIT_MAX_NONCES,
+        });
+        const retryAfterSeconds = await redis.ttl(ipRateLimitKey);
+        if (ipStrike.blocked) {
+          return res.status(403).json({
+            error: 'IP temporarily blocked',
+            reason: 'ip_rate_limit',
+            strikes: ipStrike.strikes,
+            retryAfterSeconds: ipStrike.retryAfterSeconds,
+          });
+        }
+
+        return res.status(429).json({
+          error: 'IP rate limit exceeded',
+          message: `Max ${IP_RATE_LIMIT_MAX_NONCES} clicks per ${IP_RATE_LIMIT_WINDOW_SECONDS}s window per IP`,
+          retryAfterSeconds,
+          strikes: ipStrike.strikes,
         });
       }
 
       // Clamp valid nonces to remaining budget in this window
-      const remaining = RATE_LIMIT_MAX_NONCES - currentWindowCount;
+      let remaining = RATE_LIMIT_MAX_NONCES - currentWindowCount;
+      if (ipRateLimitKey) {
+        remaining = Math.min(remaining, IP_RATE_LIMIT_MAX_NONCES - currentIpWindowCount);
+      }
       if (validCount > remaining) {
         const trimmed = validCount - remaining;
         rejectionReasons.rateLimited += trimmed;
@@ -2556,11 +2794,59 @@ export default async function handler(req, res) {
         validCount = remaining;
       }
 
+      if (validCount <= 0) {
+        return res.status(429).json({
+          error: 'Rate limit exceeded',
+          message: 'No click budget remaining in this window',
+          retryAfterSeconds: await redis.ttl(rateLimitKey),
+        });
+      }
+
       // Increment the rate limit counter (set TTL on first use)
       if (currentWindowCount === 0) {
         await redis.set(rateLimitKey, validCount, { ex: RATE_LIMIT_WINDOW_SECONDS });
       } else {
         await redis.incrby(rateLimitKey, validCount);
+      }
+      if (ipRateLimitKey) {
+        if (currentIpWindowCount === 0) {
+          await redis.set(ipRateLimitKey, validCount, { ex: IP_RATE_LIMIT_WINDOW_SECONDS });
+        } else {
+          await redis.incrby(ipRateLimitKey, validCount);
+        }
+      }
+
+      const updatedWindowCount = currentWindowCount + validCount;
+      const windowBucket = Math.floor(now / (RATE_LIMIT_WINDOW_SECONDS * 1000));
+      await redis.set(
+        V2_RATE_LIMIT_WINDOW_HIT_KEY(addr, windowBucket),
+        String(updatedWindowCount),
+        { ex: RATE_LIMIT_WINDOW_SECONDS * 3 }
+      );
+
+      // Sustained cap-rate throughput (e.g., 700+ clicks/min for consecutive minutes)
+      // is unlikely for humans; auto-flag after configured consecutive windows.
+      let flaggedForSustainedThroughput = false;
+      if (updatedWindowCount >= RATE_LIMIT_CONSECUTIVE_WINDOW_THRESHOLD) {
+        let consecutiveHits = 0;
+        for (let i = 0; i < RATE_LIMIT_CONSECUTIVE_WINDOWS_TO_FLAG; i++) {
+          const bucketRaw = await redis.get(V2_RATE_LIMIT_WINDOW_HIT_KEY(addr, windowBucket - i));
+          const bucketCount = parseInt(bucketRaw || '0', 10);
+          if (bucketCount >= RATE_LIMIT_CONSECUTIVE_WINDOW_THRESHOLD) {
+            consecutiveHits += 1;
+          } else {
+            break;
+          }
+        }
+
+        if (consecutiveHits >= RATE_LIMIT_CONSECUTIVE_WINDOWS_TO_FLAG) {
+          await flagAddressAsBot(redis, addr, 'consecutive_high_throughput', {
+            thresholdPerWindow: RATE_LIMIT_CONSECUTIVE_WINDOW_THRESHOLD,
+            consecutiveWindows: consecutiveHits,
+            windowSeconds: RATE_LIMIT_WINDOW_SECONDS,
+          });
+          flaggedForSustainedThroughput = true;
+        }
       }
 
       // Mark nonces as used
@@ -2744,6 +3030,7 @@ export default async function handler(req, res) {
         difficultyTarget: '0x' + currentDifficulty.toString(16),
         rank,
         gameActive,
+        botFlagged: flaggedForSustainedThroughput ? true : undefined,
         streak: { current: currentStreak, longest: longestStreak },
         newMilestones: newMilestones.length > 0 ? newMilestones : null,
         newAchievements: newAchievements.length > 0 ? newAchievements : null,
