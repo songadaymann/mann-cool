@@ -887,8 +887,8 @@ function calculateNewDifficulty(currentTarget, actualClicks, targetClicks) {
  * Apply small intra-epoch difficulty nudges so throughput tracks target more
  * tightly during an active epoch (instead of waiting for epoch rollover).
  *
- * Uses accepted raw epoch clicks for responsiveness, while epoch-to-epoch
- * re-targeting still uses attested clicks to reduce bot influence.
+ * Uses attested clicks (claim signatures issued), not raw submit volume.
+ * This keeps bot submit bursts from hardening difficulty before claims.
  */
 async function applyIntraEpochDifficultyTuning(redis, gameState, difficulty, targetClicksPerEpoch) {
   const { currentEpoch, epochDuration, gameStartTime, seasonNumber } = gameState;
@@ -911,7 +911,19 @@ async function applyIntraEpochDifficultyTuning(redis, gameState, difficulty, tar
     return difficulty;
   }
 
-  const rawClicks = parseInt(await redis.get(V2_EPOCH_TOTAL_KEY(currentEpoch)) || '0', 10);
+  const [rawClicks, attestedClicks] = await Promise.all([
+    redis.get(V2_EPOCH_TOTAL_KEY(currentEpoch)).then(v => parseInt(v || '0', 10)),
+    redis.get(V2_EPOCH_ATTESTED_KEY(currentEpoch)).then(v => parseInt(v || '0', 10)),
+  ]);
+
+  // No attested progress yet — skip intra-epoch hardening/softening.
+  // Epoch-boundary retargeting will still run as claims arrive.
+  if (attestedClicks <= 0) {
+    await redis.set(V2_DIFFICULTY_INTRA_EPOCH_KEY, currentEpoch.toString());
+    await redis.set(V2_DIFFICULTY_INTRA_TS_KEY, nowMs.toString());
+    return difficulty;
+  }
+
   const elapsedClamped = Math.min(Math.max(elapsed, 1), epochDuration);
   const expectedByNow = Math.max(
     1,
@@ -919,7 +931,7 @@ async function applyIntraEpochDifficultyTuning(redis, gameState, difficulty, tar
   );
 
   // Use basis points ratio for stable integer math.
-  const ratioBps = Math.floor((rawClicks * 10000) / expectedByNow);
+  const ratioBps = Math.floor((attestedClicks * 10000) / expectedByNow);
   const lower = 10000 - INTRA_EPOCH_DEADBAND_BPS;
   const upper = 10000 + INTRA_EPOCH_DEADBAND_BPS;
 
@@ -960,6 +972,7 @@ async function applyIntraEpochDifficultyTuning(redis, gameState, difficulty, tar
       epoch: currentEpoch,
       oldDifficulty: '0x' + difficulty.toString(16),
       newDifficulty: '0x' + newDifficulty.toString(16),
+      attestedClicks,
       rawClicks,
       expectedClicks: expectedByNow,
       ratioBps,
@@ -969,7 +982,7 @@ async function applyIntraEpochDifficultyTuning(redis, gameState, difficulty, tar
     await redis.zadd(V2_DIFFICULTY_EVENTS_KEY, { score: nowMs, member: diffEvent });
 
     console.log(
-      `[Difficulty][Intra] Epoch ${currentEpoch}: raw ${rawClicks}/${expectedByNow} (${ratioBps} bps) -> ` +
+      `[Difficulty][Intra] Epoch ${currentEpoch}: attested ${attestedClicks}/${expectedByNow} (${ratioBps} bps), raw=${rawClicks} -> ` +
       `0x${difficulty.toString(16).substring(0, 8)}... to 0x${newDifficulty.toString(16).substring(0, 8)}...`
     );
   }
@@ -980,7 +993,7 @@ async function applyIntraEpochDifficultyTuning(redis, gameState, difficulty, tar
 /**
  * Check if difficulty needs adjustment for the current epoch.
  * Adjusts based on completed epochs' ATTESTED click counts (claims only).
- * Also applies small intra-epoch nudges using current raw click pace.
+ * Also applies small intra-epoch nudges using attested click pace.
  * Returns the current difficulty target.
  */
 async function adjustDifficultyIfNeeded(redis, gameState) {
@@ -2633,96 +2646,7 @@ export default async function handler(req, res) {
       }
 
       // -----------------------------------------------------------------------
-      // NONCE VERIFICATION & DEDUPLICATION
-      // -----------------------------------------------------------------------
-      const usedNoncesKey = V2_USED_NONCES_KEY(addr, epoch);
-      let validCount = 0;
-      const validNonces = [];
-      const rejectionReasons = {
-        missingChallenge: 0,
-        invalidChallenge: 0,
-        challengeIpMismatch: 0,
-        invalidPow: 0,
-        duplicateNonce: 0,
-        rateLimited: 0,
-      };
-
-      for (const entry of nonces) {
-        let nonceStr;
-        let nonceChallenge = null;
-
-        if (isPerNonceChallenge) {
-          // New format: { nonce: string, challenge: string | null }
-          nonceStr = entry.nonce;
-          nonceChallenge = entry.challenge || null;
-
-          // Each nonce's challenge must be one we've recently issued (current or previous)
-          // This prevents fabricated challenges while allowing challenge rotation
-          if (!nonceChallenge) {
-            rejectionReasons.missingChallenge++;
-            continue;
-          }
-          if (!validChallenges.has(nonceChallenge)) {
-            rejectionReasons.invalidChallenge++;
-            continue; // Silently skip — challenge was rotated out or fabricated
-          }
-        } else {
-          // Legacy format: bare nonce string, single challenge for all
-          nonceStr = entry;
-          nonceChallenge = miningChallenge;
-        }
-
-        const challengeRecord = nonceChallenge ? challengeRecordsByToken.get(nonceChallenge) : null;
-        if (challengeRecord?.ipHash && ipHash && challengeRecord.ipHash !== ipHash) {
-          rejectionReasons.challengeIpMismatch++;
-          continue;
-        }
-
-        if (challengeRecord && Number.isInteger(challengeRecord.epoch) && challengeRecord.epoch !== epoch) {
-          rejectionReasons.invalidChallenge++;
-          continue;
-        }
-        const nonceEpoch = epoch;
-        let nonceDifficulty = currentDifficulty;
-        if (challengeRecord?.difficulty) {
-          try {
-            nonceDifficulty = BigInt(challengeRecord.difficulty);
-          } catch {
-            nonceDifficulty = currentDifficulty;
-          }
-        }
-
-        // Verify nonce PoW against the difficulty/epoch associated with the issued challenge.
-        const valid = verifyNonce(addr, nonceStr, nonceEpoch, nonceDifficulty, nonceChallenge);
-        if (!valid) {
-          rejectionReasons.invalidPow++;
-          continue;
-        }
-
-        // Check if already used (deduplication)
-        const alreadyUsed = await redis.sismember(usedNoncesKey, nonceStr);
-        if (alreadyUsed) {
-          rejectionReasons.duplicateNonce++;
-          continue;
-        }
-
-        validNonces.push(nonceStr);
-        validCount++;
-      }
-
-      console.log(`[Challenge] ${addr.slice(0,10)}.. result: ${validCount}/${nonces.length} valid`);
-
-      if (validCount === 0) {
-        return res.status(400).json({
-          error: 'No valid nonces',
-          message: 'All nonces were invalid or already used'
-        });
-      }
-
-      // -----------------------------------------------------------------------
-      // RATE LIMITING — cap valid nonces per address per sliding window
-      // Uses a simple Redis counter with TTL. If the window hasn't started yet
-      // the key won't exist; we create it and set the TTL on first use.
+      // RATE LIMITING — pre-check before expensive verification/dedup
       // -----------------------------------------------------------------------
       const rateLimitKey = V2_RATE_LIMIT_KEY(addr);
       const ipRateLimitKey = ipHash ? V2_RATE_LIMIT_IP_KEY(ipHash) : null;
@@ -2781,6 +2705,114 @@ export default async function handler(req, res) {
         });
       }
 
+      // -----------------------------------------------------------------------
+      // NONCE VERIFICATION & DEDUPLICATION
+      // Reserve accepted candidates atomically in Redis to prevent race replays.
+      // -----------------------------------------------------------------------
+      const usedNoncesKey = V2_USED_NONCES_KEY(addr, epoch);
+      let validCount = 0;
+      let validEntries = [];
+      const nonceOutcomes = Array(nonces.length).fill('invalidPow');
+      const rejectionReasons = {
+        missingChallenge: 0,
+        invalidChallenge: 0,
+        challengeIpMismatch: 0,
+        invalidPow: 0,
+        duplicateNonce: 0,
+        rateLimited: 0,
+      };
+
+      for (let idx = 0; idx < nonces.length; idx++) {
+        const entry = nonces[idx];
+        let nonceStr;
+        let nonceChallenge = null;
+
+        if (isPerNonceChallenge) {
+          // New format: { nonce: string, challenge: string | null }
+          nonceStr = typeof entry?.nonce === 'string' ? entry.nonce : String(entry?.nonce ?? '');
+          nonceChallenge = typeof entry?.challenge === 'string' ? entry.challenge : null;
+
+          // Each nonce's challenge must be one we've recently issued (current or previous)
+          // This prevents fabricated challenges while allowing challenge rotation
+          if (!nonceChallenge) {
+            rejectionReasons.missingChallenge++;
+            nonceOutcomes[idx] = 'missingChallenge';
+            continue;
+          }
+          if (!validChallenges.has(nonceChallenge)) {
+            rejectionReasons.invalidChallenge++;
+            nonceOutcomes[idx] = 'invalidChallenge';
+            continue; // Silently skip — challenge was rotated out or fabricated
+          }
+        } else {
+          // Legacy format: bare nonce string, single challenge for all
+          nonceStr = typeof entry === 'string' ? entry : String(entry ?? '');
+          nonceChallenge = miningChallenge;
+        }
+
+        const challengeRecord = nonceChallenge ? challengeRecordsByToken.get(nonceChallenge) : null;
+        if (challengeRecord?.ipHash && ipHash && challengeRecord.ipHash !== ipHash) {
+          rejectionReasons.challengeIpMismatch++;
+          nonceOutcomes[idx] = 'challengeIpMismatch';
+          continue;
+        }
+
+        if (challengeRecord && Number.isInteger(challengeRecord.epoch) && challengeRecord.epoch !== epoch) {
+          rejectionReasons.invalidChallenge++;
+          nonceOutcomes[idx] = 'invalidChallenge';
+          continue;
+        }
+        const nonceEpoch = epoch;
+        let nonceDifficulty = currentDifficulty;
+        if (challengeRecord?.difficulty) {
+          try {
+            nonceDifficulty = BigInt(challengeRecord.difficulty);
+          } catch {
+            nonceDifficulty = currentDifficulty;
+          }
+        }
+
+        // Verify nonce PoW against the difficulty/epoch associated with the issued challenge.
+        const valid = verifyNonce(addr, nonceStr, nonceEpoch, nonceDifficulty, nonceChallenge);
+        if (!valid) {
+          rejectionReasons.invalidPow++;
+          nonceOutcomes[idx] = 'invalidPow';
+          continue;
+        }
+
+        // Atomically reserve nonce in Redis. If already present, treat as duplicate.
+        const added = await redis.sadd(usedNoncesKey, nonceStr);
+        if (!isRedisSetMember(added)) {
+          rejectionReasons.duplicateNonce++;
+          nonceOutcomes[idx] = 'duplicateNonce';
+          continue;
+        }
+
+        validEntries.push({ index: idx, nonce: nonceStr });
+        nonceOutcomes[idx] = 'accepted';
+        validCount++;
+      }
+
+      console.log(`[Challenge] ${addr.slice(0,10)}.. result: ${validCount}/${nonces.length} valid`);
+
+      if (validCount === 0) {
+        return res.status(400).json({
+          success: false,
+          error: 'No valid nonces',
+          message: 'All nonces were invalid or already used',
+          validClicks: 0,
+          invalidClicks: nonces.length,
+          acceptedIndexes: [],
+          nonceOutcomes,
+          rejectionReasons,
+        });
+      }
+
+      // -----------------------------------------------------------------------
+      // RATE LIMITING — cap valid nonces per address per sliding window
+      // Uses a simple Redis counter with TTL. If the window hasn't started yet
+      // the key won't exist; we create it and set the TTL on first use.
+      // -----------------------------------------------------------------------
       // Clamp valid nonces to remaining budget in this window
       let remaining = RATE_LIMIT_MAX_NONCES - currentWindowCount;
       if (ipRateLimitKey) {
@@ -2789,18 +2821,33 @@ export default async function handler(req, res) {
       if (validCount > remaining) {
         const trimmed = validCount - remaining;
         rejectionReasons.rateLimited += trimmed;
-        // Trim to what's allowed — still accept partial batch
-        validNonces.length = remaining;
-        validCount = remaining;
+        const trimmedEntries = validEntries.slice(remaining);
+        // Release trimmed reservations so those nonces can be retried later.
+        if (trimmedEntries.length > 0) {
+          await redis.srem(usedNoncesKey, ...trimmedEntries.map(e => e.nonce));
+          for (const trimmedEntry of trimmedEntries) {
+            nonceOutcomes[trimmedEntry.index] = 'rateLimited';
+          }
+        }
+        validEntries = validEntries.slice(0, remaining);
+        validCount = validEntries.length;
       }
 
       if (validCount <= 0) {
         return res.status(429).json({
+          success: false,
           error: 'Rate limit exceeded',
           message: 'No click budget remaining in this window',
           retryAfterSeconds: await redis.ttl(rateLimitKey),
+          validClicks: 0,
+          invalidClicks: nonces.length,
+          acceptedIndexes: [],
+          nonceOutcomes,
+          rejectionReasons,
         });
       }
+
+      const acceptedIndexes = validEntries.map(entry => entry.index);
 
       // Increment the rate limit counter (set TTL on first use)
       if (currentWindowCount === 0) {
@@ -2850,8 +2897,7 @@ export default async function handler(req, res) {
       }
 
       // Mark nonces as used
-      if (validNonces.length > 0) {
-        await redis.sadd(usedNoncesKey, ...validNonces);
+      if (validEntries.length > 0) {
         // Set TTL on used nonces (epoch duration + buffer)
         await redis.expire(usedNoncesKey, 86400 * 7);
       }
@@ -3021,6 +3067,8 @@ export default async function handler(req, res) {
         address: addr,
         validClicks: validCount,
         invalidClicks: nonces.length - validCount,
+        acceptedIndexes,
+        nonceOutcomes,
         rejectionReasons,
         epochClicks: gameActive ? newEpochClicks : null,
         seasonClicks: newTotal,
