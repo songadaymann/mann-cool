@@ -1708,19 +1708,24 @@ export default async function handler(req, res) {
         const limitNum = Math.min(parseInt(limit, 10) || 50, 100);
         const isBotTab = leaderboardType === 'bots';
         const flaggedBots = await getFlaggedBotSet(redis);
+        const gameActive = gameState.gameStarted && !gameState.gameEnded;
 
         // Determine which sorted set to query based on type
         // For bots tab, we use the alltime leaderboard and filter TO bots only
         let redisKey;
         let isEarnedType = false;
+        const parsedQueryEpoch = parseInt(queryEpoch, 10);
+        const epochNum = Number.isInteger(parsedQueryEpoch) && parsedQueryEpoch >= 0
+          ? parsedQueryEpoch
+          : (gameActive ? gameState.currentEpoch : 0);
         if (leaderboardType === 'alltime' || isBotTab) {
           redisKey = V2_ALLTIME_LEADERBOARD_KEY;
         } else if (leaderboardType === 'earned') {
           redisKey = V2_EARNED_LEADERBOARD_KEY;
           isEarnedType = true;
         } else {
-          // Default: epoch leaderboard
-          const epochNum = queryEpoch ? parseInt(queryEpoch, 10) : gameState.currentEpoch;
+          // Default: epoch leaderboard.
+          // Between seasons, epoch 0 tracks the off-season leaderboard.
           redisKey = V2_EPOCH_LEADERBOARD_KEY(epochNum);
         }
 
@@ -1794,7 +1799,6 @@ export default async function handler(req, res) {
 
         // Include epoch-specific data for epoch type
         if (!leaderboardType || leaderboardType === 'epoch') {
-          const epochNum = queryEpoch ? parseInt(queryEpoch, 10) : gameState.currentEpoch;
           response.epoch = epochNum;
           response.epochTotalClicks = parseInt(await redis.get(V2_EPOCH_TOTAL_KEY(epochNum)) || '0', 10);
         }
@@ -2929,21 +2933,19 @@ export default async function handler(req, res) {
         })
       ];
 
-      // Only update epoch-specific counts when game is active
+      // Update epoch-specific counts for both active epochs and off-season epoch 0
       let newEpochClicks = 0;
-      if (gameActive) {
-        const previousEpochClicks = parseInt(await redis.get(V2_CLICKS_KEY(addr, epoch)) || '0', 10);
-        newEpochClicks = previousEpochClicks + validCount;
+      const previousEpochClicks = parseInt(await redis.get(V2_CLICKS_KEY(addr, epoch)) || '0', 10);
+      newEpochClicks = previousEpochClicks + validCount;
 
-        updatePromises.push(
-          redis.set(V2_CLICKS_KEY(addr, epoch), newEpochClicks),
-          redis.incrby(V2_EPOCH_TOTAL_KEY(epoch), validCount),
-          redis.zadd(V2_EPOCH_LEADERBOARD_KEY(epoch), {
-            score: newEpochClicks,
-            member: JSON.stringify({ address: addr })
-          })
-        );
-      }
+      updatePromises.push(
+        redis.set(V2_CLICKS_KEY(addr, epoch), newEpochClicks),
+        redis.incrby(V2_EPOCH_TOTAL_KEY(epoch), validCount),
+        redis.zadd(V2_EPOCH_LEADERBOARD_KEY(epoch), {
+          score: newEpochClicks,
+          member: JSON.stringify({ address: addr })
+        })
+      );
 
       await Promise.all(updatePromises);
 
@@ -3055,15 +3057,12 @@ export default async function handler(req, res) {
         }
       }
 
-      // Get rank (only meaningful when game is active)
-      let rank = null;
-      if (gameActive) {
-        const rankResult = await redis.zrevrank(
-          V2_EPOCH_LEADERBOARD_KEY(epoch),
-          JSON.stringify({ address: addr })
-        );
-        rank = rankResult !== null ? rankResult + 1 : null;
-      }
+      // Get rank in the current epoch leaderboard (active epoch or off-season epoch 0)
+      const rankResult = await redis.zrevrank(
+        V2_EPOCH_LEADERBOARD_KEY(epoch),
+        JSON.stringify({ address: addr })
+      );
+      const rank = rankResult !== null ? rankResult + 1 : null;
 
       return res.status(200).json({
         success: true,
@@ -3073,11 +3072,11 @@ export default async function handler(req, res) {
         acceptedIndexes,
         nonceOutcomes,
         rejectionReasons,
-        epochClicks: gameActive ? newEpochClicks : null,
+        epochClicks: newEpochClicks,
         seasonClicks: newTotal,
         lifetimeClicks: lifetimeTotal,
         globalClicks: newGlobal,
-        epoch: gameActive ? epoch : null,
+        epoch,
         difficultyTarget: '0x' + currentDifficulty.toString(16),
         rank,
         gameActive,
