@@ -218,13 +218,23 @@ const MINING_CHALLENGE_HISTORY_LIMIT = parseInt(process.env.MINING_CHALLENGE_HIS
 // =============================================================================
 // REDIS KEYS (V2-specific, prefixed to avoid collision with V1)
 // =============================================================================
-const V2_CLICKS_KEY = (addr, epoch) => `clickstr:v2:clicks:${addr.toLowerCase()}:${epoch}`;
+// Legacy epoch-only keys kept for safe, non-destructive migration.
+const V2_LEGACY_CLICKS_KEY = (addr, epoch) => `clickstr:v2:clicks:${addr.toLowerCase()}:${epoch}`;
+const V2_LEGACY_EPOCH_LEADERBOARD_KEY = (epoch) => `clickstr:v2:leaderboard:${epoch}`;
+const V2_LEGACY_EPOCH_TOTAL_KEY = (epoch) => `clickstr:v2:epoch-total:${epoch}`;
+const V2_LEGACY_USED_NONCES_KEY = (addr, epoch) => `clickstr:v2:nonces:${addr.toLowerCase()}:${epoch}`;
+const V2_LEGACY_CLAIM_ISSUED_KEY = (addr, epoch) => `clickstr:v2:claim-issued:${addr.toLowerCase()}:${epoch}`;
+const V2_LEGACY_CLAIM_CHALLENGE_KEY = (addr, epoch) => `clickstr:v2:claim-challenge:${addr.toLowerCase()}:${epoch}`;
+const V2_LEGACY_EPOCH_ATTESTED_KEY = (epoch) => `clickstr:v2:epoch-attested:${epoch}`;
+
+// Season-scoped keys (prevents epoch collisions across seasons).
+const V2_CLICKS_KEY = (addr, season, epoch) => `clickstr:v2:clicks:${addr.toLowerCase()}:${season}:${epoch}`;
 const V2_TOTAL_CLICKS_KEY = (addr) => `clickstr:v2:total:${addr.toLowerCase()}`;
-const V2_EPOCH_LEADERBOARD_KEY = (epoch) => `clickstr:v2:leaderboard:${epoch}`;
-const V2_EPOCH_TOTAL_KEY = (epoch) => `clickstr:v2:epoch-total:${epoch}`;
-const V2_USED_NONCES_KEY = (addr, epoch) => `clickstr:v2:nonces:${addr.toLowerCase()}:${epoch}`;
-const V2_CLAIM_ISSUED_KEY = (addr, epoch) => `clickstr:v2:claim-issued:${addr.toLowerCase()}:${epoch}`;
-const V2_CLAIM_CHALLENGE_KEY = (addr, epoch) => `clickstr:v2:claim-challenge:${addr.toLowerCase()}:${epoch}`;
+const V2_EPOCH_LEADERBOARD_KEY = (season, epoch) => `clickstr:v2:leaderboard:${season}:${epoch}`;
+const V2_EPOCH_TOTAL_KEY = (season, epoch) => `clickstr:v2:epoch-total:${season}:${epoch}`;
+const V2_USED_NONCES_KEY = (addr, season, epoch) => `clickstr:v2:nonces:${addr.toLowerCase()}:${season}:${epoch}`;
+const V2_CLAIM_ISSUED_KEY = (addr, season, epoch) => `clickstr:v2:claim-issued:${addr.toLowerCase()}:${season}:${epoch}`;
+const V2_CLAIM_CHALLENGE_KEY = (addr, season, epoch) => `clickstr:v2:claim-challenge:${addr.toLowerCase()}:${season}:${epoch}`;
 const HUMAN_SESSION_KEY = (addr) => `clickstr:human-session:${addr.toLowerCase()}`;
 const ACTIVE_USERS_SET = 'clickstr:v2:active-users';
 const V2_GLOBAL_CLICKS_KEY = 'clickstr:v2:global-clicks';
@@ -249,7 +259,7 @@ const V2_SNAPSHOTS_INDEX_KEY = 'clickstr:v2:snapshots:index';        // Sorted s
 const V2_EPOCH_HISTORY_KEY = (season, epoch) => `clickstr:v2:history:epoch:${season}:${epoch}`;
 const V2_CLICK_VELOCITY_KEY = 'clickstr:v2:velocity';                // Rolling click counter for velocity calc
 const V2_LAST_SNAPSHOT_KEY = 'clickstr:v2:snapshots:last-ts';        // Timestamp of last snapshot
-const V2_EPOCH_ATTESTED_KEY = (epoch) => `clickstr:v2:epoch-attested:${epoch}`; // Clicks with claim attestations issued
+const V2_EPOCH_ATTESTED_KEY = (season, epoch) => `clickstr:v2:epoch-attested:${season}:${epoch}`; // Clicks with claim attestations issued
 
 // =============================================================================
 // BOT FLAGGING - Addresses identified as bots (manual list)
@@ -915,8 +925,8 @@ async function applyIntraEpochDifficultyTuning(redis, gameState, difficulty, tar
   }
 
   const [rawClicks, attestedClicks] = await Promise.all([
-    redis.get(V2_EPOCH_TOTAL_KEY(currentEpoch)).then(v => parseInt(v || '0', 10)),
-    redis.get(V2_EPOCH_ATTESTED_KEY(currentEpoch)).then(v => parseInt(v || '0', 10)),
+    redis.get(V2_EPOCH_TOTAL_KEY(seasonNumber, currentEpoch)).then(v => parseInt(v || '0', 10)),
+    redis.get(V2_EPOCH_ATTESTED_KEY(seasonNumber, currentEpoch)).then(v => parseInt(v || '0', 10)),
   ]);
 
   // No attested progress yet — skip intra-epoch hardening/softening.
@@ -1043,8 +1053,8 @@ async function adjustDifficultyIfNeeded(redis, gameState) {
     for (let completedEpoch = startFrom; completedEpoch < currentEpoch && iterations < maxIterations; completedEpoch++) {
       // Use ATTESTED clicks (claims only) instead of raw mining clicks.
       // This means bots that mine but never claim don't inflate long-term difficulty.
-      const attestedClicks = parseInt(await redis.get(V2_EPOCH_ATTESTED_KEY(completedEpoch)) || '0', 10);
-      const rawClicks = parseInt(await redis.get(V2_EPOCH_TOTAL_KEY(completedEpoch)) || '0', 10);
+      const attestedClicks = parseInt(await redis.get(V2_EPOCH_ATTESTED_KEY(seasonNumber, completedEpoch)) || '0', 10);
+      const rawClicks = parseInt(await redis.get(V2_EPOCH_TOTAL_KEY(seasonNumber, completedEpoch)) || '0', 10);
       const oldDifficulty = difficulty;
       difficulty = calculateNewDifficulty(difficulty, BigInt(attestedClicks), targetClicksPerEpoch);
       console.log(
@@ -1110,7 +1120,7 @@ async function maybeSnapshot(redis, gameState) {
       velocityRaw,
     ] = await Promise.all([
       redis.get(V2_DIFFICULTY_KEY),
-      redis.get(V2_EPOCH_TOTAL_KEY(currentEpoch)),
+      redis.get(V2_EPOCH_TOTAL_KEY(seasonNumber, currentEpoch)),
       redis.get(V2_GLOBAL_CLICKS_KEY),
       redis.zcount(ACTIVE_USERS_SET, now - 60000, '+inf'),
       redis.get(V2_CLICK_VELOCITY_KEY),
@@ -1126,7 +1136,7 @@ async function maybeSnapshot(redis, gameState) {
     for (const total of botTotals) botClicks += parseInt(total || '0', 10);
 
     // Count unique clickers this epoch from leaderboard
-    const uniqueClickers = await redis.zcard(V2_EPOCH_LEADERBOARD_KEY(currentEpoch));
+    const uniqueClickers = await redis.zcard(V2_EPOCH_LEADERBOARD_KEY(seasonNumber, currentEpoch));
 
     // Get earned total
     let globalEarnedWei = '0';
@@ -1511,11 +1521,11 @@ export default async function handler(req, res) {
           : MAX_DIFFICULTY_TARGET;
         const targetClicksPerEpoch = Math.floor(1_000_000 * gameState.epochDuration / 86400);
         const [epochClicksRaw, globalClicksRaw, activeCount, velocityRaw, epochAttestedRaw] = await Promise.all([
-          redis.get(V2_EPOCH_TOTAL_KEY(gameState.currentEpoch)),
+          redis.get(V2_EPOCH_TOTAL_KEY(gameState.seasonNumber, gameState.currentEpoch)),
           redis.get(V2_GLOBAL_CLICKS_KEY),
           redis.zcount(ACTIVE_USERS_SET, now - 60000, '+inf'),
           redis.get(V2_CLICK_VELOCITY_KEY),
-          redis.get(V2_EPOCH_ATTESTED_KEY(gameState.currentEpoch)),
+          redis.get(V2_EPOCH_ATTESTED_KEY(gameState.seasonNumber, gameState.currentEpoch)),
         ]);
         const epochClicks = parseInt(epochClicksRaw || '0', 10);
         const globalClicks = parseInt(globalClicksRaw || '0', 10);
@@ -1546,7 +1556,7 @@ export default async function handler(req, res) {
         } catch { /* non-critical */ }
 
         // Unique clickers this epoch
-        const uniqueClickers = await redis.zcard(V2_EPOCH_LEADERBOARD_KEY(gameState.currentEpoch));
+        const uniqueClickers = await redis.zcard(V2_EPOCH_LEADERBOARD_KEY(gameState.seasonNumber, gameState.currentEpoch));
 
         // 2. Time-series snapshots
         const snapshotKeys = await redis.zrange(V2_SNAPSHOTS_INDEX_KEY, from, now, { byScore: true });
@@ -1582,9 +1592,9 @@ export default async function handler(req, res) {
         const epochs = [];
         for (let ep = 1; ep <= gameState.totalEpochs; ep++) {
           const [epClicksRaw, epAttestedRaw, epUnique, historyRaw] = await Promise.all([
-            redis.get(V2_EPOCH_TOTAL_KEY(ep)),
-            redis.get(V2_EPOCH_ATTESTED_KEY(ep)),
-            redis.zcard(V2_EPOCH_LEADERBOARD_KEY(ep)),
+            redis.get(V2_EPOCH_TOTAL_KEY(gameState.seasonNumber, ep)),
+            redis.get(V2_EPOCH_ATTESTED_KEY(gameState.seasonNumber, ep)),
+            redis.zcard(V2_EPOCH_LEADERBOARD_KEY(gameState.seasonNumber, ep)),
             redis.get(V2_EPOCH_HISTORY_KEY(gameState.seasonNumber, ep)),
           ]);
           const epClicks = parseInt(epClicksRaw || '0', 10);
@@ -1686,10 +1696,10 @@ export default async function handler(req, res) {
           : MAX_DIFFICULTY_TARGET;
         const targetClicksPerEpoch = Math.floor(1_000_000 * gameState.epochDuration / 86400);
         const currentEpochClicks = parseInt(
-          await redis.get(V2_EPOCH_TOTAL_KEY(gameState.currentEpoch)) || '0', 10
+          await redis.get(V2_EPOCH_TOTAL_KEY(gameState.seasonNumber, gameState.currentEpoch)) || '0', 10
         );
         const currentEpochAttested = parseInt(
-          await redis.get(V2_EPOCH_ATTESTED_KEY(gameState.currentEpoch)) || '0', 10
+          await redis.get(V2_EPOCH_ATTESTED_KEY(gameState.seasonNumber, gameState.currentEpoch)) || '0', 10
         );
 
         return res.status(200).json({
@@ -1709,6 +1719,7 @@ export default async function handler(req, res) {
         const isBotTab = leaderboardType === 'bots';
         const flaggedBots = await getFlaggedBotSet(redis);
         const gameActive = gameState.gameStarted && !gameState.gameEnded;
+        const seasonNum = gameState.seasonNumber;
 
         // Determine which sorted set to query based on type
         // For bots tab, we use the alltime leaderboard and filter TO bots only
@@ -1726,7 +1737,7 @@ export default async function handler(req, res) {
         } else {
           // Default: epoch leaderboard.
           // Between seasons, epoch 0 tracks the off-season leaderboard.
-          redisKey = V2_EPOCH_LEADERBOARD_KEY(epochNum);
+          redisKey = V2_EPOCH_LEADERBOARD_KEY(seasonNum, epochNum);
         }
 
         // Backfill: ensure all flagged bot addresses are in the alltime sorted set.
@@ -1800,7 +1811,7 @@ export default async function handler(req, res) {
         // Include epoch-specific data for epoch type
         if (!leaderboardType || leaderboardType === 'epoch') {
           response.epoch = epochNum;
-          response.epochTotalClicks = parseInt(await redis.get(V2_EPOCH_TOTAL_KEY(epochNum)) || '0', 10);
+          response.epochTotalClicks = parseInt(await redis.get(V2_EPOCH_TOTAL_KEY(seasonNum, epochNum)) || '0', 10);
         }
 
         return res.status(200).json(response);
@@ -1962,13 +1973,14 @@ export default async function handler(req, res) {
 
         const addr = address.toLowerCase();
         const claimableEpochs = [];
+        const seasonNum = gameState.seasonNumber;
 
         // Check each epoch up to current
         for (let ep = 1; ep <= gameState.currentEpoch; ep++) {
-          const clicks = parseInt(await redis.get(V2_CLICKS_KEY(addr, ep)) || '0', 10);
+          const clicks = parseInt(await redis.get(V2_CLICKS_KEY(addr, seasonNum, ep)) || '0', 10);
           if (clicks > 0) {
             const claimedOnChain = await hasClaimedOnChain(addr, ep);
-            const signatureIssued = await redis.get(V2_CLAIM_ISSUED_KEY(addr, ep));
+            const signatureIssued = await redis.get(V2_CLAIM_ISSUED_KEY(addr, seasonNum, ep));
 
             claimableEpochs.push({
               epoch: ep,
@@ -1993,10 +2005,11 @@ export default async function handler(req, res) {
       }
 
       const addr = address.toLowerCase();
+      const seasonNum = gameState.seasonNumber;
 
       // Get Redis stats
       const redisTotal = parseInt(await redis.get(V2_TOTAL_CLICKS_KEY(addr)) || '0', 10);
-      const currentEpochClicks = parseInt(await redis.get(V2_CLICKS_KEY(addr, gameState.currentEpoch)) || '0', 10);
+      const currentEpochClicks = parseInt(await redis.get(V2_CLICKS_KEY(addr, seasonNum, gameState.currentEpoch)) || '0', 10);
 
       // Get on-chain registry stats
       const [registryClicks, registryEarned] = await Promise.all([
@@ -2028,7 +2041,7 @@ export default async function handler(req, res) {
 
       // Get rank in current epoch
       const rank = await redis.zrevrank(
-        V2_EPOCH_LEADERBOARD_KEY(gameState.currentEpoch),
+        V2_EPOCH_LEADERBOARD_KEY(seasonNum, gameState.currentEpoch),
         JSON.stringify({ address: addr })
       );
 
@@ -2147,11 +2160,21 @@ export default async function handler(req, res) {
 
           // Delete all V2 keys for this user
           const keysToDelete = [];
-          for (let ep = 1; ep <= 100; ep++) {
-            keysToDelete.push(V2_CLICKS_KEY(addr, ep));
-            keysToDelete.push(V2_USED_NONCES_KEY(addr, ep));
-            keysToDelete.push(V2_CLAIM_ISSUED_KEY(addr, ep));
-            keysToDelete.push(V2_CLAIM_CHALLENGE_KEY(addr, ep));
+          for (let ep = 0; ep <= 100; ep++) {
+            // Legacy epoch-only keys
+            keysToDelete.push(V2_LEGACY_CLICKS_KEY(addr, ep));
+            keysToDelete.push(V2_LEGACY_USED_NONCES_KEY(addr, ep));
+            keysToDelete.push(V2_LEGACY_CLAIM_ISSUED_KEY(addr, ep));
+            keysToDelete.push(V2_LEGACY_CLAIM_CHALLENGE_KEY(addr, ep));
+          }
+          for (let season = 1; season <= 200; season++) {
+            for (let ep = 0; ep <= 100; ep++) {
+              // Season-scoped keys
+              keysToDelete.push(V2_CLICKS_KEY(addr, season, ep));
+              keysToDelete.push(V2_USED_NONCES_KEY(addr, season, ep));
+              keysToDelete.push(V2_CLAIM_ISSUED_KEY(addr, season, ep));
+              keysToDelete.push(V2_CLAIM_CHALLENGE_KEY(addr, season, ep));
+            }
           }
           keysToDelete.push(V2_TOTAL_CLICKS_KEY(addr));
           keysToDelete.push(HUMAN_SESSION_KEY(addr));
@@ -2169,8 +2192,13 @@ export default async function handler(req, res) {
           }
 
           // Remove from all epoch leaderboards
-          for (let ep = 1; ep <= 100; ep++) {
-            await redis.zrem(V2_EPOCH_LEADERBOARD_KEY(ep), JSON.stringify({ address: addr }));
+          for (let ep = 0; ep <= 100; ep++) {
+            await redis.zrem(V2_LEGACY_EPOCH_LEADERBOARD_KEY(ep), JSON.stringify({ address: addr }));
+          }
+          for (let season = 1; season <= 200; season++) {
+            for (let ep = 0; ep <= 100; ep++) {
+              await redis.zrem(V2_EPOCH_LEADERBOARD_KEY(season, ep), JSON.stringify({ address: addr }));
+            }
           }
 
           await redis.srem(ELIGIBLE_KEY, addr);
@@ -2263,6 +2291,7 @@ export default async function handler(req, res) {
       // -----------------------------------------------------------------------
       if (action === 'claim') {
         const epoch = parseInt(requestedEpoch, 10);
+        const seasonNum = gameState.seasonNumber;
         if (!epoch || epoch < 1 || epoch > gameState.totalEpochs) {
           return res.status(400).json({ error: 'Invalid epoch' });
         }
@@ -2273,7 +2302,7 @@ export default async function handler(req, res) {
         }
 
         // Get user's clicks for this epoch
-        const clicks = parseInt(await redis.get(V2_CLICKS_KEY(addr, epoch)) || '0', 10);
+        const clicks = parseInt(await redis.get(V2_CLICKS_KEY(addr, seasonNum, epoch)) || '0', 10);
         if (clicks === 0) {
           return res.status(400).json({ error: 'No clicks for this epoch' });
         }
@@ -2330,7 +2359,7 @@ export default async function handler(req, res) {
           }
         }
 
-        const challengeKey = V2_CLAIM_CHALLENGE_KEY(addr, epoch);
+        const challengeKey = V2_CLAIM_CHALLENGE_KEY(addr, seasonNum, epoch);
         const ensureChallenge = async (reason) => {
           let challengeData = null;
           const existing = await redis.get(challengeKey);
@@ -2427,7 +2456,7 @@ export default async function handler(req, res) {
 
         // Check if we already issued a signature for this click count
         // For incremental claims, we need to issue a NEW signature if clicks increased
-        const existingSignature = await redis.get(V2_CLAIM_ISSUED_KEY(addr, epoch));
+        const existingSignature = await redis.get(V2_CLAIM_ISSUED_KEY(addr, seasonNum, epoch));
         if (existingSignature) {
           const parsed = typeof existingSignature === 'string' ? JSON.parse(existingSignature) : existingSignature;
 
@@ -2478,7 +2507,7 @@ export default async function handler(req, res) {
         // Store issued signature
         const claimIssuedAt = Date.now();
         await redis.set(
-          V2_CLAIM_ISSUED_KEY(addr, epoch),
+          V2_CLAIM_ISSUED_KEY(addr, seasonNum, epoch),
           JSON.stringify({ signature, clickCount: clicks, issuedAt: claimIssuedAt }),
           { ex: 86400 * 30 } // 30 day expiry
         );
@@ -2490,7 +2519,7 @@ export default async function handler(req, res) {
           : 0;
         const newAttestedClicks = clicks - previouslyAttested;
         if (newAttestedClicks > 0) {
-          await redis.incrby(V2_EPOCH_ATTESTED_KEY(epoch), newAttestedClicks);
+          await redis.incrby(V2_EPOCH_ATTESTED_KEY(seasonNum, epoch), newAttestedClicks);
         }
 
         // Log claim event for dashboard history
@@ -2543,6 +2572,7 @@ export default async function handler(req, res) {
 
       // Determine if game is active and which epoch to use
       const gameActive = gameState.gameStarted && !gameState.gameEnded;
+      const seasonNum = gameState.seasonNumber;
       // When game is active, use current epoch; when inactive, use epoch 0 for PoW/dedup
       const epoch = gameActive ? gameState.currentEpoch : 0;
       const now = Date.now();
@@ -2716,7 +2746,7 @@ export default async function handler(req, res) {
       // NONCE VERIFICATION & DEDUPLICATION
       // Reserve accepted candidates atomically in Redis to prevent race replays.
       // -----------------------------------------------------------------------
-      const usedNoncesKey = V2_USED_NONCES_KEY(addr, epoch);
+      const usedNoncesKey = V2_USED_NONCES_KEY(addr, seasonNum, epoch);
       let validCount = 0;
       let validEntries = [];
       const nonceOutcomes = Array(nonces.length).fill('invalidPow');
@@ -2935,13 +2965,13 @@ export default async function handler(req, res) {
 
       // Update epoch-specific counts for both active epochs and off-season epoch 0
       let newEpochClicks = 0;
-      const previousEpochClicks = parseInt(await redis.get(V2_CLICKS_KEY(addr, epoch)) || '0', 10);
+      const previousEpochClicks = parseInt(await redis.get(V2_CLICKS_KEY(addr, seasonNum, epoch)) || '0', 10);
       newEpochClicks = previousEpochClicks + validCount;
 
       updatePromises.push(
-        redis.set(V2_CLICKS_KEY(addr, epoch), newEpochClicks),
-        redis.incrby(V2_EPOCH_TOTAL_KEY(epoch), validCount),
-        redis.zadd(V2_EPOCH_LEADERBOARD_KEY(epoch), {
+        redis.set(V2_CLICKS_KEY(addr, seasonNum, epoch), newEpochClicks),
+        redis.incrby(V2_EPOCH_TOTAL_KEY(seasonNum, epoch), validCount),
+        redis.zadd(V2_EPOCH_LEADERBOARD_KEY(seasonNum, epoch), {
           score: newEpochClicks,
           member: JSON.stringify({ address: addr })
         })
@@ -3059,7 +3089,7 @@ export default async function handler(req, res) {
 
       // Get rank in the current epoch leaderboard (active epoch or off-season epoch 0)
       const rankResult = await redis.zrevrank(
-        V2_EPOCH_LEADERBOARD_KEY(epoch),
+        V2_EPOCH_LEADERBOARD_KEY(seasonNum, epoch),
         JSON.stringify({ address: addr })
       );
       const rank = rankResult !== null ? rankResult + 1 : null;
