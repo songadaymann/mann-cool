@@ -112,7 +112,7 @@
       "slug": "tallgrass",
       "title": "Tall Grass",
       "image": "/nes-game-images/tall-grass.png",
-      "gameUrl": "tall-grass.vercel.app",
+      "gameUrl": "https://tall-grass.vercel.app",
       "platform": "desktop",
       "aspectRatio": "16 / 9",
       "controls": {
@@ -248,7 +248,7 @@
       "slug": "cyber",
       "title": "Cyber Sunshine Smash",
       "image": "/nes-game-images/cyber.png",
-      "gameUrl": "https://web-three-rho-85.vercel.app/",
+      "gameUrl": "https://cyber-psi-five.vercel.app/",
       "platform": "desktop",
       "aspectRatio": "16 / 9",
       "controls": {
