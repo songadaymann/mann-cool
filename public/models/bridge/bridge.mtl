@@ -1,0 +1,12 @@
+#
+# bridge.mtl
+#
+
+newmtl Material.007_bridge_grp.png
+illum 2
+Kd 0.662500 0.753125 0.796875
+Ka 0.000000 0.000000 0.000000
+Ks 0.000000 0.000000 0.000000
+Ke 0.501961 0.501961 0.501961
+Ns 1.000000
+map_Kd bridge_grp.png

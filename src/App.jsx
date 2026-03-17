@@ -1,5 +1,6 @@
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { Routes, Route, Link, useParams, useNavigate } from "react-router-dom";
+import { Routes, Route, Link, useParams, useNavigate, useLocation } from "react-router-dom";
+import { LostWoodsScene } from "./components/homepage3d/LostWoodsScene";
 import { useEffect, useState, useRef, createContext, useContext } from "react";
 import { AuctionBar } from "./components/auction/AuctionBar";
 import gamesData from "../games.json";
@@ -625,9 +626,11 @@ function DesktopModal({ game, onClose, isMobileGame }) {
 function GameModal() {
   const { slug } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const isMobile = useIsMobile();
   const game = games.find((g) => g.slug === slug);
   const { trackPlay } = usePlayCounts();
+  const closePath = location.pathname.startsWith('/old') ? '/old' : '/';
 
   // Track play when game opens
   useEffect(() => {
@@ -646,14 +649,14 @@ function GameModal() {
   useEffect(() => {
     const handleEsc = (e) => {
       if (e.key === "Escape") {
-        navigate("/");
+        navigate(closePath);
       }
     };
     window.addEventListener("keydown", handleEsc);
     return () => window.removeEventListener("keydown", handleEsc);
-  }, [navigate]);
+  }, [navigate, closePath]);
 
-  const handleClose = () => navigate("/");
+  const handleClose = () => navigate(closePath);
 
   if (!game) {
     return (
@@ -1027,6 +1030,8 @@ function AppContent() {
       <GuestbookModal isOpen={guestbookOpen} onClose={() => setGuestbookOpen(false)} />
 
       <Routes>
+        <Route path="/old/:slug" element={<GameModal />} />
+        <Route path="/old" element={null} />
         <Route path="/:slug" element={<GameModal />} />
         <Route path="/" element={null} />
       </Routes>
@@ -1036,10 +1041,13 @@ function AppContent() {
 
 export default function App() {
   const playCountsValue = usePlayCountsProvider();
-  
+
   return (
     <PlayCountsContext.Provider value={playCountsValue}>
-      <AppContent />
+      <Routes>
+        <Route path="/" element={<LostWoodsScene />} />
+        <Route path="/*" element={<AppContent />} />
+      </Routes>
     </PlayCountsContext.Provider>
   );
 }

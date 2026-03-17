@@ -1,0 +1,67 @@
+# Blender3D MTL File: Navi.blend
+# Material Count: 6
+newmtl Material.097_Navi_grp.png
+Ns 0.000000
+Ka 0.000000 0.000000 0.000000
+Kd 0.656250 0.656250 0.796875
+Ks 0.000000 0.000000 0.000000
+Ni 1.000000
+d 1.000000
+illum 2
+map_Kd Navi_grp.png
+
+
+newmtl Material.102_Navi_grp.png
+Ns 0.000000
+Ka 0.000000 0.000000 0.000000
+Kd 0.796875 0.796875 0.796875
+Ks 0.000000 0.000000 0.000000
+Ni 1.000000
+d 1.000000
+illum 2
+map_Kd Navi_grp.png
+
+
+newmtl None_Navi_grp.png
+Ns 0
+Ka 0.000000 0.000000 0.000000
+Kd 0.8 0.8 0.8
+Ks 0.8 0.8 0.8
+d 1
+illum 2
+map_Kd Navi_grp.png
+
+
+newmtl Material.099_Navi_grp.png
+Ns 0.000000
+Ka 0.000000 0.000000 0.000000
+Kd 0.796875 0.796875 0.796875
+Ks 0.000000 0.000000 0.000000
+Ni 1.000000
+d 1.000000
+illum 2
+map_Kd Navi_grp.png
+
+
+newmtl Material.101_Navi_grp.png
+Ns 0.000000
+Ka 0.000000 0.000000 0.000000
+Kd 0.796875 0.796875 0.796875
+Ks 0.000000 0.000000 0.000000
+Ni 1.000000
+d 1.000000
+illum 2
+map_Kd Navi_grp.png
+
+
+newmtl Material.098_Navi_grp.png
+Ns 0.000000
+Ka 0.000000 0.000000 0.000000
+Kd 0.796875 0.796875 0.796875
+Ks 0.000000 0.000000 0.000000
+Ni 1.000000
+d 1.000000
+illum 2
+map_Kd Navi_grp.png
+
+

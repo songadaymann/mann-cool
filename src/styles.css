@@ -47,6 +47,10 @@ body::before {
   z-index: 1000;
 }
 
+body.no-scanlines::before {
+  display: none;
+}
+
 .page {
   min-height: 100%;
   padding: 2rem;
