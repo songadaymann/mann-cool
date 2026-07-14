@@ -573,6 +573,17 @@
       "mobileMode": "landscape",
       "controls": null,
       "hidden": false
+    },
+    {
+      "id": 35,
+      "tokenId": 35,
+      "slug": "hell",
+      "title": "Lindsay Graham In Hell",
+      "image": "/nes-game-images/hell.png",
+      "gameUrl": "https://platformer-lindsay-in-hell-c94911.pages.dev",
+      "platform": "desktop",
+      "redirect": true,
+      "hidden": true
     }
   ]
 }

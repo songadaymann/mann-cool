@@ -31,6 +31,7 @@ const games = [
   { slug: 'towerofpunks', title: 'Tower of Punks', image: '/nes-game-images/towerofpunks.png' },
   { slug: 'armfulofpunks', title: 'Armful of Punks', image: '/nes-game-images/armfulofpunks.png' },
   { slug: 'punkfling', title: 'Punk Fling', image: '/nes-game-images/punkfling.png' },
+  { slug: 'hell', title: 'Lindsay Graham In Hell', image: '/nes-game-images/hell.png' },
 ];
 
 // User agents for social media crawlers
