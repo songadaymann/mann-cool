@@ -29,8 +29,8 @@ main { display:grid; gap:clamp(76px,10vw,144px); padding:clamp(60px,8vw,112px) 0
 .games-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:clamp(28px,3.2vw,54px) clamp(14px,2vw,28px); }
 .game-card { position:relative; min-width:0; }
 .game-card-link { display:block; text-decoration:none; }
-.game-card-art { position:relative; display:block; aspect-ratio:4/3; border-radius:4px; background:#e9e7df; overflow:hidden; }
-.game-card-art img { width:100%; height:100%; object-fit:cover; transition:transform 220ms ease,filter 220ms ease; }
+.game-card-art { position:relative; display:block; aspect-ratio:2/3; border:1px solid #dedbd1; border-radius:4px; background:#e9e7df; overflow:hidden; }
+.game-card-art img { width:100%; height:100%; object-fit:contain; transition:transform 220ms ease,filter 220ms ease; }
 .game-card-link:hover .game-card-art img,.game-card-link:focus-visible .game-card-art img { transform:scale(1.018); }
 .game-card-link:focus-visible { outline:3px solid #171714; outline-offset:5px; border-radius:2px; }
 .game-card-copy { display:grid; gap:7px; padding:14px 1px 0; }
