@@ -3,6 +3,7 @@
   "name": "mann-cool-penisvagina",
   "main": "src/index.js",
   "compatibility_date": "2026-07-15",
+  "preview_urls": false,
   "routes": [
     {
       "pattern": "mann.cool/penisvagina",
@@ -13,19 +14,11 @@
       "zone_name": "mann.cool"
     },
     {
-      "pattern": "mann.cool/penisvagina*",
-      "zone_name": "mann.cool"
-    },
-    {
       "pattern": "www.mann.cool/penisvagina",
       "zone_name": "mann.cool"
     },
     {
       "pattern": "www.mann.cool/penisvagina/*",
-      "zone_name": "mann.cool"
-    },
-    {
-      "pattern": "www.mann.cool/penisvagina*",
       "zone_name": "mann.cool"
     }
   ],

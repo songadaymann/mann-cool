@@ -95,9 +95,9 @@
         ]
       },
       "delivery": {
-        "mode": "legacy-proxy",
-        "origin": "https://game.songaday.world",
-        "workerName": null,
+        "mode": "worker-route",
+        "origin": "https://mann-cool-ctn.novox-robot.workers.dev",
+        "workerName": "mann-cool-ctn",
         "routePatterns": [
           "mann.cool/ctn",
           "mann.cool/ctn/*"
@@ -155,9 +155,9 @@
         ]
       },
       "delivery": {
-        "mode": "legacy-proxy",
-        "origin": "https://windows-ruddy.vercel.app",
-        "workerName": null,
+        "mode": "worker-route",
+        "origin": "https://mann-cool-windows.novox-robot.workers.dev",
+        "workerName": "mann-cool-windows",
         "routePatterns": [
           "mann.cool/windows",
           "mann.cool/windows/*"
@@ -236,9 +236,9 @@
         ]
       },
       "delivery": {
-        "mode": "legacy-proxy",
-        "origin": "https://tall-grass.vercel.app",
-        "workerName": null,
+        "mode": "worker-route",
+        "origin": "https://mann-cool-tallgrass.novox-robot.workers.dev",
+        "workerName": "mann-cool-tallgrass",
         "routePatterns": [
           "mann.cool/tallgrass",
           "mann.cool/tallgrass/*"
@@ -305,9 +305,9 @@
         ]
       },
       "delivery": {
-        "mode": "legacy-proxy",
-        "origin": "https://chonksisyphus.vercel.app",
-        "workerName": null,
+        "mode": "worker-route",
+        "origin": "https://mann-cool-chonksisyphus.novox-robot.workers.dev",
+        "workerName": "mann-cool-chonksisyphus",
         "routePatterns": [
           "mann.cool/chonksisyphus",
           "mann.cool/chonksisyphus/*"
@@ -351,9 +351,9 @@
         ]
       },
       "delivery": {
-        "mode": "legacy-proxy",
-        "origin": "https://oil-ruddy.vercel.app",
-        "workerName": null,
+        "mode": "worker-route",
+        "origin": "https://mann-cool-oil.novox-robot.workers.dev",
+        "workerName": "mann-cool-oil",
         "routePatterns": [
           "mann.cool/oil",
           "mann.cool/oil/*"
@@ -394,9 +394,9 @@
         ]
       },
       "delivery": {
-        "mode": "legacy-proxy",
-        "origin": "https://loki-gules.vercel.app",
-        "workerName": null,
+        "mode": "worker-route",
+        "origin": "https://mann-cool-loki.novox-robot.workers.dev",
+        "workerName": "mann-cool-loki",
         "routePatterns": [
           "mann.cool/loki",
           "mann.cool/loki/*"
@@ -480,9 +480,9 @@
         ]
       },
       "delivery": {
-        "mode": "legacy-proxy",
-        "origin": "https://rcs-nine-psi.vercel.app",
-        "workerName": null,
+        "mode": "worker-route",
+        "origin": "https://mann-cool-rcs.novox-robot.workers.dev",
+        "workerName": "mann-cool-rcs",
         "routePatterns": [
           "mann.cool/rcs",
           "mann.cool/rcs/*"
@@ -523,9 +523,9 @@
         ]
       },
       "delivery": {
-        "mode": "legacy-proxy",
-        "origin": "https://kevin-runner.vercel.app",
-        "workerName": null,
+        "mode": "worker-route",
+        "origin": "https://mann-cool-kevin.novox-robot.workers.dev",
+        "workerName": "mann-cool-kevin",
         "routePatterns": [
           "mann.cool/kevin",
           "mann.cool/kevin/*"
@@ -611,9 +611,9 @@
         ]
       },
       "delivery": {
-        "mode": "legacy-proxy",
-        "origin": "https://bubble-shader-game.vercel.app",
-        "workerName": null,
+        "mode": "worker-route",
+        "origin": "https://mann-cool-bubble.novox-robot.workers.dev",
+        "workerName": "mann-cool-bubble",
         "routePatterns": [
           "mann.cool/bubble",
           "mann.cool/bubble/*"
@@ -655,9 +655,9 @@
         ]
       },
       "delivery": {
-        "mode": "legacy-proxy",
-        "origin": "https://cyber-sunshine-smash.novox-robot.workers.dev",
-        "workerName": null,
+        "mode": "worker-route",
+        "origin": "https://mann-cool-cyber.novox-robot.workers.dev",
+        "workerName": "mann-cool-cyber",
         "routePatterns": [
           "mann.cool/cyber",
           "mann.cool/cyber/*"
@@ -721,9 +721,9 @@
         ]
       },
       "delivery": {
-        "mode": "legacy-proxy",
-        "origin": "https://punkmatch.vercel.app",
-        "workerName": null,
+        "mode": "worker-route",
+        "origin": "https://mann-cool-punkmatch.novox-robot.workers.dev",
+        "workerName": "mann-cool-punkmatch",
         "routePatterns": [
           "mann.cool/punkmatch",
           "mann.cool/punkmatch/*"
@@ -768,9 +768,9 @@
         ]
       },
       "delivery": {
-        "mode": "legacy-proxy",
-        "origin": "https://beeple-blox.vercel.app",
-        "workerName": null,
+        "mode": "worker-route",
+        "origin": "https://mann-cool-beepleblox.novox-robot.workers.dev",
+        "workerName": "mann-cool-beepleblox",
         "routePatterns": [
           "mann.cool/beepleblox",
           "mann.cool/beepleblox/*"
@@ -813,9 +813,9 @@
         ]
       },
       "delivery": {
-        "mode": "legacy-proxy",
-        "origin": "https://doge-henna-six.vercel.app",
-        "workerName": null,
+        "mode": "worker-route",
+        "origin": "https://mann-cool-doge.novox-robot.workers.dev",
+        "workerName": "mann-cool-doge",
         "routePatterns": [
           "mann.cool/doge",
           "mann.cool/doge/*"
@@ -855,9 +855,9 @@
         ]
       },
       "delivery": {
-        "mode": "legacy-proxy",
-        "origin": "https://girlscouts.vercel.app",
-        "workerName": null,
+        "mode": "worker-route",
+        "origin": "https://mann-cool-girlscouts.novox-robot.workers.dev",
+        "workerName": "mann-cool-girlscouts",
         "routePatterns": [
           "mann.cool/girlscouts",
           "mann.cool/girlscouts/*"
@@ -898,9 +898,9 @@
         ]
       },
       "delivery": {
-        "mode": "legacy-proxy",
-        "origin": "https://dream-hazel.vercel.app",
-        "workerName": null,
+        "mode": "worker-route",
+        "origin": "https://mann-cool-dream.novox-robot.workers.dev",
+        "workerName": "mann-cool-dream",
         "routePatterns": [
           "mann.cool/dream",
           "mann.cool/dream/*"
@@ -940,9 +940,9 @@
         ]
       },
       "delivery": {
-        "mode": "legacy-proxy",
-        "origin": "https://kombatice.vercel.app",
-        "workerName": null,
+        "mode": "worker-route",
+        "origin": "https://mann-cool-kombatice.novox-robot.workers.dev",
+        "workerName": "mann-cool-kombatice",
         "routePatterns": [
           "mann.cool/kombatice",
           "mann.cool/kombatice/*"
@@ -983,9 +983,9 @@
         ]
       },
       "delivery": {
-        "mode": "legacy-proxy",
-        "origin": "https://catlid.vercel.app",
-        "workerName": null,
+        "mode": "worker-route",
+        "origin": "https://mann-cool-lidstaysclosed.novox-robot.workers.dev",
+        "workerName": "mann-cool-lidstaysclosed",
         "routePatterns": [
           "mann.cool/lidstaysclosed",
           "mann.cool/lidstaysclosed/*"
@@ -1030,10 +1030,9 @@
         ]
       },
       "delivery": {
-        "mode": "legacy-proxy",
-        "origin": "https://meelode.vercel.app",
-        "entryPath": "/lodeRunner.html",
-        "workerName": null,
+        "mode": "worker-route",
+        "origin": "https://mann-cool-meelode.novox-robot.workers.dev",
+        "workerName": "mann-cool-meelode",
         "routePatterns": [
           "mann.cool/meelode",
           "mann.cool/meelode/*"
@@ -1095,9 +1094,9 @@
         ]
       },
       "delivery": {
-        "mode": "legacy-proxy",
-        "origin": "https://synthsnow.vercel.app",
-        "workerName": null,
+        "mode": "worker-route",
+        "origin": "https://mann-cool-synthsnow.novox-robot.workers.dev",
+        "workerName": "mann-cool-synthsnow",
         "routePatterns": [
           "mann.cool/synthsnow",
           "mann.cool/synthsnow/*"
@@ -1229,9 +1228,9 @@
         "scoreDisplay": "absolute"
       },
       "delivery": {
-        "mode": "legacy-proxy",
-        "origin": "https://punksinspace.vercel.app",
-        "workerName": null,
+        "mode": "worker-route",
+        "origin": "https://mann-cool-punksinspace.novox-robot.workers.dev",
+        "workerName": "mann-cool-punksinspace",
         "routePatterns": [
           "mann.cool/punksinspace",
           "mann.cool/punksinspace/*"
@@ -1272,9 +1271,9 @@
         ]
       },
       "delivery": {
-        "mode": "legacy-proxy",
-        "origin": "https://towerofpunks.vercel.app",
-        "workerName": null,
+        "mode": "worker-route",
+        "origin": "https://mann-cool-towerofpunks.novox-robot.workers.dev",
+        "workerName": "mann-cool-towerofpunks",
         "routePatterns": [
           "mann.cool/towerofpunks",
           "mann.cool/towerofpunks/*"
@@ -1315,9 +1314,9 @@
         ]
       },
       "delivery": {
-        "mode": "legacy-proxy",
-        "origin": "https://armfulofpunks.vercel.app",
-        "workerName": null,
+        "mode": "worker-route",
+        "origin": "https://mann-cool-armfulofpunks.novox-robot.workers.dev",
+        "workerName": "mann-cool-armfulofpunks",
         "routePatterns": [
           "mann.cool/armfulofpunks",
           "mann.cool/armfulofpunks/*"
@@ -1404,9 +1403,9 @@
         ]
       },
       "delivery": {
-        "mode": "legacy-proxy",
-        "origin": "https://dontscroll.vercel.app",
-        "workerName": null,
+        "mode": "worker-route",
+        "origin": "https://mann-cool-dontscroll.novox-robot.workers.dev",
+        "workerName": "mann-cool-dontscroll",
         "routePatterns": [
           "mann.cool/dontscroll",
           "mann.cool/dontscroll/*"
@@ -1446,9 +1445,9 @@
         ]
       },
       "delivery": {
-        "mode": "legacy-proxy",
-        "origin": "https://perilouspenguin.vercel.app",
-        "workerName": null,
+        "mode": "worker-route",
+        "origin": "https://mann-cool-perilouspenguin.novox-robot.workers.dev",
+        "workerName": "mann-cool-perilouspenguin",
         "routePatterns": [
           "mann.cool/perilouspenguin",
           "mann.cool/perilouspenguin/*"
@@ -1490,9 +1489,9 @@
         ]
       },
       "delivery": {
-        "mode": "legacy-proxy",
-        "origin": "https://848-seven.vercel.app",
-        "workerName": null,
+        "mode": "worker-route",
+        "origin": "https://mann-cool-flighttosfo.novox-robot.workers.dev",
+        "workerName": "mann-cool-flighttosfo",
         "routePatterns": [
           "mann.cool/flighttosfo",
           "mann.cool/flighttosfo/*"
@@ -1532,9 +1531,9 @@
         ]
       },
       "delivery": {
-        "mode": "legacy-proxy",
-        "origin": "https://335prod.vercel.app",
-        "workerName": null,
+        "mode": "worker-route",
+        "origin": "https://mann-cool-meebitsmountain.novox-robot.workers.dev",
+        "workerName": "mann-cool-meebitsmountain",
         "routePatterns": [
           "mann.cool/meebitsmountain",
           "mann.cool/meebitsmountain/*"
@@ -1575,9 +1574,9 @@
         ]
       },
       "delivery": {
-        "mode": "legacy-proxy",
-        "origin": "https://100goombas.vercel.app",
-        "workerName": null,
+        "mode": "worker-route",
+        "origin": "https://mann-cool-100goombas.novox-robot.workers.dev",
+        "workerName": "mann-cool-100goombas",
         "routePatterns": [
           "mann.cool/100goombas",
           "mann.cool/100goombas/*"

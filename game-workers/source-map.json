@@ -1,0 +1,42 @@
+{
+  "ctn": { "assets": "games/CTN" },
+  "windows": { "assets": "games/windows/windows/WebGLBuild" },
+  "tallgrass": {
+    "assets": "games/tallgrass",
+    "include": [
+      "index.html",
+      "assets/flat-grass-texture/2K",
+      "assets/grass-lods/medium",
+      "assets/chunks/centered/optimized",
+      "assets/chunks/centered/lod-low",
+      "assets/chunks/centered/lod-ultra"
+    ]
+  },
+  "chonksisyphus": { "assets": "games/chonksisyphus/chonksisyphus-game" },
+  "oil": { "assets": "games/trump-oil/trump-oil-game" },
+  "loki": { "assets": "games/non-binary" },
+  "rcs": { "assets": "games/RCS" },
+  "kevin": { "assets": "games/kevin" },
+  "bubble": { "assets": "games/shader-bubble/webGLBuilds/BUBBLE609" },
+  "cyber": { "assets": "games/MUSCLE-car/godot-project/export/web" },
+  "punkmatch": {
+    "assets": "games/cryptopunk-match/out",
+    "rewriteRoots": ["_next", "404", "index.txt", "music", "punks", "punks-metadata.json", "traits"]
+  },
+  "beepleblox": { "assets": "games/beeple-dildo" },
+  "doge": { "assets": "games/flying-doge/WEBgl/doge806" },
+  "girlscouts": { "assets": "games/girlscout" },
+  "dream": { "assets": "games/mouth-dream" },
+  "kombatice": { "assets": "games/ice-slip" },
+  "lidstaysclosed": { "assets": "games/catLid" },
+  "meelode": { "assets": "games/meelode/totalrecall" },
+  "synthsnow": { "assets": "games/SynthSnow/snow-tree/dist", "buildCwd": "games/SynthSnow/snow-tree", "build": "npm run build -- --base=/synthsnow/" },
+  "punksinspace": { "assets": "games/punks-in-space/dist", "buildCwd": "games/punks-in-space", "build": "npm run build -- --base=/punksinspace/" },
+  "towerofpunks": { "assets": "games/tower-of-punks/dist", "buildCwd": "games/tower-of-punks", "build": "npm run build -- --base=/towerofpunks/" },
+  "armfulofpunks": { "assets": "games/fill-the-punks" },
+  "dontscroll": { "assets": "games/dont-scroll" },
+  "perilouspenguin": { "assets": "games/perilousPenguin" },
+  "flighttosfo": { "assets": "games/FlightToSFO/WEB_EXPORTS/848" },
+  "meebitsmountain": { "assets": "mann-dot-cool-worktrees/platform-v1/.retrieved-games/meebitsmountain" },
+  "100goombas": { "assets": "games/100-marios/game" }
+}

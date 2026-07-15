@@ -3,6 +3,7 @@
   "name": "mann-cool-punkfling",
   "main": "src/index.js",
   "compatibility_date": "2026-07-15",
+  "preview_urls": false,
   "routes": [
     {
       "pattern": "mann.cool/punkfling",
@@ -13,19 +14,11 @@
       "zone_name": "mann.cool"
     },
     {
-      "pattern": "mann.cool/punkfling*",
-      "zone_name": "mann.cool"
-    },
-    {
       "pattern": "www.mann.cool/punkfling",
       "zone_name": "mann.cool"
     },
     {
       "pattern": "www.mann.cool/punkfling/*",
-      "zone_name": "mann.cool"
-    },
-    {
-      "pattern": "www.mann.cool/punkfling*",
       "zone_name": "mann.cool"
     }
   ],

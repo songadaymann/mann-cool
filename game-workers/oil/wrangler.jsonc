@@ -1,0 +1,50 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "mann-cool-oil",
+  "main": "src/index.js",
+  "compatibility_date": "2026-07-15",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "workers_dev": true,
+  "preview_urls": false,
+  "routes": [
+    {
+      "pattern": "mann.cool/oil",
+      "zone_name": "mann.cool"
+    },
+    {
+      "pattern": "mann.cool/oil/*",
+      "zone_name": "mann.cool"
+    },
+    {
+      "pattern": "www.mann.cool/oil",
+      "zone_name": "mann.cool"
+    },
+    {
+      "pattern": "www.mann.cool/oil/*",
+      "zone_name": "mann.cool"
+    }
+  ],
+  "assets": {
+    "directory": "./.stage",
+    "binding": "ASSETS",
+    "run_worker_first": true
+  },
+  "r2_buckets": [
+    {
+      "binding": "GAME_ASSETS",
+      "bucket_name": "mann-cool-game-assets"
+    }
+  ],
+  "observability": {
+    "enabled": true,
+    "logs": {
+      "head_sampling_rate": 1
+    },
+    "traces": {
+      "enabled": true,
+      "head_sampling_rate": 0.05
+    }
+  }
+}

@@ -1,6 +1,5 @@
-import { games, getDeliveryConfig, getGame } from "./lib/catalog.js";
+import { games, getGame } from "./lib/catalog.js";
 import { handleLegacyApi } from "./legacy-api.js";
-import { proxyLegacyGame } from "./legacy-proxy.js";
 import { handlePlatformApi } from "./platform-api.js";
 
 const PLATFORM_ENDPOINTS = new Set(["plays", "guestbook", "leaderboard"]);
@@ -70,8 +69,6 @@ async function handleRequest(request, env) {
       return Response.redirect(url, 308);
     }
     if (isCrawler(request) && segments.length === 1) return gameOpenGraph(request, game);
-    const delivery = getDeliveryConfig(game);
-    if (delivery.mode === "legacy-proxy") return proxyLegacyGame(request, game);
     return new Response("This game is served by its dedicated Worker route.", { status: 404 });
   }
 

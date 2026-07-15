@@ -12,19 +12,20 @@
     "db:migrate:remote": "wrangler d1 migrations apply mann-cool-platform --remote",
     "worker:types": "wrangler types worker-configuration.d.ts",
     "worker:dry-run": "npm run build && wrangler deploy --dry-run",
+    "verify:platform": "node scripts/verify-platform.mjs",
     "verify:catalog:live": "node scripts/verify-catalog-live.mjs",
     "deploy:featured": "wrangler deploy --config game-workers/coldplay-canoodle/wrangler.jsonc && wrangler deploy --config game-workers/fuckice/wrangler.jsonc && wrangler deploy --config game-workers/hell/wrangler.jsonc",
-    "deploy:sledding": "wrangler deploy --config game-workers/sledding/wrangler.jsonc"
-    ,"deploy:redirect-batch": "wrangler deploy --config game-workers/pong/wrangler.jsonc && wrangler deploy --config game-workers/protectgreenland/wrangler.jsonc && wrangler deploy --config game-workers/penisvagina/wrangler.jsonc && wrangler deploy --config game-workers/punkfling/wrangler.jsonc"
+    "deploy:sledding": "wrangler deploy --config game-workers/sledding/wrangler.jsonc",
+    "deploy:redirect-batch": "wrangler deploy --config game-workers/pong/wrangler.jsonc && wrangler deploy --config game-workers/protectgreenland/wrangler.jsonc && wrangler deploy --config game-workers/penisvagina/wrangler.jsonc && wrangler deploy --config game-workers/punkfling/wrangler.jsonc"
   },
   "dependencies": {
     "@upstash/redis": "^1.36.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "viem": "^2.43.3"
+    "viem": "^2.55.2"
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "^4.3.4",
-    "vite": "^5.4.11"
+    "@vitejs/plugin-react": "^6.0.3",
+    "vite": "^8.1.4"
   }
 }

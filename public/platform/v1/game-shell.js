@@ -4,6 +4,7 @@
   const gameTitle = script?.dataset.title || document.title || slug;
   const leaderboardEnabled = script?.dataset.leaderboard === "true";
   const leaderboardUrl = script?.dataset.leaderboardUrl || "";
+  const leaderboardVariant = script?.dataset.leaderboardVariant || "default";
   if (!slug || document.querySelector("mann-cool-game-shell")) return;
 
   fetch("https://mann.cool/api/v1/plays", {
@@ -233,7 +234,7 @@
     async loadLeaderboard() {
       const container = this.shadowRoot.querySelector(".scores");
       try {
-        const response = await fetch(`/api/v1/leaderboard?slug=${encodeURIComponent(slug)}&limit=25`);
+        const response = await fetch(`/api/v1/leaderboard?slug=${encodeURIComponent(slug)}&variant=${encodeURIComponent(leaderboardVariant)}&limit=25`);
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || "Leaderboard unavailable");
         container.replaceChildren();

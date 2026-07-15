@@ -32,11 +32,3 @@ export function getLeaderboardConfig(game) {
     scoreDisplay: config.scoreDisplay === "absolute" ? "absolute" : "raw",
   };
 }
-
-export function getDeliveryConfig(game) {
-  if (game?.delivery) return game.delivery;
-  return {
-    mode: game?.redirect ? "legacy-proxy" : "legacy-proxy",
-    origin: game?.gameUrl || "",
-  };
-}

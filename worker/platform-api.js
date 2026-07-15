@@ -6,7 +6,7 @@ import {
   cleanText,
   hashIdentity,
   json,
-  options,
+  options as corsOptions,
   readJson,
 } from "./lib/http.js";
 
@@ -311,12 +311,12 @@ async function handleLeaderboard(request, env, legacy = false) {
   throw new HttpError(405, "Method not allowed");
 }
 
-export async function handlePlatformApi(request, env, endpoint, options = {}) {
-  if (request.method === "OPTIONS") return options();
+export async function handlePlatformApi(request, env, endpoint, requestOptions = {}) {
+  if (request.method === "OPTIONS") return corsOptions();
   try {
     if (endpoint === "plays") return await handlePlays(request, env);
     if (endpoint === "guestbook") return await handleGuestbook(request, env);
-    if (endpoint === "leaderboard") return await handleLeaderboard(request, env, options.legacy === true);
+    if (endpoint === "leaderboard") return await handleLeaderboard(request, env, requestOptions.legacy === true);
     return json({ error: "API route not found" }, { status: 404 });
   } catch (error) {
     if (error instanceof HttpError) return json({ error: error.message }, { status: error.status });

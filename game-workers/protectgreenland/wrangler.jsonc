@@ -3,6 +3,7 @@
   "name": "mann-cool-protectgreenland",
   "main": "src/index.js",
   "compatibility_date": "2026-07-15",
+  "preview_urls": false,
   "routes": [
     {
       "pattern": "mann.cool/protectgreenland",
@@ -13,19 +14,11 @@
       "zone_name": "mann.cool"
     },
     {
-      "pattern": "mann.cool/protectgreenland*",
-      "zone_name": "mann.cool"
-    },
-    {
       "pattern": "www.mann.cool/protectgreenland",
       "zone_name": "mann.cool"
     },
     {
       "pattern": "www.mann.cool/protectgreenland/*",
-      "zone_name": "mann.cool"
-    },
-    {
-      "pattern": "www.mann.cool/protectgreenland*",
       "zone_name": "mann.cool"
     }
   ],

@@ -27,8 +27,8 @@ for (const game of catalog.games || []) {
   orders.add(game.catalogOrder);
   if (game.featuredRank !== undefined) featuredRanks.push([game.featuredRank, game.slug]);
   if (!game.deviceSupport || !Object.values(game.deviceSupport).some(Boolean)) errors.push(`${game.slug}: no supported devices`);
-  if (!game.delivery || !["legacy-proxy", "worker-route"].includes(game.delivery.mode)) errors.push(`${game.slug}: invalid delivery mode`);
-  if (game.delivery?.mode === "legacy-proxy" && !game.delivery.origin) errors.push(`${game.slug}: proxy origin is required`);
+  if (game.delivery?.mode !== "worker-route") errors.push(`${game.slug}: every published game must use a dedicated Worker route`);
+  if (!game.delivery.workerName || !game.delivery.origin) errors.push(`${game.slug}: Worker metadata is required`);
   const coverPath = new URL(`public${game.cover}`, root);
   if (!fs.existsSync(coverPath)) errors.push(`${game.slug}: missing cover ${game.cover}`);
   if (game.hoverGif && !fs.existsSync(new URL(`public${game.hoverGif}`, root))) errors.push(`${game.slug}: missing hover GIF ${game.hoverGif}`);

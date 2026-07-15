@@ -7,6 +7,9 @@ dist
 .env*.local
 .wrangler/
 migration-backups/
+game-workers/*/.stage/
+game-workers/*/.stage-r2.json
+.retrieved-games/
 
 # Local docs/assets not intended for commit
 CLICKSTR_V1_ARCHITECTURE.md

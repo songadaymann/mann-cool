@@ -3,6 +3,7 @@
   "name": "mann-cool-pong",
   "main": "src/index.js",
   "compatibility_date": "2026-07-15",
+  "preview_urls": false,
   "routes": [
     {
       "pattern": "mann.cool/pong",
@@ -13,19 +14,11 @@
       "zone_name": "mann.cool"
     },
     {
-      "pattern": "mann.cool/pong*",
-      "zone_name": "mann.cool"
-    },
-    {
       "pattern": "www.mann.cool/pong",
       "zone_name": "mann.cool"
     },
     {
       "pattern": "www.mann.cool/pong/*",
-      "zone_name": "mann.cool"
-    },
-    {
-      "pattern": "www.mann.cool/pong*",
       "zone_name": "mann.cool"
     }
   ],
