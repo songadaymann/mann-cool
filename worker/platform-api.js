@@ -158,11 +158,11 @@ async function handleGuestbook(request, env) {
   if (request.method === "POST") {
     await enforceRateLimit(request, env, "guestbook:post");
     const body = await readJson(request, 4_096);
-    const slug = cleanSlug(body.slug || body.game || "mann-cool");
+    const slug = cleanSlug(body.slug || body.game || url.searchParams.get("slug") || "mann-cool");
     if (!slug) throw new HttpError(400, "A valid slug is required");
     await ensureRegisteredGame(env, slug);
-    const name = cleanText(body.name, 50);
-    const message = cleanText(body.message, 500);
+    const name = cleanText(body.name || body.displayName, 50);
+    const message = cleanText(body.message || body.body, 500);
     if (!name || !message) throw new HttpError(400, "Name and message are required");
     await verifyTurnstile(request, env, body.turnstileToken || body.turnstile_token);
     const id = crypto.randomUUID();
@@ -194,7 +194,7 @@ const LEADERBOARD_RESERVED_FIELDS = new Set([
 ]);
 
 function leaderboardMetadata(body) {
-  const metadata = { ...(body.metadata || {}) };
+  const metadata = { ...parseMetadata(body.metadata) };
   for (const [key, value] of Object.entries(body)) {
     if (LEADERBOARD_RESERVED_FIELDS.has(key) || value === undefined) continue;
     if (!/^[a-zA-Z][a-zA-Z0-9_]{0,39}$/.test(key)) continue;
@@ -292,16 +292,17 @@ async function handleLeaderboard(request, env, legacy = false) {
     const row = await env.DB.prepare(`
       SELECT submission_id AS submissionId, player_name AS name, player_id AS playerId,
         score, metadata, created_at AS timestamp
-      FROM leaderboard_entries WHERE submission_id = ? AND slug = ?
-    `).bind(submissionId, slug).first();
+      FROM leaderboard_entries WHERE submission_id = ? AND slug = ? AND variant = ?
+    `).bind(submissionId, slug, variant).first();
     if (!row) throw new HttpError(409, "Submission ID already belongs to another score");
     const entry = leaderboardEntry(row, config);
+    const storedScore = Number(row.score);
     const comparator = config.direction === "asc" ? "<" : ">";
     const rankRow = await env.DB.prepare(`
       SELECT 1 + COUNT(*) AS rank FROM leaderboard_entries
       WHERE slug = ? AND variant = ? AND moderation_status = 'approved'
         AND (score ${comparator} ? OR (score = ? AND created_at < ?))
-    `).bind(slug, variant, score, score, row.timestamp).first();
+    `).bind(slug, variant, storedScore, storedScore, row.timestamp).first();
     return json(
       { success: true, game: slug, slug, variant, entry, rank: Number(rankRow?.rank || 1) },
       { status: legacy ? 200 : 201 },

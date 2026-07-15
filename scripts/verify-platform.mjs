@@ -89,6 +89,37 @@ if (allowWrites) {
   await submit("punkfling", 10, "fling-low");
   await submit("punkfling", 20, "fling-high", true);
 
+  const idempotencyKey = `audit-${run}-idempotent`;
+  const firstIdempotent = await check("/api/v1/leaderboard", 201, {
+    method: "POST",
+    headers: { "content-type": "application/json", "idempotency-key": idempotencyKey },
+    body: JSON.stringify({ slug: "sledding", variant: "default", name: "Platform audit", score: 30 }),
+  });
+  const retryIdempotent = await check("/api/v1/leaderboard", 201, {
+    method: "POST",
+    headers: { "content-type": "application/json", "idempotency-key": idempotencyKey },
+    body: JSON.stringify({ slug: "sledding", variant: "default", name: "Changed retry", score: -999 }),
+  });
+  if (firstIdempotent.json.entry.score !== 30 || retryIdempotent.json.entry.score !== 30 || retryIdempotent.json.rank !== firstIdempotent.json.rank) {
+    throw new Error("Leaderboard idempotency retry changed the stored score or rank");
+  }
+  await check("/api/v1/leaderboard", 400, {
+    method: "POST",
+    headers: { "content-type": "application/json", "idempotency-key": `audit-${run}-metadata` },
+    body: JSON.stringify({ slug: "sledding", variant: "default", name: "Platform audit", score: 40, metadata: ["invalid"] }),
+  });
+  const crossVariantKey = `audit-${run}-variant`;
+  await check("/api/v1/leaderboard", 201, {
+    method: "POST",
+    headers: { "content-type": "application/json", "idempotency-key": crossVariantKey },
+    body: JSON.stringify({ slug: "punkmatch", variant: "4x4", name: "Platform audit", score: 50 }),
+  });
+  await check("/api/v1/leaderboard", 409, {
+    method: "POST",
+    headers: { "content-type": "application/json", "idempotency-key": crossVariantKey },
+    body: JSON.stringify({ slug: "punkmatch", variant: "6x6", name: "Platform audit", score: 50 }),
+  });
+
   const asc = (await check("/api/v1/leaderboard?slug=sledding&variant=default&limit=100", 200)).json.entries
     .filter((entry) => entry.metadata?.verificationRun === run);
   const desc = (await check("/api/v1/leaderboard?slug=punkfling&variant=default&limit=100", 200)).json.entries

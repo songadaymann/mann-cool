@@ -25,6 +25,7 @@ for (const game of catalog.games.filter((entry) => entry.status === "published")
     if (!type.includes("text/html")) throw new Error(`root content type is ${type}`);
     const html = await response.text();
     if (!html.includes("/platform/v1/game-shell.js")) throw new Error("shared v1 shell is missing");
+    if (!/<meta[^>]+name=["']viewport["']/i.test(html)) throw new Error("responsive viewport metadata is missing");
     const candidates = [...html.matchAll(/\b(?:src|href|poster)=["']([^"']+)["']/gi)]
       .map((match) => match[1])
       .filter((value) => !/^(?:data:|blob:|#|javascript:|mailto:|https?:\/\/)/i.test(value))
@@ -81,6 +82,38 @@ for (const game of catalog.games.filter((entry) => entry.status === "published")
 
 const publishedSlugs = new Set(catalog.games.filter((entry) => entry.status === "published").map((entry) => entry.slug));
 for (const slug of Object.keys(runtimeChecks)) if (!publishedSlugs.has(slug)) errors.push(`${slug}: runtime verification manifest has no published catalog game`);
+
+try {
+  const [compatibilityResponse, sharedResponse] = await Promise.all([
+    fetch("https://mann.cool/hell/api/guestbook", { headers: { "user-agent": "mann-cool-catalog-verifier/2.0" } }),
+    fetch("https://mann.cool/api/v1/guestbook?slug=hell&limit=30", { headers: { "user-agent": "mann-cool-catalog-verifier/2.0" } }),
+  ]);
+  const compatibility = await compatibilityResponse.json();
+  const shared = await sharedResponse.json();
+  if (!compatibilityResponse.ok || !sharedResponse.ok) throw new Error(`returned ${compatibilityResponse.status}/${sharedResponse.status}`);
+  if (!Array.isArray(compatibility.entries) || compatibility.entries.length !== shared.entries.length) throw new Error("entry parity failed");
+  if (!compatibility.config?.turnstileRequired || !compatibility.config?.turnstileSiteKey) throw new Error("Turnstile configuration is missing");
+  const hellProject = await (await fetch("https://mann.cool/hell/project.json", { headers: { "user-agent": "mann-cool-catalog-verifier/2.0" } })).json();
+  if (hellProject.publishing?.productionUrl !== "https://mann.cool/hell/") throw new Error("project metadata exposes a non-canonical production URL");
+} catch (error) {
+  errors.push(`hell: shared guestbook compatibility failed: ${error.message}`);
+}
+
+try {
+  const homepage = await (await fetch(`https://mann.cool/?bundle-audit=${Date.now()}`, {
+    headers: { "user-agent": "mann-cool-catalog-verifier/2.0" },
+  })).text();
+  const bundlePath = homepage.match(/\b(?:src|href)=["'](\/assets\/index-[^"']+\.js)["']/i)?.[1];
+  if (!bundlePath) throw new Error("active homepage bundle was not found");
+  const bundle = await (await fetch(new URL(bundlePath, "https://mann.cool"), {
+    headers: { "user-agent": "mann-cool-catalog-verifier/2.0" },
+  })).text();
+  if (/(?:vercel\.app|pages\.dev|partykit\.dev|game\.songaday\.world)/i.test(bundle)) {
+    throw new Error("active homepage bundle exposes legacy origin metadata");
+  }
+} catch (error) {
+  errors.push(`homepage: production bundle audit failed: ${error.message}`);
+}
 
 console.log(JSON.stringify(results, null, 2));
 if (errors.length) {

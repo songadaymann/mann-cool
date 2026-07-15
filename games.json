@@ -44,31 +44,7 @@
           "mann.cool/coldplay-canoodle/*"
         ]
       },
-      "status": "published",
-      "legacy": {
-        "gameUrl": "https://coldplay-canoodle.vercel.app",
-        "platform": "desktop",
-        "aspectRatio": "4 / 3",
-        "controls": {
-          "dpad": {
-            "up": "ArrowUp",
-            "down": "ArrowDown",
-            "left": "ArrowLeft",
-            "right": "ArrowRight"
-          },
-          "actions": [
-            {
-              "key": "z",
-              "label": "A"
-            },
-            {
-              "key": "x",
-              "label": "B"
-            }
-          ]
-        },
-        "permissions": []
-      }
+      "status": "published"
     },
     {
       "id": 2,
@@ -103,32 +79,7 @@
           "mann.cool/ctn/*"
         ]
       },
-      "status": "published",
-      "legacy": {
-        "gameUrl": "https://game.songaday.world/",
-        "platform": "desktop",
-        "aspectRatio": "16 / 9",
-        "controls": {
-          "dpad": {
-            "up": "ArrowUp",
-            "down": "ArrowDown",
-            "left": "ArrowLeft",
-            "right": "ArrowRight"
-          },
-          "actions": [
-            {
-              "key": "ArrowUp",
-              "label": "JUMP"
-            },
-            {
-              "key": "click",
-              "label": "ATTACK",
-              "isClick": true
-            }
-          ]
-        },
-        "permissions": []
-      }
+      "status": "published"
     },
     {
       "id": 3,
@@ -163,52 +114,7 @@
           "mann.cool/windows/*"
         ]
       },
-      "status": "published",
-      "legacy": {
-        "gameUrl": "https://windows-ruddy.vercel.app",
-        "platform": "desktop",
-        "aspectRatio": "3 / 2",
-        "controls": {
-          "dpad": {
-            "up": "w",
-            "down": "s",
-            "left": "a",
-            "right": "d"
-          },
-          "hasLookStick": true,
-          "actions": [
-            {
-              "key": " ",
-              "label": "JUMP"
-            },
-            {
-              "key": "click",
-              "label": "ATTACK",
-              "isClick": true
-            },
-            {
-              "key": "f",
-              "label": "DASH"
-            },
-            {
-              "key": "q",
-              "label": "CROUCH"
-            },
-            {
-              "key": "e",
-              "label": "POUND"
-            },
-            {
-              "keys": [
-                "Tab",
-                "g"
-              ],
-              "label": "TAB"
-            }
-          ]
-        },
-        "permissions": []
-      }
+      "status": "published"
     },
     {
       "id": 4,
@@ -244,40 +150,7 @@
           "mann.cool/tallgrass/*"
         ]
       },
-      "status": "published",
-      "legacy": {
-        "gameUrl": "https://tall-grass.vercel.app",
-        "platform": "desktop",
-        "aspectRatio": "16 / 9",
-        "controls": {
-          "dpad": {
-            "up": "ArrowUp",
-            "down": "ArrowDown",
-            "left": "ArrowLeft",
-            "right": "ArrowRight"
-          },
-          "lookHint": "Swipe on game to look around",
-          "actions": [
-            {
-              "key": "f",
-              "label": "COLLECT"
-            },
-            {
-              "key": "i",
-              "label": "INV"
-            },
-            {
-              "key": "m",
-              "label": "MAP"
-            },
-            {
-              "key": "Shift",
-              "label": "RUN"
-            }
-          ]
-        },
-        "permissions": []
-      }
+      "status": "published"
     },
     {
       "id": 5,
@@ -313,16 +186,7 @@
           "mann.cool/chonksisyphus/*"
         ]
       },
-      "status": "published",
-      "legacy": {
-        "gameUrl": "https://chonksisyphus.vercel.app",
-        "platform": "mobile",
-        "aspectRatio": "9 / 16",
-        "controls": null,
-        "permissions": [
-          "microphone"
-        ]
-      }
+      "status": "published"
     },
     {
       "id": 6,
@@ -359,14 +223,7 @@
           "mann.cool/oil/*"
         ]
       },
-      "status": "published",
-      "legacy": {
-        "gameUrl": "https://oil-ruddy.vercel.app",
-        "platform": "mobile",
-        "aspectRatio": "9 / 16",
-        "controls": null,
-        "permissions": []
-      }
+      "status": "published"
     },
     {
       "id": 7,
@@ -402,14 +259,7 @@
           "mann.cool/loki/*"
         ]
       },
-      "status": "published",
-      "legacy": {
-        "gameUrl": "https://loki-gules.vercel.app/",
-        "platform": "desktop",
-        "aspectRatio": "16 / 9",
-        "controls": null,
-        "permissions": []
-      }
+      "status": "published"
     },
     {
       "id": 8,
@@ -445,14 +295,7 @@
           "mann.cool/pong/*"
         ]
       },
-      "status": "published",
-      "legacy": {
-        "gameUrl": "https://pong-gold-omega.vercel.app/",
-        "platform": "desktop",
-        "aspectRatio": null,
-        "controls": null,
-        "permissions": []
-      }
+      "status": "published"
     },
     {
       "id": 9,
@@ -488,14 +331,7 @@
           "mann.cool/rcs/*"
         ]
       },
-      "status": "published",
-      "legacy": {
-        "gameUrl": "https://rcs-nine-psi.vercel.app",
-        "platform": "desktop",
-        "aspectRatio": "16 / 9",
-        "controls": null,
-        "permissions": []
-      }
+      "status": "published"
     },
     {
       "id": 10,
@@ -531,14 +367,7 @@
           "mann.cool/kevin/*"
         ]
       },
-      "status": "published",
-      "legacy": {
-        "gameUrl": "https://kevin-runner.vercel.app",
-        "platform": "mobile",
-        "aspectRatio": "9 / 16",
-        "controls": null,
-        "permissions": []
-      }
+      "status": "published"
     },
     {
       "id": 11,
@@ -575,14 +404,7 @@
           "mann.cool/fuckice/*"
         ]
       },
-      "status": "published",
-      "legacy": {
-        "gameUrl": "https://fuckice.vercel.app/",
-        "platform": "desktop",
-        "aspectRatio": "16 / 9",
-        "controls": null,
-        "permissions": []
-      }
+      "status": "published"
     },
     {
       "id": 12,
@@ -619,14 +441,7 @@
           "mann.cool/bubble/*"
         ]
       },
-      "status": "published",
-      "legacy": {
-        "gameUrl": "https://bubble-shader-game.vercel.app/",
-        "platform": "desktop",
-        "aspectRatio": "16 / 9",
-        "controls": null,
-        "permissions": []
-      }
+      "status": "published"
     },
     {
       "id": 13,
@@ -663,35 +478,7 @@
           "mann.cool/cyber/*"
         ]
       },
-      "status": "published",
-      "legacy": {
-        "gameUrl": "https://cyber-sunshine-smash.novox-robot.workers.dev/",
-        "platform": "desktop",
-        "aspectRatio": "16 / 9",
-        "controls": {
-          "dpad": {
-            "up": "ArrowUp",
-            "down": "ArrowDown",
-            "left": "ArrowLeft",
-            "right": "ArrowRight"
-          },
-          "actions": [
-            {
-              "key": "z",
-              "label": "PUNCH"
-            },
-            {
-              "key": "x",
-              "label": "KICK"
-            },
-            {
-              "key": " ",
-              "label": "JUMP"
-            }
-          ]
-        },
-        "permissions": []
-      }
+      "status": "published"
     },
     {
       "id": 14,
@@ -729,14 +516,7 @@
           "mann.cool/punkmatch/*"
         ]
       },
-      "status": "published",
-      "legacy": {
-        "gameUrl": "https://punkmatch.vercel.app",
-        "platform": "mobile",
-        "aspectRatio": "9 / 16",
-        "controls": null,
-        "permissions": []
-      }
+      "status": "published"
     },
     {
       "id": 15,
@@ -776,16 +556,7 @@
           "mann.cool/beepleblox/*"
         ]
       },
-      "status": "published",
-      "legacy": {
-        "gameUrl": "https://beeple-blox.vercel.app",
-        "platform": "desktop",
-        "aspectRatio": "16 / 9",
-        "controls": null,
-        "permissions": [
-          "camera"
-        ]
-      }
+      "status": "published"
     },
     {
       "id": 16,
@@ -821,14 +592,7 @@
           "mann.cool/doge/*"
         ]
       },
-      "status": "published",
-      "legacy": {
-        "gameUrl": "https://doge-henna-six.vercel.app",
-        "platform": "desktop",
-        "aspectRatio": "16 / 9",
-        "controls": null,
-        "permissions": []
-      }
+      "status": "published"
     },
     {
       "id": 17,
@@ -863,14 +627,7 @@
           "mann.cool/girlscouts/*"
         ]
       },
-      "status": "published",
-      "legacy": {
-        "gameUrl": "https://girlscouts.vercel.app",
-        "platform": "desktop",
-        "aspectRatio": "16 / 9",
-        "controls": null,
-        "permissions": []
-      }
+      "status": "published"
     },
     {
       "id": 18,
@@ -906,14 +663,7 @@
           "mann.cool/dream/*"
         ]
       },
-      "status": "published",
-      "legacy": {
-        "gameUrl": "https://dream-hazel.vercel.app",
-        "platform": "desktop",
-        "aspectRatio": "16 / 9",
-        "controls": null,
-        "permissions": []
-      }
+      "status": "published"
     },
     {
       "id": 19,
@@ -948,14 +698,7 @@
           "mann.cool/kombatice/*"
         ]
       },
-      "status": "published",
-      "legacy": {
-        "gameUrl": "https://kombatice.vercel.app/",
-        "platform": "mobile",
-        "aspectRatio": "9 / 16",
-        "controls": null,
-        "permissions": []
-      }
+      "status": "published"
     },
     {
       "id": 20,
@@ -991,14 +734,7 @@
           "mann.cool/lidstaysclosed/*"
         ]
       },
-      "status": "published",
-      "legacy": {
-        "gameUrl": "https://catlid.vercel.app",
-        "platform": "desktop",
-        "aspectRatio": "16 / 9",
-        "controls": null,
-        "permissions": []
-      }
+      "status": "published"
     },
     {
       "id": 21,
@@ -1038,35 +774,7 @@
           "mann.cool/meelode/*"
         ]
       },
-      "status": "published",
-      "legacy": {
-        "gameUrl": "https://meelode.vercel.app/lodeRunner.html",
-        "platform": "desktop",
-        "aspectRatio": "16 / 9",
-        "controls": {
-          "dpad": {
-            "up": "ArrowUp",
-            "down": "ArrowDown",
-            "left": "ArrowLeft",
-            "right": "ArrowRight"
-          },
-          "actions": [
-            {
-              "key": "z",
-              "label": "DIG L"
-            },
-            {
-              "key": "x",
-              "label": "DIG R"
-            },
-            {
-              "key": "Enter",
-              "label": "OK"
-            }
-          ]
-        },
-        "permissions": []
-      }
+      "status": "published"
     },
     {
       "id": 22,
@@ -1102,16 +810,7 @@
           "mann.cool/synthsnow/*"
         ]
       },
-      "status": "published",
-      "legacy": {
-        "gameUrl": "https://synthsnow.vercel.app",
-        "platform": "desktop",
-        "aspectRatio": "16 / 9",
-        "controls": null,
-        "permissions": [
-          "camera"
-        ]
-      }
+      "status": "published"
     },
     {
       "id": 23,
@@ -1147,14 +846,7 @@
           "mann.cool/protectgreenland/*"
         ]
       },
-      "status": "published",
-      "legacy": {
-        "gameUrl": "https://protectgreenland.vercel.app",
-        "platform": "desktop",
-        "aspectRatio": "16 / 9",
-        "controls": null,
-        "permissions": []
-      }
+      "status": "published"
     },
     {
       "id": 24,
@@ -1192,14 +884,7 @@
           "mann.cool/penisvagina/*"
         ]
       },
-      "status": "published",
-      "legacy": {
-        "gameUrl": "https://penis-vagina.songadaymann.partykit.dev",
-        "platform": "desktop",
-        "aspectRatio": null,
-        "controls": null,
-        "permissions": []
-      }
+      "status": "published"
     },
     {
       "id": 25,
@@ -1236,14 +921,7 @@
           "mann.cool/punksinspace/*"
         ]
       },
-      "status": "published",
-      "legacy": {
-        "gameUrl": "https://punksinspace.vercel.app",
-        "platform": "mobile",
-        "aspectRatio": "9 / 16",
-        "controls": null,
-        "permissions": []
-      }
+      "status": "published"
     },
     {
       "id": 26,
@@ -1279,14 +957,7 @@
           "mann.cool/towerofpunks/*"
         ]
       },
-      "status": "published",
-      "legacy": {
-        "gameUrl": "https://towerofpunks.vercel.app",
-        "platform": "mobile",
-        "aspectRatio": "9 / 16",
-        "controls": null,
-        "permissions": []
-      }
+      "status": "published"
     },
     {
       "id": 27,
@@ -1322,14 +993,7 @@
           "mann.cool/armfulofpunks/*"
         ]
       },
-      "status": "published",
-      "legacy": {
-        "gameUrl": "https://armfulofpunks.vercel.app",
-        "platform": "mobile",
-        "aspectRatio": "9 / 16",
-        "controls": null,
-        "permissions": []
-      }
+      "status": "published"
     },
     {
       "id": 28,
@@ -1368,14 +1032,7 @@
           "mann.cool/punkfling/*"
         ]
       },
-      "status": "published",
-      "legacy": {
-        "gameUrl": "https://punk-fling.vercel.app",
-        "platform": "mobile",
-        "aspectRatio": null,
-        "controls": null,
-        "permissions": []
-      }
+      "status": "published"
     },
     {
       "id": 29,
@@ -1411,14 +1068,7 @@
           "mann.cool/dontscroll/*"
         ]
       },
-      "status": "published",
-      "legacy": {
-        "gameUrl": "https://dontscroll.vercel.app",
-        "platform": "mobile",
-        "aspectRatio": "9 / 16",
-        "controls": null,
-        "permissions": []
-      }
+      "status": "published"
     },
     {
       "id": 30,
@@ -1453,14 +1103,7 @@
           "mann.cool/perilouspenguin/*"
         ]
       },
-      "status": "published",
-      "legacy": {
-        "gameUrl": "https://perilouspenguin.vercel.app",
-        "platform": "mobile",
-        "aspectRatio": "9 / 16",
-        "controls": null,
-        "permissions": []
-      }
+      "status": "published"
     },
     {
       "id": 31,
@@ -1497,14 +1140,7 @@
           "mann.cool/flighttosfo/*"
         ]
       },
-      "status": "published",
-      "legacy": {
-        "gameUrl": "https://848-seven.vercel.app",
-        "platform": "desktop",
-        "aspectRatio": "16 / 9",
-        "controls": null,
-        "permissions": []
-      }
+      "status": "published"
     },
     {
       "id": 32,
@@ -1539,14 +1175,7 @@
           "mann.cool/meebitsmountain/*"
         ]
       },
-      "status": "published",
-      "legacy": {
-        "gameUrl": "https://335prod.vercel.app",
-        "platform": "desktop",
-        "aspectRatio": null,
-        "controls": null,
-        "permissions": []
-      }
+      "status": "published"
     },
     {
       "id": 33,
@@ -1582,27 +1211,7 @@
           "mann.cool/100goombas/*"
         ]
       },
-      "status": "published",
-      "legacy": {
-        "gameUrl": "https://100goombas.vercel.app",
-        "platform": "desktop",
-        "aspectRatio": "16 / 9",
-        "controls": {
-          "dpad": {
-            "up": "ArrowUp",
-            "down": "ArrowDown",
-            "left": "ArrowLeft",
-            "right": "ArrowRight"
-          },
-          "actions": [
-            {
-              "key": "ArrowUp",
-              "label": "JUMP"
-            }
-          ]
-        },
-        "permissions": []
-      }
+      "status": "published"
     },
     {
       "id": 34,
@@ -1643,14 +1252,7 @@
           "mann.cool/sledding/*"
         ]
       },
-      "status": "published",
-      "legacy": {
-        "gameUrl": "https://sledding-peach.vercel.app",
-        "platform": "desktop",
-        "aspectRatio": "16 / 9",
-        "controls": null,
-        "permissions": []
-      }
+      "status": "published"
     },
     {
       "id": 35,
@@ -1689,14 +1291,7 @@
           "mann.cool/hell/*"
         ]
       },
-      "status": "published",
-      "legacy": {
-        "gameUrl": "https://platformer-lindsay-in-hell-c94911.pages.dev",
-        "platform": "desktop",
-        "aspectRatio": null,
-        "controls": null,
-        "permissions": []
-      }
+      "status": "published"
     }
   ]
 }

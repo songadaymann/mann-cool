@@ -16,9 +16,16 @@ function gameShell(config) {
 }
 
 function injectShell(html, config) {
-  if (html.includes("/platform/v1/game-shell.js")) return html;
+  let document = html;
+  if (!/<meta[^>]+name=["']viewport["']/i.test(document)) {
+    const viewport = '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">';
+    document = /<head(?:\s[^>]*)?>/i.test(document)
+      ? document.replace(/<head(?:\s[^>]*)?>/i, (head) => `${head}${viewport}`)
+      : `${viewport}${document}`;
+  }
+  if (document.includes("/platform/v1/game-shell.js")) return document;
   const shell = gameShell(config);
-  return /<\/head>/i.test(html) ? html.replace(/<\/head>/i, `${shell}</head>`) : `${shell}${html}`;
+  return /<\/head>/i.test(document) ? document.replace(/<\/head>/i, `${shell}</head>`) : `${shell}${document}`;
 }
 
 function r2Headers(object) {

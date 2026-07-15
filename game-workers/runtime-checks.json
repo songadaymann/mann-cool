@@ -33,5 +33,5 @@
   "meebitsmountain": { "paths": ["Build/335_prod.loader.js"], "ranges": ["Build/335_prod.data.br"] },
   "100goombas": { "paths": ["game.js", "assets/sound/theme.mp3"] },
   "sledding": { "paths": ["game.js", "assets/1819.mp3"] },
-  "hell": { "paths": ["assets/music/lindsay-intro.mp3"], "deepLinks": ["leaderboard/"] }
+  "hell": { "paths": ["assets/music/lindsay-intro.mp3", "project.json"], "deepLinks": ["leaderboard/"] }
 }

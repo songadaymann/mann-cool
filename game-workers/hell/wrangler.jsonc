@@ -33,5 +33,11 @@
       "database_name": "lindsay-in-hell-scores",
       "database_id": "fda14ad7-ac87-4b33-8c24-cd9a4223f827"
     }
+  ],
+  "services": [
+    {
+      "binding": "PLATFORM",
+      "service": "mann-cool"
+    }
   ]
 }
