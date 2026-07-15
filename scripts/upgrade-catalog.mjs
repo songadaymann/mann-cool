@@ -42,6 +42,12 @@ const metadata = {
 };
 
 const featured = { fuckice: 1, "coldplay-canoodle": 2, hell: 3 };
+const dedicatedWorkers = {
+  "coldplay-canoodle": "mann-cool-coldplay-canoodle",
+  fuckice: "mann-cool-fuckice",
+  hell: "mann-cool-hell-redirect",
+  sledding: "mann-cool-sledding",
+};
 const gifSlugs = new Set(fs.readdirSync(new URL("../public/game-gifs", import.meta.url)).map((name) => name.replace(/\.gif$/i, "")));
 
 const games = current.games.map((game, index) => {
@@ -92,10 +98,12 @@ const games = current.games.map((game, index) => {
     },
     leaderboard,
     delivery: {
-      mode: "legacy-proxy",
-      origin: originUrl.origin,
+      mode: dedicatedWorkers[game.slug] ? "worker-route" : "legacy-proxy",
+      origin: dedicatedWorkers[game.slug]
+        ? `https://${dedicatedWorkers[game.slug]}.novox-robot.workers.dev`
+        : originUrl.origin,
       ...(entryPath && entryPath !== "/" ? { entryPath } : {}),
-      workerName: null,
+      workerName: dedicatedWorkers[game.slug] || null,
       routePatterns: [`mann.cool/${game.slug}`, `mann.cool/${game.slug}/*`],
     },
     status: "published",

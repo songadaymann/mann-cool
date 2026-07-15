@@ -3,6 +3,7 @@
   const slug = script?.dataset.slug || location.pathname.split("/").filter(Boolean)[0] || "";
   const gameTitle = script?.dataset.title || document.title || slug;
   const leaderboardEnabled = script?.dataset.leaderboard === "true";
+  const leaderboardUrl = script?.dataset.leaderboardUrl || "";
   if (!slug || document.querySelector("mann-cool-game-shell")) return;
 
   fetch("https://mann.cool/api/v1/plays", {
@@ -87,7 +88,11 @@
           <div class="menu" hidden>
             <p class="menu-title"></p>
             <button type="button" data-open="guestbook"><span>Guestbook</span><span>↗</span></button>
-            <button type="button" data-open="leaderboard" ${leaderboardEnabled ? "" : "hidden"}><span>Leaderboard</span><span>↗</span></button>
+            ${leaderboardEnabled
+              ? (leaderboardUrl
+                ? `<a href="${leaderboardUrl}"><span>Leaderboard</span><span>↗</span></a>`
+                : '<button type="button" data-open="leaderboard"><span>Leaderboard</span><span>↗</span></button>')
+              : ""}
             <a data-patreon target="_blank" rel="noopener noreferrer"><span>Patreon</span><span>↗</span></a>
           </div>
         </div>

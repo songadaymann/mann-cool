@@ -1,0 +1,22 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "mann-cool-hell-redirect",
+  "main": "src/index.js",
+  "compatibility_date": "2026-07-15",
+  "routes": [
+    { "pattern": "mann.cool/hell", "zone_name": "mann.cool" },
+    { "pattern": "mann.cool/hell/*", "zone_name": "mann.cool" },
+    { "pattern": "mann.cool/hell*", "zone_name": "mann.cool" },
+    { "pattern": "www.mann.cool/hell", "zone_name": "mann.cool" },
+    { "pattern": "www.mann.cool/hell/*", "zone_name": "mann.cool" }
+    ,{ "pattern": "www.mann.cool/hell*", "zone_name": "mann.cool" }
+  ],
+  "assets": { "directory": "./assets", "binding": "ASSETS", "run_worker_first": true },
+  "d1_databases": [
+    {
+      "binding": "SCORES_DB",
+      "database_name": "lindsay-in-hell-scores",
+      "database_id": "fda14ad7-ac87-4b33-8c24-cd9a4223f827"
+    }
+  ]
+}

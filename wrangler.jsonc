@@ -23,7 +23,6 @@
   ],
   "vars": {
     "PLATFORM_READ_SOURCE": "d1",
-    "PLATFORM_DUAL_WRITE_UPSTASH": "true",
     "PATREON_URL": "https://www.patreon.com/jonathanmann",
     "TIP_URL": ""
   },

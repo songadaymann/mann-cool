@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>FuckIce</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        html, body {
+            width: 100%;
+            height: 100%;
+            background: #1a1a2e;
+            overflow: hidden;
+        }
+        
+        #unity-container {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+        }
+        
+        #unity-canvas {
+            width: 100%;
+            height: 100%;
+            background: #1a1a2e;
+        }
+        
+        /* Loading Screen */
+        #loading-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(180deg, #87CEEB 0%, #87CEEB 60%, #4a6fa5 60%, #2d4a6f 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            font-family: 'Press Start 2P', monospace, sans-serif;
+        }
+        
+        #loading-screen.hidden {
+            display: none;
+        }
+        
+        .title {
+            font-size: 48px;
+            color: #ff4444;
+            text-shadow: 4px 4px 0 #8b0000, -2px -2px 0 #fff;
+            margin-bottom: 20px;
+            letter-spacing: 4px;
+        }
+        
+        .subtitle {
+            font-size: 16px;
+            color: #fff;
+            text-shadow: 2px 2px 0 #333;
+            margin-bottom: 60px;
+        }
+        
+        /* Flurry running animation */
+        .runner-container {
+            position: relative;
+            width: 300px;
+            height: 60px;
+            margin-bottom: 20px;
+        }
+        
+        .flurry {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            top: 10px;
+            animation: runBack 2s ease-in-out infinite;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+        
+        /* Simple CSS Flurry (snowball with eyes) */
+        .flurry::before {
+            content: '';
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background: radial-gradient(circle at 30% 30%, #fff 0%, #e0e0e0 50%, #c0c0c0 100%);
+            border-radius: 50%;
+            animation: bounce 0.2s ease-in-out infinite;
+        }
+        
+        .flurry::after {
+            content: '• •';
+            position: absolute;
+            top: 12px;
+            left: 8px;
+            font-size: 10px;
+            color: #333;
+            letter-spacing: 8px;
+        }
+        
+        @keyframes runBack {
+            0% { left: 0; transform: scaleX(1); }
+            45% { left: 260px; transform: scaleX(1); }
+            50% { left: 260px; transform: scaleX(-1); }
+            95% { left: 0; transform: scaleX(-1); }
+            100% { left: 0; transform: scaleX(1); }
+        }
+        
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+        
+        /* Loading bar */
+        .loading-bar-container {
+            width: 300px;
+            height: 20px;
+            background: #333;
+            border: 3px solid #fff;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 0 #1a1a1a;
+        }
+        
+        .loading-bar {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #8BC34A);
+            transition: width 0.3s ease;
+            box-shadow: inset 0 -3px 0 rgba(0,0,0,0.2);
+        }
+        
+        .loading-text {
+            margin-top: 15px;
+            font-size: 12px;
+            color: #fff;
+            text-shadow: 1px 1px 0 #333;
+        }
+        
+        .loading-percent {
+            font-size: 14px;
+            color: #ffeb3b;
+        }
+        
+        /* Mobile warning */
+        .mobile-note {
+            position: absolute;
+            bottom: 20px;
+            font-size: 10px;
+            color: rgba(255,255,255,0.7);
+        }
+
+        /* Pixel font import */
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+    </style>
+</head>
+<body>
+    <div id="unity-container">
+        <canvas id="unity-canvas" tabindex="-1"></canvas>
+    </div>
+    
+    <div id="loading-screen">
+        <div class="title">FUCK ICE</div>
+        <div class="subtitle">ABOLISH ICE • PROTECT HUMANITY</div>
+        
+        <div class="runner-container">
+            <div class="flurry"></div>
+        </div>
+        
+        <div class="loading-bar-container">
+            <div class="loading-bar" id="loading-bar"></div>
+        </div>
+        
+        <div class="loading-text">
+            LOADING... <span class="loading-percent" id="loading-percent">0%</span>
+        </div>
+        
+        <div class="mobile-note">Touch controls available on mobile</div>
+    </div>
+    
+    <script>
+        var container = document.querySelector("#unity-container");
+        var canvas = document.querySelector("#unity-canvas");
+        var loadingScreen = document.querySelector("#loading-screen");
+        var loadingBar = document.querySelector("#loading-bar");
+        var loadingPercent = document.querySelector("#loading-percent");
+        
+        var buildUrl = "Build";
+        var loaderUrl = buildUrl + "/fuckICE727.loader.js";
+        var config = {
+            dataUrl: buildUrl + "/fuckICE727.data.unityweb",
+            frameworkUrl: buildUrl + "/fuckICE727.framework.js.unityweb",
+            codeUrl: buildUrl + "/fuckICE727.wasm.unityweb",
+            streamingAssetsUrl: "StreamingAssets",
+            companyName: "Song A Day Labs",
+            productName: "FuckIce",
+            productVersion: "1.0",
+        };
+        
+        var script = document.createElement("script");
+        script.src = loaderUrl;
+        script.onload = () => {
+            createUnityInstance(canvas, config, (progress) => {
+                var percent = Math.round(progress * 100);
+                loadingBar.style.width = percent + "%";
+                loadingPercent.textContent = percent + "%";
+            }).then((unityInstance) => {
+                loadingScreen.classList.add("hidden");
+            }).catch((message) => {
+                alert(message);
+            });
+        };
+        document.body.appendChild(script);
+    </script>
+</body>
+</html>
+

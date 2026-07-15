@@ -1,4 +1,3 @@
-import { Redis } from "@upstash/redis";
 import { getGame, getGameByApiSlug, getGameStatus, getLeaderboardConfig } from "./lib/catalog.js";
 import {
   HttpError,
@@ -72,36 +71,6 @@ async function ensureRegisteredGame(env, slug) {
   return game;
 }
 
-function getRedis(env) {
-  if (!env.KV_REST_API_URL || !env.KV_REST_API_TOKEN) return null;
-  return new Redis({ url: env.KV_REST_API_URL, token: env.KV_REST_API_TOKEN });
-}
-
-async function dualWritePlay(env, slug) {
-  if (env.PLATFORM_DUAL_WRITE_UPSTASH !== "true") return;
-  const redis = getRedis(env);
-  if (redis) await redis.hincrby("game_plays", slug, 1);
-}
-
-async function dualWriteGuestbook(env, slug, entry) {
-  if (env.PLATFORM_DUAL_WRITE_UPSTASH !== "true") return;
-  const redis = getRedis(env);
-  if (!redis) return;
-  const key = slug === "mann-cool" ? "guestbook_entries" : `guestbook_entries:${slug}`;
-  await redis.lpush(key, JSON.stringify(entry));
-  await redis.ltrim(key, 0, 99);
-}
-
-async function dualWriteLeaderboard(env, slug, variant, entry) {
-  if (env.PLATFORM_DUAL_WRITE_UPSTASH !== "true") return;
-  const redis = getRedis(env);
-  if (!redis) return;
-  await redis.zadd(`leaderboard:${slug}:${variant}`, {
-    score: Number(entry.score),
-    member: JSON.stringify(entry),
-  });
-}
-
 async function verifyTurnstile(request, env, token) {
   if (!env.TURNSTILE_SECRET_KEY) {
     throw new HttpError(503, "Guestbook signing is temporarily unavailable");
@@ -163,7 +132,6 @@ async function handlePlays(request, env) {
         updated_at = CURRENT_TIMESTAMP
       RETURNING play_count
     `).bind(slug, source).first();
-    await dualWritePlay(env, slug);
     return json({ success: true, slug, source, count: Number(row?.play_count || 1) });
   }
 
@@ -206,7 +174,6 @@ async function handleGuestbook(request, env) {
       VALUES (?, ?, ?, ?, 'approved', ?, ?)
     `).bind(id, slug, name, message, timestamp, ipHash).run();
     const entry = { id, slug, name, message, timestamp };
-    await dualWriteGuestbook(env, slug, entry);
     return json({ success: true, entry }, { status: 201 });
   }
 
@@ -329,7 +296,6 @@ async function handleLeaderboard(request, env, legacy = false) {
     `).bind(submissionId, slug).first();
     if (!row) throw new HttpError(409, "Submission ID already belongs to another score");
     const entry = leaderboardEntry(row, config);
-    await dualWriteLeaderboard(env, slug, variant, entry);
     const comparator = config.direction === "asc" ? "<" : ">";
     const rankRow = await env.DB.prepare(`
       SELECT 1 + COUNT(*) AS rank FROM leaderboard_entries

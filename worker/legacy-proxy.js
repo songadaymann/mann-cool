@@ -42,7 +42,9 @@ function rewriteHtml(html, game) {
     `<script src="/platform/v1/game-shell.js"`,
     ` data-slug="${game.slug}"`,
     ` data-title="${String(game.title).replace(/&/g, "&amp;").replace(/"/g, "&quot;")}"`,
-    ` data-leaderboard="${game.leaderboard?.enabled ? "true" : "false"}" defer></script>`,
+    ` data-leaderboard="${game.leaderboard?.enabled ? "true" : "false"}"`,
+    game.leaderboard?.path ? ` data-leaderboard-url="${game.leaderboard.path}"` : "",
+    ` defer></script>`,
   ].join("");
 
   if (/<head\b[^>]*>/i.test(rewritten)) {

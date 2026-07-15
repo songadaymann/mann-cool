@@ -36,9 +36,9 @@
         ]
       },
       "delivery": {
-        "mode": "legacy-proxy",
-        "origin": "https://coldplay-canoodle.vercel.app",
-        "workerName": null,
+        "mode": "worker-route",
+        "origin": "https://mann-cool-coldplay-canoodle.novox-robot.workers.dev",
+        "workerName": "mann-cool-coldplay-canoodle",
         "routePatterns": [
           "mann.cool/coldplay-canoodle",
           "mann.cool/coldplay-canoodle/*"
@@ -567,9 +567,9 @@
         ]
       },
       "delivery": {
-        "mode": "legacy-proxy",
-        "origin": "https://fuckice.vercel.app",
-        "workerName": null,
+        "mode": "worker-route",
+        "origin": "https://mann-cool-fuckice.novox-robot.workers.dev",
+        "workerName": "mann-cool-fuckice",
         "routePatterns": [
           "mann.cool/fuckice",
           "mann.cool/fuckice/*"
@@ -1636,9 +1636,9 @@
         ]
       },
       "delivery": {
-        "mode": "legacy-proxy",
-        "origin": "https://sledding-peach.vercel.app",
-        "workerName": null,
+        "mode": "worker-route",
+        "origin": "https://mann-cool-sledding.novox-robot.workers.dev",
+        "workerName": "mann-cool-sledding",
         "routePatterns": [
           "mann.cool/sledding",
           "mann.cool/sledding/*"
@@ -1682,9 +1682,9 @@
         "path": "/hell/leaderboard/"
       },
       "delivery": {
-        "mode": "legacy-proxy",
-        "origin": "https://platformer-lindsay-in-hell-c94911.pages.dev",
-        "workerName": null,
+        "mode": "worker-route",
+        "origin": "https://mann-cool-hell-redirect.novox-robot.workers.dev",
+        "workerName": "mann-cool-hell-redirect",
         "routePatterns": [
           "mann.cool/hell",
           "mann.cool/hell/*"

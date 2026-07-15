@@ -11,7 +11,10 @@
     "db:migrate:local": "wrangler d1 migrations apply mann-cool-platform --local",
     "db:migrate:remote": "wrangler d1 migrations apply mann-cool-platform --remote",
     "worker:types": "wrangler types worker-configuration.d.ts",
-    "worker:dry-run": "npm run build && wrangler deploy --dry-run"
+    "worker:dry-run": "npm run build && wrangler deploy --dry-run",
+    "verify:catalog:live": "node scripts/verify-catalog-live.mjs",
+    "deploy:featured": "wrangler deploy --config game-workers/coldplay-canoodle/wrangler.jsonc && wrangler deploy --config game-workers/fuckice/wrangler.jsonc && wrangler deploy --config game-workers/hell/wrangler.jsonc",
+    "deploy:sledding": "wrangler deploy --config game-workers/sledding/wrangler.jsonc"
   },
   "dependencies": {
     "@upstash/redis": "^1.36.0",

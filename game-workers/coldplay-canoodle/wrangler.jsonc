@@ -1,0 +1,15 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "mann-cool-coldplay-canoodle",
+  "main": "src/index.js",
+  "compatibility_date": "2026-07-15",
+  "routes": [
+    { "pattern": "mann.cool/coldplay-canoodle", "zone_name": "mann.cool" },
+    { "pattern": "mann.cool/coldplay-canoodle/*", "zone_name": "mann.cool" },
+    { "pattern": "mann.cool/coldplay-canoodle*", "zone_name": "mann.cool" },
+    { "pattern": "www.mann.cool/coldplay-canoodle", "zone_name": "mann.cool" },
+    { "pattern": "www.mann.cool/coldplay-canoodle/*", "zone_name": "mann.cool" }
+    ,{ "pattern": "www.mann.cool/coldplay-canoodle*", "zone_name": "mann.cool" }
+  ],
+  "assets": { "directory": "./assets", "binding": "ASSETS", "run_worker_first": true }
+}
