@@ -24,7 +24,7 @@
   "vars": {
     "PLATFORM_READ_SOURCE": "d1",
     "PATREON_URL": "https://www.patreon.com/jonathanmann",
-    "TIP_URL": ""
+    "TIP_URL": "https://buy.stripe.com/eVqdR91p20Ra8No1Cs48000"
   },
   "observability": {
     "enabled": true,
