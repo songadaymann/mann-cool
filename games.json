@@ -1260,6 +1260,7 @@
       "title": "Lindsay Graham In Hell",
       "description": "Escape a pixel-art inferno starring Senator Lindsey Graham.",
       "cover": "/covers/hell-v2.webp",
+      "hoverGif": "/game-gifs/hell.gif",
       "tags": [
         "political",
         "funny",
