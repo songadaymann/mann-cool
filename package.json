@@ -6,12 +6,18 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "catalog:validate": "node scripts/validate-catalog.mjs",
+    "db:migrate:local": "wrangler d1 migrations apply mann-cool-platform --local",
+    "db:migrate:remote": "wrangler d1 migrations apply mann-cool-platform --remote",
+    "worker:types": "wrangler types worker-configuration.d.ts",
+    "worker:dry-run": "npm run build && wrangler deploy --dry-run"
   },
   "dependencies": {
     "@upstash/redis": "^1.36.0",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "viem": "^2.43.3"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.4",

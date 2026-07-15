@@ -1,0 +1,38 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "mann-cool",
+  "main": "worker/index.js",
+  "compatibility_date": "2026-07-15",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "preview_urls": true,
+  "routes": ["mann.cool/*", "www.mann.cool/*"],
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "run_worker_first": true,
+    "not_found_handling": "single-page-application"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "mann-cool-platform",
+      "database_id": "10c7790b-aef5-43a1-b9ed-dbbc6c507b4e",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "vars": {
+    "PLATFORM_READ_SOURCE": "d1",
+    "PLATFORM_DUAL_WRITE_UPSTASH": "true",
+    "PATREON_URL": "https://www.patreon.com/jonathanmann",
+    "TIP_URL": ""
+  },
+  "observability": {
+    "enabled": true,
+    "logs": { "head_sampling_rate": 1 },
+    "traces": { "enabled": true, "head_sampling_rate": 0.05 }
+  },
+  "triggers": {
+    "crons": ["*/5 * * * *"]
+  }
+}

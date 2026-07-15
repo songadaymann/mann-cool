@@ -1,589 +1,1703 @@
 {
+  "version": 1,
+  "tagVocabulary": [
+    "political",
+    "art",
+    "relaxing",
+    "multiplayer",
+    "funny",
+    "weird",
+    "NSFW"
+  ],
   "games": [
     {
       "id": 1,
-      "tokenId": 1,
       "slug": "coldplay-canoodle",
       "title": "Coldplay Canoodle",
-      "image": "/nes-game-images/coldplay-canoodle.png",
-      "gameUrl": "https://coldplay-canoodle.vercel.app",
-      "platform": "desktop",
-      "aspectRatio": "4 / 3",
-      "controls": {
-        "dpad": {
-          "up": "ArrowUp",
-          "down": "ArrowDown",
-          "left": "ArrowLeft",
-          "right": "ArrowRight"
-        },
-        "actions": [
-          {
-            "key": "z",
-            "label": "A"
-          },
-          {
-            "key": "x",
-            "label": "B"
-          }
+      "description": "A tiny word game about the kiss-cam moment nobody could stop watching.",
+      "cover": "/covers/coldplay-canoodle.webp",
+      "tags": [
+        "funny",
+        "weird"
+      ],
+      "featuredRank": 2,
+      "catalogOrder": 1,
+      "publishedAt": null,
+      "deviceSupport": {
+        "mobile": false,
+        "tablet": true,
+        "desktop": true
+      },
+      "leaderboard": {
+        "enabled": false,
+        "direction": "desc",
+        "variants": [
+          "default"
         ]
+      },
+      "delivery": {
+        "mode": "legacy-proxy",
+        "origin": "https://coldplay-canoodle.vercel.app",
+        "workerName": null,
+        "routePatterns": [
+          "mann.cool/coldplay-canoodle",
+          "mann.cool/coldplay-canoodle/*"
+        ]
+      },
+      "status": "published",
+      "legacy": {
+        "gameUrl": "https://coldplay-canoodle.vercel.app",
+        "platform": "desktop",
+        "aspectRatio": "4 / 3",
+        "controls": {
+          "dpad": {
+            "up": "ArrowUp",
+            "down": "ArrowDown",
+            "left": "ArrowLeft",
+            "right": "ArrowRight"
+          },
+          "actions": [
+            {
+              "key": "z",
+              "label": "A"
+            },
+            {
+              "key": "x",
+              "label": "B"
+            }
+          ]
+        },
+        "permissions": []
       }
     },
     {
       "id": 2,
-      "tokenId": 2,
       "slug": "ctn",
       "title": "Crypto Tax Nightmare",
-      "image": "/nes-game-images/crypto-tax-nightmare.png",
-      "gameUrl": "https://game.songaday.world/",
-      "platform": "desktop",
-      "aspectRatio": "16 / 9",
-      "controls": {
-        "dpad": {
-          "up": "ArrowUp",
-          "down": "ArrowDown",
-          "left": "ArrowLeft",
-          "right": "ArrowRight"
-        },
-        "actions": [
-          {
-            "key": "ArrowUp",
-            "label": "JUMP"
-          },
-          {
-            "key": "click",
-            "label": "ATTACK",
-            "isClick": true
-          }
+      "description": "Run, jump, and survive the annual nightmare of crypto taxes.",
+      "cover": "/covers/crypto-tax-nightmare.webp",
+      "tags": [
+        "funny",
+        "weird"
+      ],
+      "catalogOrder": 2,
+      "publishedAt": null,
+      "deviceSupport": {
+        "mobile": false,
+        "tablet": true,
+        "desktop": true
+      },
+      "leaderboard": {
+        "enabled": false,
+        "direction": "desc",
+        "variants": [
+          "default"
         ]
+      },
+      "delivery": {
+        "mode": "legacy-proxy",
+        "origin": "https://game.songaday.world",
+        "workerName": null,
+        "routePatterns": [
+          "mann.cool/ctn",
+          "mann.cool/ctn/*"
+        ]
+      },
+      "status": "published",
+      "legacy": {
+        "gameUrl": "https://game.songaday.world/",
+        "platform": "desktop",
+        "aspectRatio": "16 / 9",
+        "controls": {
+          "dpad": {
+            "up": "ArrowUp",
+            "down": "ArrowDown",
+            "left": "ArrowLeft",
+            "right": "ArrowRight"
+          },
+          "actions": [
+            {
+              "key": "ArrowUp",
+              "label": "JUMP"
+            },
+            {
+              "key": "click",
+              "label": "ATTACK",
+              "isClick": true
+            }
+          ]
+        },
+        "permissions": []
       }
     },
     {
       "id": 3,
-      "tokenId": 3,
       "slug": "windows",
       "title": "Windows Didn't Load Correctly",
-      "image": "/nes-game-images/windows-didn't-load.png",
-      "gameUrl": "https://windows-ruddy.vercel.app",
-      "platform": "desktop",
-      "aspectRatio": "3 / 2",
-      "controls": {
-        "dpad": {
-          "up": "w",
-          "down": "s",
-          "left": "a",
-          "right": "d"
-        },
-        "hasLookStick": true,
-        "actions": [
-          {
-            "key": " ",
-            "label": "JUMP"
-          },
-          {
-            "key": "click",
-            "label": "ATTACK",
-            "isClick": true
-          },
-          {
-            "key": "f",
-            "label": "DASH"
-          },
-          {
-            "key": "q",
-            "label": "CROUCH"
-          },
-          {
-            "key": "e",
-            "label": "POUND"
-          },
-          {
-            "keys": [
-              "Tab",
-              "g"
-            ],
-            "label": "TAB"
-          }
+      "description": "A broken-computer fever dream where the error messages fight back.",
+      "cover": "/covers/windows-didn't-load.webp",
+      "tags": [
+        "funny",
+        "weird"
+      ],
+      "catalogOrder": 3,
+      "publishedAt": null,
+      "deviceSupport": {
+        "mobile": false,
+        "tablet": true,
+        "desktop": true
+      },
+      "leaderboard": {
+        "enabled": false,
+        "direction": "desc",
+        "variants": [
+          "default"
         ]
+      },
+      "delivery": {
+        "mode": "legacy-proxy",
+        "origin": "https://windows-ruddy.vercel.app",
+        "workerName": null,
+        "routePatterns": [
+          "mann.cool/windows",
+          "mann.cool/windows/*"
+        ]
+      },
+      "status": "published",
+      "legacy": {
+        "gameUrl": "https://windows-ruddy.vercel.app",
+        "platform": "desktop",
+        "aspectRatio": "3 / 2",
+        "controls": {
+          "dpad": {
+            "up": "w",
+            "down": "s",
+            "left": "a",
+            "right": "d"
+          },
+          "hasLookStick": true,
+          "actions": [
+            {
+              "key": " ",
+              "label": "JUMP"
+            },
+            {
+              "key": "click",
+              "label": "ATTACK",
+              "isClick": true
+            },
+            {
+              "key": "f",
+              "label": "DASH"
+            },
+            {
+              "key": "q",
+              "label": "CROUCH"
+            },
+            {
+              "key": "e",
+              "label": "POUND"
+            },
+            {
+              "keys": [
+                "Tab",
+                "g"
+              ],
+              "label": "TAB"
+            }
+          ]
+        },
+        "permissions": []
       }
     },
     {
       "id": 4,
-      "tokenId": 4,
       "slug": "tallgrass",
       "title": "Tall Grass",
-      "image": "/nes-game-images/tall-grass.png",
-      "gameUrl": "https://tall-grass.vercel.app",
-      "platform": "desktop",
-      "aspectRatio": "16 / 9",
-      "controls": {
-        "dpad": {
-          "up": "ArrowUp",
-          "down": "ArrowDown",
-          "left": "ArrowLeft",
-          "right": "ArrowRight"
-        },
-        "lookHint": "Swipe on game to look around",
-        "actions": [
-          {
-            "key": "f",
-            "label": "COLLECT"
-          },
-          {
-            "key": "i",
-            "label": "INV"
-          },
-          {
-            "key": "m",
-            "label": "MAP"
-          },
-          {
-            "key": "Shift",
-            "label": "RUN"
-          }
+      "description": "Wander through tall grass and discover what is hiding inside it.",
+      "cover": "/covers/tall-grass.webp",
+      "hoverGif": "/game-gifs/tallgrass.gif",
+      "tags": [
+        "art",
+        "relaxing"
+      ],
+      "catalogOrder": 4,
+      "publishedAt": null,
+      "deviceSupport": {
+        "mobile": false,
+        "tablet": true,
+        "desktop": true
+      },
+      "leaderboard": {
+        "enabled": false,
+        "direction": "desc",
+        "variants": [
+          "default"
         ]
+      },
+      "delivery": {
+        "mode": "legacy-proxy",
+        "origin": "https://tall-grass.vercel.app",
+        "workerName": null,
+        "routePatterns": [
+          "mann.cool/tallgrass",
+          "mann.cool/tallgrass/*"
+        ]
+      },
+      "status": "published",
+      "legacy": {
+        "gameUrl": "https://tall-grass.vercel.app",
+        "platform": "desktop",
+        "aspectRatio": "16 / 9",
+        "controls": {
+          "dpad": {
+            "up": "ArrowUp",
+            "down": "ArrowDown",
+            "left": "ArrowLeft",
+            "right": "ArrowRight"
+          },
+          "lookHint": "Swipe on game to look around",
+          "actions": [
+            {
+              "key": "f",
+              "label": "COLLECT"
+            },
+            {
+              "key": "i",
+              "label": "INV"
+            },
+            {
+              "key": "m",
+              "label": "MAP"
+            },
+            {
+              "key": "Shift",
+              "label": "RUN"
+            }
+          ]
+        },
+        "permissions": []
       }
     },
     {
       "id": 5,
-      "tokenId": 5,
       "slug": "chonksisyphus",
       "title": "Sisyphus Chonk",
-      "image": "/nes-game-images/sisyphus-chonk.png",
-      "gameUrl": "https://chonksisyphus.vercel.app",
-      "platform": "mobile",
-      "aspectRatio": "9 / 16",
-      "controls": null,
-      "permissions": [
-        "microphone"
-      ]
+      "description": "Help a very determined chonk push onward against impossible odds.",
+      "cover": "/covers/sisyphus-chonk.webp",
+      "hoverGif": "/game-gifs/chonksisyphus.gif",
+      "tags": [
+        "funny",
+        "weird"
+      ],
+      "catalogOrder": 5,
+      "publishedAt": null,
+      "deviceSupport": {
+        "mobile": true,
+        "tablet": true,
+        "desktop": true
+      },
+      "leaderboard": {
+        "enabled": false,
+        "direction": "desc",
+        "variants": [
+          "default"
+        ]
+      },
+      "delivery": {
+        "mode": "legacy-proxy",
+        "origin": "https://chonksisyphus.vercel.app",
+        "workerName": null,
+        "routePatterns": [
+          "mann.cool/chonksisyphus",
+          "mann.cool/chonksisyphus/*"
+        ]
+      },
+      "status": "published",
+      "legacy": {
+        "gameUrl": "https://chonksisyphus.vercel.app",
+        "platform": "mobile",
+        "aspectRatio": "9 / 16",
+        "controls": null,
+        "permissions": [
+          "microphone"
+        ]
+      }
     },
     {
       "id": 6,
-      "tokenId": 6,
       "slug": "oil",
       "title": "Oil & Epstein",
-      "image": "/nes-game-images/oil.png",
-      "gameUrl": "https://oil-ruddy.vercel.app",
-      "platform": "mobile",
-      "aspectRatio": "9 / 16",
-      "controls": null
+      "description": "A slippery mobile game about power, scandal, and keeping your balance.",
+      "cover": "/covers/oil.webp",
+      "hoverGif": "/game-gifs/oil.gif",
+      "tags": [
+        "political",
+        "funny",
+        "weird"
+      ],
+      "catalogOrder": 6,
+      "publishedAt": null,
+      "deviceSupport": {
+        "mobile": true,
+        "tablet": true,
+        "desktop": true
+      },
+      "leaderboard": {
+        "enabled": false,
+        "direction": "desc",
+        "variants": [
+          "default"
+        ]
+      },
+      "delivery": {
+        "mode": "legacy-proxy",
+        "origin": "https://oil-ruddy.vercel.app",
+        "workerName": null,
+        "routePatterns": [
+          "mann.cool/oil",
+          "mann.cool/oil/*"
+        ]
+      },
+      "status": "published",
+      "legacy": {
+        "gameUrl": "https://oil-ruddy.vercel.app",
+        "platform": "mobile",
+        "aspectRatio": "9 / 16",
+        "controls": null,
+        "permissions": []
+      }
     },
     {
       "id": 7,
-      "tokenId": 7,
       "slug": "loki",
       "title": "Loki Is Genderfluid",
-      "image": "/nes-game-images/loki.png",
-      "gameUrl": "https://loki-gules.vercel.app/",
-      "platform": "desktop",
-      "aspectRatio": "16 / 9",
-      "mobileMode": "landscape",
-      "controls": null
+      "description": "A mythic, shape-shifting browser adventure.",
+      "cover": "/covers/loki.webp",
+      "hoverGif": "/game-gifs/loki.gif",
+      "tags": [
+        "art",
+        "weird"
+      ],
+      "catalogOrder": 7,
+      "publishedAt": null,
+      "deviceSupport": {
+        "mobile": true,
+        "tablet": true,
+        "desktop": true
+      },
+      "leaderboard": {
+        "enabled": false,
+        "direction": "desc",
+        "variants": [
+          "default"
+        ]
+      },
+      "delivery": {
+        "mode": "legacy-proxy",
+        "origin": "https://loki-gules.vercel.app",
+        "workerName": null,
+        "routePatterns": [
+          "mann.cool/loki",
+          "mann.cool/loki/*"
+        ]
+      },
+      "status": "published",
+      "legacy": {
+        "gameUrl": "https://loki-gules.vercel.app/",
+        "platform": "desktop",
+        "aspectRatio": "16 / 9",
+        "controls": null,
+        "permissions": []
+      }
     },
     {
       "id": 8,
-      "tokenId": 8,
       "slug": "pong",
       "title": "Anybody // Pong",
-      "image": "/nes-game-images/pong.png",
-      "gameUrl": "https://pong-gold-omega.vercel.app/",
-      "platform": "desktop",
-      "redirect": true,
-      "hidden": false
+      "description": "Pong rebuilt as a collaborative music game.",
+      "cover": "/covers/pong.webp",
+      "hoverGif": "/game-gifs/pong.gif",
+      "tags": [
+        "art",
+        "multiplayer"
+      ],
+      "catalogOrder": 8,
+      "publishedAt": null,
+      "deviceSupport": {
+        "mobile": true,
+        "tablet": true,
+        "desktop": true
+      },
+      "leaderboard": {
+        "enabled": false,
+        "direction": "desc",
+        "variants": [
+          "default"
+        ]
+      },
+      "delivery": {
+        "mode": "legacy-proxy",
+        "origin": "https://pong-gold-omega.vercel.app",
+        "workerName": null,
+        "routePatterns": [
+          "mann.cool/pong",
+          "mann.cool/pong/*"
+        ]
+      },
+      "status": "published",
+      "legacy": {
+        "gameUrl": "https://pong-gold-omega.vercel.app/",
+        "platform": "desktop",
+        "aspectRatio": null,
+        "controls": null,
+        "permissions": []
+      }
     },
     {
       "id": 9,
-      "tokenId": 9,
       "slug": "rcs",
       "title": "Right-Click Save Kill",
-      "image": "/nes-game-images/rcs.png",
-      "gameUrl": "https://rcs-nine-psi.vercel.app",
-      "platform": "desktop",
-      "aspectRatio": "16 / 9",
-      "mobileMode": "landscape",
-      "controls": null
+      "description": "Save the art before somebody else right-clicks it first.",
+      "cover": "/covers/rcs.webp",
+      "hoverGif": "/game-gifs/rcs.gif",
+      "tags": [
+        "art",
+        "funny"
+      ],
+      "catalogOrder": 9,
+      "publishedAt": null,
+      "deviceSupport": {
+        "mobile": true,
+        "tablet": true,
+        "desktop": true
+      },
+      "leaderboard": {
+        "enabled": false,
+        "direction": "desc",
+        "variants": [
+          "default"
+        ]
+      },
+      "delivery": {
+        "mode": "legacy-proxy",
+        "origin": "https://rcs-nine-psi.vercel.app",
+        "workerName": null,
+        "routePatterns": [
+          "mann.cool/rcs",
+          "mann.cool/rcs/*"
+        ]
+      },
+      "status": "published",
+      "legacy": {
+        "gameUrl": "https://rcs-nine-psi.vercel.app",
+        "platform": "desktop",
+        "aspectRatio": "16 / 9",
+        "controls": null,
+        "permissions": []
+      }
     },
     {
       "id": 10,
-      "tokenId": 10,
       "slug": "kevin",
       "title": "Kevin",
-      "image": "/nes-game-images/kevin.png",
-      "gameUrl": "https://kevin-runner.vercel.app",
-      "platform": "mobile",
-      "aspectRatio": "9 / 16",
-      "aspectRatioDesktop": "16 / 9",
-      "controls": null,
-      "hidden": false
+      "description": "Run with Kevin. Do not ask Kevin to slow down.",
+      "cover": "/covers/kevin.webp",
+      "hoverGif": "/game-gifs/kevin.gif",
+      "tags": [
+        "funny",
+        "weird"
+      ],
+      "catalogOrder": 10,
+      "publishedAt": null,
+      "deviceSupport": {
+        "mobile": true,
+        "tablet": true,
+        "desktop": true
+      },
+      "leaderboard": {
+        "enabled": false,
+        "direction": "desc",
+        "variants": [
+          "default"
+        ]
+      },
+      "delivery": {
+        "mode": "legacy-proxy",
+        "origin": "https://kevin-runner.vercel.app",
+        "workerName": null,
+        "routePatterns": [
+          "mann.cool/kevin",
+          "mann.cool/kevin/*"
+        ]
+      },
+      "status": "published",
+      "legacy": {
+        "gameUrl": "https://kevin-runner.vercel.app",
+        "platform": "mobile",
+        "aspectRatio": "9 / 16",
+        "controls": null,
+        "permissions": []
+      }
     },
     {
       "id": 11,
-      "tokenId": 11,
       "slug": "fuckice",
       "title": "FUCK ICE",
-      "image": "/nes-game-images/fuckice.png",
-      "gameUrl": "https://fuckice.vercel.app/",
-      "platform": "desktop",
-      "aspectRatio": "16 / 9",
-      "mobileMode": "landscape",
-      "controls": null,
-      "hidden": false
+      "description": "A furious arcade game about resisting ICE.",
+      "cover": "/covers/fuckice.webp",
+      "hoverGif": "/game-gifs/fuckice.gif",
+      "tags": [
+        "political",
+        "funny"
+      ],
+      "featuredRank": 1,
+      "catalogOrder": 11,
+      "publishedAt": null,
+      "deviceSupport": {
+        "mobile": true,
+        "tablet": true,
+        "desktop": true
+      },
+      "leaderboard": {
+        "enabled": false,
+        "direction": "desc",
+        "variants": [
+          "default"
+        ]
+      },
+      "delivery": {
+        "mode": "legacy-proxy",
+        "origin": "https://fuckice.vercel.app",
+        "workerName": null,
+        "routePatterns": [
+          "mann.cool/fuckice",
+          "mann.cool/fuckice/*"
+        ]
+      },
+      "status": "published",
+      "legacy": {
+        "gameUrl": "https://fuckice.vercel.app/",
+        "platform": "desktop",
+        "aspectRatio": "16 / 9",
+        "controls": null,
+        "permissions": []
+      }
     },
     {
       "id": 12,
-      "tokenId": 12,
       "slug": "bubble",
       "title": "YOU ARE BUBBLE",
-      "image": "/nes-game-images/bubble.png",
-      "gameUrl": "https://bubble-shader-game.vercel.app/",
-      "platform": "desktop",
-      "aspectRatio": "16 / 9",
-      "mobileMode": "landscape",
-      "controls": null,
-      "hidden": false
+      "description": "Drift, distort, and become one with a very strange bubble.",
+      "cover": "/covers/bubble.webp",
+      "hoverGif": "/game-gifs/bubble.gif",
+      "tags": [
+        "art",
+        "relaxing",
+        "weird"
+      ],
+      "catalogOrder": 12,
+      "publishedAt": null,
+      "deviceSupport": {
+        "mobile": true,
+        "tablet": true,
+        "desktop": true
+      },
+      "leaderboard": {
+        "enabled": false,
+        "direction": "desc",
+        "variants": [
+          "default"
+        ]
+      },
+      "delivery": {
+        "mode": "legacy-proxy",
+        "origin": "https://bubble-shader-game.vercel.app",
+        "workerName": null,
+        "routePatterns": [
+          "mann.cool/bubble",
+          "mann.cool/bubble/*"
+        ]
+      },
+      "status": "published",
+      "legacy": {
+        "gameUrl": "https://bubble-shader-game.vercel.app/",
+        "platform": "desktop",
+        "aspectRatio": "16 / 9",
+        "controls": null,
+        "permissions": []
+      }
     },
     {
       "id": 13,
-      "tokenId": 13,
       "slug": "cyber",
       "title": "Cyber Sunshine Smash",
-      "image": "/nes-game-images/cyber.png",
-      "gameUrl": "https://cyber-sunshine-smash.novox-robot.workers.dev/",
-      "platform": "desktop",
-      "aspectRatio": "16 / 9",
-      "controls": {
-        "dpad": {
-          "up": "ArrowUp",
-          "down": "ArrowDown",
-          "left": "ArrowLeft",
-          "right": "ArrowRight"
-        },
-        "actions": [
-          {
-            "key": "z",
-            "label": "PUNCH"
-          },
-          {
-            "key": "x",
-            "label": "KICK"
-          },
-          {
-            "key": " ",
-            "label": "JUMP"
-          }
+      "description": "Smash through a bright cyber-sunshine playground.",
+      "cover": "/covers/cyber.webp",
+      "hoverGif": "/game-gifs/cyber.gif",
+      "tags": [
+        "art",
+        "funny",
+        "weird"
+      ],
+      "catalogOrder": 13,
+      "publishedAt": null,
+      "deviceSupport": {
+        "mobile": false,
+        "tablet": true,
+        "desktop": true
+      },
+      "leaderboard": {
+        "enabled": false,
+        "direction": "desc",
+        "variants": [
+          "default"
         ]
       },
-      "hidden": false
+      "delivery": {
+        "mode": "legacy-proxy",
+        "origin": "https://cyber-sunshine-smash.novox-robot.workers.dev",
+        "workerName": null,
+        "routePatterns": [
+          "mann.cool/cyber",
+          "mann.cool/cyber/*"
+        ]
+      },
+      "status": "published",
+      "legacy": {
+        "gameUrl": "https://cyber-sunshine-smash.novox-robot.workers.dev/",
+        "platform": "desktop",
+        "aspectRatio": "16 / 9",
+        "controls": {
+          "dpad": {
+            "up": "ArrowUp",
+            "down": "ArrowDown",
+            "left": "ArrowLeft",
+            "right": "ArrowRight"
+          },
+          "actions": [
+            {
+              "key": "z",
+              "label": "PUNCH"
+            },
+            {
+              "key": "x",
+              "label": "KICK"
+            },
+            {
+              "key": " ",
+              "label": "JUMP"
+            }
+          ]
+        },
+        "permissions": []
+      }
     },
     {
       "id": 14,
-      "tokenId": 14,
       "slug": "punkmatch",
       "title": "game. punk. match.",
-      "image": "/nes-game-images/punkmatch.png",
-      "gameUrl": "https://punkmatch.vercel.app",
-      "platform": "mobile",
-      "aspectRatio": "9 / 16",
-      "controls": null,
-      "hidden": false
+      "description": "A fast memory-matching game made from CryptoPunks.",
+      "cover": "/covers/punkmatch.webp",
+      "hoverGif": "/game-gifs/punkmatch.gif",
+      "tags": [
+        "art",
+        "relaxing"
+      ],
+      "catalogOrder": 14,
+      "publishedAt": null,
+      "deviceSupport": {
+        "mobile": true,
+        "tablet": true,
+        "desktop": true
+      },
+      "leaderboard": {
+        "enabled": true,
+        "direction": "asc",
+        "variants": [
+          "4x4",
+          "6x6",
+          "8x8"
+        ]
+      },
+      "delivery": {
+        "mode": "legacy-proxy",
+        "origin": "https://punkmatch.vercel.app",
+        "workerName": null,
+        "routePatterns": [
+          "mann.cool/punkmatch",
+          "mann.cool/punkmatch/*"
+        ]
+      },
+      "status": "published",
+      "legacy": {
+        "gameUrl": "https://punkmatch.vercel.app",
+        "platform": "mobile",
+        "aspectRatio": "9 / 16",
+        "controls": null,
+        "permissions": []
+      }
     },
     {
       "id": 15,
-      "tokenId": 15,
       "slug": "beepleblox",
       "title": "Beeple Blox",
-      "image": "/nes-game-images/beepleblox.png",
-      "gameUrl": "https://beeple-blox.vercel.app",
-      "platform": "desktop",
-      "aspectRatio": "16 / 9",
-      "mobileMode": "landscape",
-      "controls": null,
-      "permissions": [
-        "camera"
+      "description": "Stack, sort, and survive a world built from Beeple blocks.",
+      "cover": "/covers/beepleblox.webp",
+      "hoverGif": "/game-gifs/beepleblox.gif",
+      "tags": [
+        "art",
+        "weird"
       ],
-      "hidden": false
+      "catalogOrder": 15,
+      "publishedAt": null,
+      "deviceSupport": {
+        "mobile": true,
+        "tablet": true,
+        "desktop": true
+      },
+      "leaderboard": {
+        "enabled": true,
+        "direction": "asc",
+        "variants": [
+          "default"
+        ],
+        "scoreDisplay": "absolute",
+        "apiAliases": [
+          "beeple-blox"
+        ]
+      },
+      "delivery": {
+        "mode": "legacy-proxy",
+        "origin": "https://beeple-blox.vercel.app",
+        "workerName": null,
+        "routePatterns": [
+          "mann.cool/beepleblox",
+          "mann.cool/beepleblox/*"
+        ]
+      },
+      "status": "published",
+      "legacy": {
+        "gameUrl": "https://beeple-blox.vercel.app",
+        "platform": "desktop",
+        "aspectRatio": "16 / 9",
+        "controls": null,
+        "permissions": [
+          "camera"
+        ]
+      }
     },
     {
       "id": 16,
-      "tokenId": 16,
       "slug": "doge",
       "title": "Goodbye, Kabosu",
-      "image": "/nes-game-images/doge.png",
-      "gameUrl": "https://doge-henna-six.vercel.app",
-      "platform": "desktop",
-      "aspectRatio": "16 / 9",
-      "mobileMode": "desktop-only",
-      "controls": null,
-      "hidden": false
+      "description": "A small game made in memory of Kabosu.",
+      "cover": "/covers/doge.webp",
+      "hoverGif": "/game-gifs/doge.gif",
+      "tags": [
+        "art",
+        "relaxing"
+      ],
+      "catalogOrder": 16,
+      "publishedAt": null,
+      "deviceSupport": {
+        "mobile": true,
+        "tablet": true,
+        "desktop": true
+      },
+      "leaderboard": {
+        "enabled": false,
+        "direction": "desc",
+        "variants": [
+          "default"
+        ]
+      },
+      "delivery": {
+        "mode": "legacy-proxy",
+        "origin": "https://doge-henna-six.vercel.app",
+        "workerName": null,
+        "routePatterns": [
+          "mann.cool/doge",
+          "mann.cool/doge/*"
+        ]
+      },
+      "status": "published",
+      "legacy": {
+        "gameUrl": "https://doge-henna-six.vercel.app",
+        "platform": "desktop",
+        "aspectRatio": "16 / 9",
+        "controls": null,
+        "permissions": []
+      }
     },
     {
       "id": 17,
-      "tokenId": 17,
       "slug": "girlscouts",
       "title": "ScoutSort",
-      "image": "/nes-game-images/girlscouts.png",
-      "gameUrl": "https://girlscouts.vercel.app",
-      "platform": "desktop",
-      "aspectRatio": "16 / 9",
-      "mobileMode": "landscape",
-      "controls": null,
-      "hidden": false
+      "description": "Sort the scouts before the whole troop gets out of hand.",
+      "cover": "/covers/girlscouts.webp",
+      "hoverGif": "/game-gifs/girlscouts.gif",
+      "tags": [
+        "funny"
+      ],
+      "catalogOrder": 17,
+      "publishedAt": null,
+      "deviceSupport": {
+        "mobile": true,
+        "tablet": true,
+        "desktop": true
+      },
+      "leaderboard": {
+        "enabled": false,
+        "direction": "desc",
+        "variants": [
+          "default"
+        ]
+      },
+      "delivery": {
+        "mode": "legacy-proxy",
+        "origin": "https://girlscouts.vercel.app",
+        "workerName": null,
+        "routePatterns": [
+          "mann.cool/girlscouts",
+          "mann.cool/girlscouts/*"
+        ]
+      },
+      "status": "published",
+      "legacy": {
+        "gameUrl": "https://girlscouts.vercel.app",
+        "platform": "desktop",
+        "aspectRatio": "16 / 9",
+        "controls": null,
+        "permissions": []
+      }
     },
     {
       "id": 18,
-      "tokenId": 18,
       "slug": "dream",
       "title": "Mouth Dream",
-      "image": "/nes-game-images/dream.png",
-      "gameUrl": "https://dream-hazel.vercel.app",
-      "platform": "desktop",
-      "aspectRatio": "16 / 9",
-      "mobileMode": "landscape",
-      "controls": null,
-      "hidden": false
+      "description": "A surreal journey into the mouth dream.",
+      "cover": "/covers/dream.webp",
+      "hoverGif": "/game-gifs/dream.gif",
+      "tags": [
+        "art",
+        "weird"
+      ],
+      "catalogOrder": 18,
+      "publishedAt": null,
+      "deviceSupport": {
+        "mobile": true,
+        "tablet": true,
+        "desktop": true
+      },
+      "leaderboard": {
+        "enabled": false,
+        "direction": "desc",
+        "variants": [
+          "default"
+        ]
+      },
+      "delivery": {
+        "mode": "legacy-proxy",
+        "origin": "https://dream-hazel.vercel.app",
+        "workerName": null,
+        "routePatterns": [
+          "mann.cool/dream",
+          "mann.cool/dream/*"
+        ]
+      },
+      "status": "published",
+      "legacy": {
+        "gameUrl": "https://dream-hazel.vercel.app",
+        "platform": "desktop",
+        "aspectRatio": "16 / 9",
+        "controls": null,
+        "permissions": []
+      }
     },
     {
       "id": 19,
-      "tokenId": 19,
       "slug": "kombatice",
       "title": "Kombat Ice",
-      "image": "/nes-game-images/kombatice.png",
-      "gameUrl": "https://kombatice.vercel.app/",
-      "platform": "mobile",
-      "aspectRatio": "9 / 16",
-      "controls": null,
-      "hidden": false
+      "description": "Fight the cold in a pocket-sized combat game.",
+      "cover": "/covers/kombatice.webp",
+      "hoverGif": "/game-gifs/kombatice.gif",
+      "tags": [
+        "funny"
+      ],
+      "catalogOrder": 19,
+      "publishedAt": null,
+      "deviceSupport": {
+        "mobile": true,
+        "tablet": true,
+        "desktop": true
+      },
+      "leaderboard": {
+        "enabled": false,
+        "direction": "desc",
+        "variants": [
+          "default"
+        ]
+      },
+      "delivery": {
+        "mode": "legacy-proxy",
+        "origin": "https://kombatice.vercel.app",
+        "workerName": null,
+        "routePatterns": [
+          "mann.cool/kombatice",
+          "mann.cool/kombatice/*"
+        ]
+      },
+      "status": "published",
+      "legacy": {
+        "gameUrl": "https://kombatice.vercel.app/",
+        "platform": "mobile",
+        "aspectRatio": "9 / 16",
+        "controls": null,
+        "permissions": []
+      }
     },
     {
       "id": 20,
-      "tokenId": 20,
       "slug": "lidstaysclosed",
       "title": "The Lid Stays Closed",
-      "image": "/nes-game-images/lidstaysclosed.png",
-      "gameUrl": "https://catlid.vercel.app",
-      "platform": "desktop",
-      "aspectRatio": "16 / 9",
-      "mobileMode": "landscape",
-      "controls": null,
-      "hidden": false
+      "description": "Whatever happens, the lid stays closed.",
+      "cover": "/covers/lidstaysclosed.webp",
+      "hoverGif": "/game-gifs/lidstaysclosed.gif",
+      "tags": [
+        "funny",
+        "weird"
+      ],
+      "catalogOrder": 20,
+      "publishedAt": null,
+      "deviceSupport": {
+        "mobile": true,
+        "tablet": true,
+        "desktop": true
+      },
+      "leaderboard": {
+        "enabled": false,
+        "direction": "desc",
+        "variants": [
+          "default"
+        ]
+      },
+      "delivery": {
+        "mode": "legacy-proxy",
+        "origin": "https://catlid.vercel.app",
+        "workerName": null,
+        "routePatterns": [
+          "mann.cool/lidstaysclosed",
+          "mann.cool/lidstaysclosed/*"
+        ]
+      },
+      "status": "published",
+      "legacy": {
+        "gameUrl": "https://catlid.vercel.app",
+        "platform": "desktop",
+        "aspectRatio": "16 / 9",
+        "controls": null,
+        "permissions": []
+      }
     },
     {
       "id": 21,
-      "tokenId": 21,
       "slug": "meelode",
       "title": "LodeMeeRunnerBits",
-      "image": "/nes-game-images/meelode.png",
-      "gameUrl": "https://meelode.vercel.app/lodeRunner.html",
-      "platform": "desktop",
-      "aspectRatio": "16 / 9",
-      "controls": {
-        "dpad": {
-          "up": "ArrowUp",
-          "down": "ArrowDown",
-          "left": "ArrowLeft",
-          "right": "ArrowRight"
-        },
-        "actions": [
-          {
-            "key": "z",
-            "label": "DIG L"
-          },
-          {
-            "key": "x",
-            "label": "DIG R"
-          },
-          {
-            "key": "Enter",
-            "label": "OK"
-          }
+      "description": "Classic platforming rebuilt with Meebits and pixels.",
+      "cover": "/covers/meelode.webp",
+      "hoverGif": "/game-gifs/meelode.gif",
+      "tags": [
+        "art"
+      ],
+      "catalogOrder": 21,
+      "publishedAt": null,
+      "deviceSupport": {
+        "mobile": false,
+        "tablet": true,
+        "desktop": true
+      },
+      "leaderboard": {
+        "enabled": true,
+        "direction": "desc",
+        "variants": [
+          "classic",
+          "professional",
+          "revenge",
+          "fanbook",
+          "championship",
+          "generated"
         ]
       },
-      "hidden": false
+      "delivery": {
+        "mode": "legacy-proxy",
+        "origin": "https://meelode.vercel.app",
+        "entryPath": "/lodeRunner.html",
+        "workerName": null,
+        "routePatterns": [
+          "mann.cool/meelode",
+          "mann.cool/meelode/*"
+        ]
+      },
+      "status": "published",
+      "legacy": {
+        "gameUrl": "https://meelode.vercel.app/lodeRunner.html",
+        "platform": "desktop",
+        "aspectRatio": "16 / 9",
+        "controls": {
+          "dpad": {
+            "up": "ArrowUp",
+            "down": "ArrowDown",
+            "left": "ArrowLeft",
+            "right": "ArrowRight"
+          },
+          "actions": [
+            {
+              "key": "z",
+              "label": "DIG L"
+            },
+            {
+              "key": "x",
+              "label": "DIG R"
+            },
+            {
+              "key": "Enter",
+              "label": "OK"
+            }
+          ]
+        },
+        "permissions": []
+      }
     },
     {
       "id": 22,
-      "tokenId": 22,
       "slug": "synthsnow",
       "title": "SynthSnow",
-      "image": "/nes-game-images/synthsnow.png",
-      "gameUrl": "https://synthsnow.vercel.app",
-      "platform": "desktop",
-      "aspectRatio": "16 / 9",
-      "mobileMode": "landscape",
-      "controls": null,
-      "permissions": [
-        "camera"
+      "description": "Make music in an endless field of synthesized snow.",
+      "cover": "/covers/synthsnow.webp",
+      "hoverGif": "/game-gifs/synthsnow.gif",
+      "tags": [
+        "art",
+        "relaxing"
       ],
-      "hidden": false
+      "catalogOrder": 22,
+      "publishedAt": null,
+      "deviceSupport": {
+        "mobile": true,
+        "tablet": true,
+        "desktop": true
+      },
+      "leaderboard": {
+        "enabled": false,
+        "direction": "desc",
+        "variants": [
+          "default"
+        ]
+      },
+      "delivery": {
+        "mode": "legacy-proxy",
+        "origin": "https://synthsnow.vercel.app",
+        "workerName": null,
+        "routePatterns": [
+          "mann.cool/synthsnow",
+          "mann.cool/synthsnow/*"
+        ]
+      },
+      "status": "published",
+      "legacy": {
+        "gameUrl": "https://synthsnow.vercel.app",
+        "platform": "desktop",
+        "aspectRatio": "16 / 9",
+        "controls": null,
+        "permissions": [
+          "camera"
+        ]
+      }
     },
     {
       "id": 23,
-      "tokenId": 23,
       "slug": "protectgreenland",
       "title": "Protect Greenland",
-      "image": "/nes-game-images/protectgreenland.png",
-      "gameUrl": "https://protectgreenland.vercel.app",
-      "platform": "desktop",
-      "aspectRatio": "16 / 9",
-      "redirect": true,
-      "controls": null,
-      "hidden": false
+      "description": "Defend Greenland in a political arcade scramble.",
+      "cover": "/covers/protectgreenland.webp",
+      "hoverGif": "/game-gifs/protectgreenland.gif",
+      "tags": [
+        "political",
+        "funny"
+      ],
+      "catalogOrder": 23,
+      "publishedAt": null,
+      "deviceSupport": {
+        "mobile": true,
+        "tablet": true,
+        "desktop": true
+      },
+      "leaderboard": {
+        "enabled": false,
+        "direction": "desc",
+        "variants": [
+          "default"
+        ]
+      },
+      "delivery": {
+        "mode": "legacy-proxy",
+        "origin": "https://protectgreenland.vercel.app",
+        "workerName": null,
+        "routePatterns": [
+          "mann.cool/protectgreenland",
+          "mann.cool/protectgreenland/*"
+        ]
+      },
+      "status": "published",
+      "legacy": {
+        "gameUrl": "https://protectgreenland.vercel.app",
+        "platform": "desktop",
+        "aspectRatio": "16 / 9",
+        "controls": null,
+        "permissions": []
+      }
     },
     {
       "id": 24,
-      "tokenId": 24,
       "slug": "penisvagina",
       "title": "Penis // Vagina",
-      "image": "/nes-game-images/penisvagina.png",
-      "gameUrl": "https://penis-vagina.songadaymann.partykit.dev",
-      "platform": "desktop",
-      "redirect": true,
-      "hidden": false
+      "description": "An adults-only multiplayer game about bodies and boundaries.",
+      "cover": "/covers/penisvagina.webp",
+      "hoverGif": "/game-gifs/penisvagina.gif",
+      "tags": [
+        "multiplayer",
+        "funny",
+        "NSFW"
+      ],
+      "catalogOrder": 24,
+      "publishedAt": null,
+      "deviceSupport": {
+        "mobile": true,
+        "tablet": true,
+        "desktop": true
+      },
+      "leaderboard": {
+        "enabled": true,
+        "direction": "asc",
+        "variants": [
+          "default"
+        ],
+        "scoreDisplay": "absolute"
+      },
+      "delivery": {
+        "mode": "legacy-proxy",
+        "origin": "https://penis-vagina.songadaymann.partykit.dev",
+        "workerName": null,
+        "routePatterns": [
+          "mann.cool/penisvagina",
+          "mann.cool/penisvagina/*"
+        ]
+      },
+      "status": "published",
+      "legacy": {
+        "gameUrl": "https://penis-vagina.songadaymann.partykit.dev",
+        "platform": "desktop",
+        "aspectRatio": null,
+        "controls": null,
+        "permissions": []
+      }
     },
     {
       "id": 25,
-      "tokenId": 25,
       "slug": "punksinspace",
       "title": "Punks In Space",
-      "image": "/nes-game-images/punksinspace.png",
-      "gameUrl": "https://punksinspace.vercel.app",
-      "platform": "mobile",
-      "aspectRatio": "9 / 16",
-      "aspectRatioDesktop": "16 / 9",
-      "controls": null,
-      "hidden": false
+      "description": "Launch a crew of punks into the void.",
+      "cover": "/covers/punksinspace.webp",
+      "hoverGif": "/game-gifs/punksinspace.gif",
+      "tags": [
+        "art",
+        "funny"
+      ],
+      "catalogOrder": 25,
+      "publishedAt": null,
+      "deviceSupport": {
+        "mobile": true,
+        "tablet": true,
+        "desktop": true
+      },
+      "leaderboard": {
+        "enabled": true,
+        "direction": "asc",
+        "variants": [
+          "default"
+        ],
+        "scoreDisplay": "absolute"
+      },
+      "delivery": {
+        "mode": "legacy-proxy",
+        "origin": "https://punksinspace.vercel.app",
+        "workerName": null,
+        "routePatterns": [
+          "mann.cool/punksinspace",
+          "mann.cool/punksinspace/*"
+        ]
+      },
+      "status": "published",
+      "legacy": {
+        "gameUrl": "https://punksinspace.vercel.app",
+        "platform": "mobile",
+        "aspectRatio": "9 / 16",
+        "controls": null,
+        "permissions": []
+      }
     },
     {
       "id": 26,
-      "tokenId": 26,
       "slug": "towerofpunks",
       "title": "Tower of Punks",
-      "image": "/nes-game-images/towerofpunks.png",
-      "gameUrl": "https://towerofpunks.vercel.app",
-      "platform": "mobile",
-      "aspectRatio": "9 / 16",
-      "controls": null,
-      "hidden": false
+      "description": "Build a precarious tower out of tiny punks.",
+      "cover": "/covers/towerofpunks.webp",
+      "hoverGif": "/game-gifs/towerofpunks.gif",
+      "tags": [
+        "art",
+        "funny"
+      ],
+      "catalogOrder": 26,
+      "publishedAt": null,
+      "deviceSupport": {
+        "mobile": true,
+        "tablet": true,
+        "desktop": true
+      },
+      "leaderboard": {
+        "enabled": false,
+        "direction": "desc",
+        "variants": [
+          "default"
+        ]
+      },
+      "delivery": {
+        "mode": "legacy-proxy",
+        "origin": "https://towerofpunks.vercel.app",
+        "workerName": null,
+        "routePatterns": [
+          "mann.cool/towerofpunks",
+          "mann.cool/towerofpunks/*"
+        ]
+      },
+      "status": "published",
+      "legacy": {
+        "gameUrl": "https://towerofpunks.vercel.app",
+        "platform": "mobile",
+        "aspectRatio": "9 / 16",
+        "controls": null,
+        "permissions": []
+      }
     },
     {
       "id": 27,
-      "tokenId": 27,
       "slug": "armfulofpunks",
       "title": "Armful of Punks",
-      "image": "/nes-game-images/armfulofpunks.png",
-      "gameUrl": "https://armfulofpunks.vercel.app",
-      "platform": "mobile",
-      "aspectRatio": "9 / 16",
-      "controls": null,
-      "hidden": false
+      "description": "Catch as many falling punks as your arms can hold.",
+      "cover": "/covers/armfulofpunks.webp",
+      "hoverGif": "/game-gifs/armfulofpunks.gif",
+      "tags": [
+        "art",
+        "funny"
+      ],
+      "catalogOrder": 27,
+      "publishedAt": null,
+      "deviceSupport": {
+        "mobile": true,
+        "tablet": true,
+        "desktop": true
+      },
+      "leaderboard": {
+        "enabled": false,
+        "direction": "desc",
+        "variants": [
+          "default"
+        ]
+      },
+      "delivery": {
+        "mode": "legacy-proxy",
+        "origin": "https://armfulofpunks.vercel.app",
+        "workerName": null,
+        "routePatterns": [
+          "mann.cool/armfulofpunks",
+          "mann.cool/armfulofpunks/*"
+        ]
+      },
+      "status": "published",
+      "legacy": {
+        "gameUrl": "https://armfulofpunks.vercel.app",
+        "platform": "mobile",
+        "aspectRatio": "9 / 16",
+        "controls": null,
+        "permissions": []
+      }
     },
     {
       "id": 28,
-      "tokenId": 28,
       "slug": "punkfling",
       "title": "Punk Fling",
-      "image": "/nes-game-images/punkfling.png",
-      "gameUrl": "https://punk-fling.vercel.app",
-      "platform": "mobile",
-      "redirect": true,
-      "hidden": false
+      "description": "Fling a punk and see how far chaos can carry it.",
+      "cover": "/covers/punkfling.webp",
+      "hoverGif": "/game-gifs/punkfling.gif",
+      "tags": [
+        "art",
+        "funny"
+      ],
+      "catalogOrder": 28,
+      "publishedAt": null,
+      "deviceSupport": {
+        "mobile": true,
+        "tablet": true,
+        "desktop": true
+      },
+      "leaderboard": {
+        "enabled": true,
+        "direction": "desc",
+        "variants": [
+          "default"
+        ],
+        "apiAliases": [
+          "flingpunk"
+        ]
+      },
+      "delivery": {
+        "mode": "legacy-proxy",
+        "origin": "https://punk-fling.vercel.app",
+        "workerName": null,
+        "routePatterns": [
+          "mann.cool/punkfling",
+          "mann.cool/punkfling/*"
+        ]
+      },
+      "status": "published",
+      "legacy": {
+        "gameUrl": "https://punk-fling.vercel.app",
+        "platform": "mobile",
+        "aspectRatio": null,
+        "controls": null,
+        "permissions": []
+      }
     },
     {
       "id": 29,
-      "tokenId": 29,
       "slug": "dontscroll",
       "title": "Don't Scroll",
-      "image": "/nes-game-images/dontscroll.png",
-      "gameUrl": "https://dontscroll.vercel.app",
-      "platform": "mobile",
-      "aspectRatio": "9 / 16",
-      "controls": null,
-      "hidden": false
+      "description": "The only rule is right there in the title.",
+      "cover": "/covers/dontscroll.webp",
+      "hoverGif": "/game-gifs/dontscroll.gif",
+      "tags": [
+        "funny",
+        "weird"
+      ],
+      "catalogOrder": 29,
+      "publishedAt": null,
+      "deviceSupport": {
+        "mobile": true,
+        "tablet": true,
+        "desktop": true
+      },
+      "leaderboard": {
+        "enabled": false,
+        "direction": "desc",
+        "variants": [
+          "default"
+        ]
+      },
+      "delivery": {
+        "mode": "legacy-proxy",
+        "origin": "https://dontscroll.vercel.app",
+        "workerName": null,
+        "routePatterns": [
+          "mann.cool/dontscroll",
+          "mann.cool/dontscroll/*"
+        ]
+      },
+      "status": "published",
+      "legacy": {
+        "gameUrl": "https://dontscroll.vercel.app",
+        "platform": "mobile",
+        "aspectRatio": "9 / 16",
+        "controls": null,
+        "permissions": []
+      }
     },
     {
       "id": 30,
-      "tokenId": 30,
       "slug": "perilouspenguin",
       "title": "Perilous Penguin",
-      "image": "/nes-game-images/perilouspenguin.png",
-      "gameUrl": "https://perilouspenguin.vercel.app",
-      "platform": "mobile",
-      "aspectRatio": "9 / 16",
-      "controls": null,
-      "hidden": false
+      "description": "Guide a brave penguin through a very bad day.",
+      "cover": "/covers/perilouspenguin.webp",
+      "hoverGif": "/game-gifs/perilouspenguin.gif",
+      "tags": [
+        "funny"
+      ],
+      "catalogOrder": 30,
+      "publishedAt": null,
+      "deviceSupport": {
+        "mobile": true,
+        "tablet": true,
+        "desktop": true
+      },
+      "leaderboard": {
+        "enabled": false,
+        "direction": "desc",
+        "variants": [
+          "default"
+        ]
+      },
+      "delivery": {
+        "mode": "legacy-proxy",
+        "origin": "https://perilouspenguin.vercel.app",
+        "workerName": null,
+        "routePatterns": [
+          "mann.cool/perilouspenguin",
+          "mann.cool/perilouspenguin/*"
+        ]
+      },
+      "status": "published",
+      "legacy": {
+        "gameUrl": "https://perilouspenguin.vercel.app",
+        "platform": "mobile",
+        "aspectRatio": "9 / 16",
+        "controls": null,
+        "permissions": []
+      }
     },
     {
       "id": 31,
-      "tokenId": 31,
       "slug": "flighttosfo",
       "title": "Flight To SFO",
-      "image": "/nes-game-images/flighttosfo.png",
-      "gameUrl": "https://848-seven.vercel.app",
-      "platform": "desktop",
-      "aspectRatio": "16 / 9",
-      "mobileMode": "desktop-only",
-      "controls": null,
-      "hidden": false
+      "description": "Take a strange and scenic flight to San Francisco.",
+      "cover": "/covers/flighttosfo.webp",
+      "hoverGif": "/game-gifs/flighttosfo.gif",
+      "tags": [
+        "art",
+        "relaxing",
+        "weird"
+      ],
+      "catalogOrder": 31,
+      "publishedAt": null,
+      "deviceSupport": {
+        "mobile": true,
+        "tablet": true,
+        "desktop": true
+      },
+      "leaderboard": {
+        "enabled": false,
+        "direction": "desc",
+        "variants": [
+          "default"
+        ]
+      },
+      "delivery": {
+        "mode": "legacy-proxy",
+        "origin": "https://848-seven.vercel.app",
+        "workerName": null,
+        "routePatterns": [
+          "mann.cool/flighttosfo",
+          "mann.cool/flighttosfo/*"
+        ]
+      },
+      "status": "published",
+      "legacy": {
+        "gameUrl": "https://848-seven.vercel.app",
+        "platform": "desktop",
+        "aspectRatio": "16 / 9",
+        "controls": null,
+        "permissions": []
+      }
     },
     {
       "id": 32,
-      "tokenId": 32,
       "slug": "meebitsmountain",
       "title": "Meebits Mountain",
-      "image": "/nes-game-images/meebitsmountain.png",
-      "gameUrl": "https://335prod.vercel.app",
-      "platform": "desktop",
-      "redirect": true,
-      "hidden": false
+      "description": "Climb a mountain populated by Meebits.",
+      "cover": "/covers/meebitsmountain.webp",
+      "hoverGif": "/game-gifs/meebitsmountain.gif",
+      "tags": [
+        "art"
+      ],
+      "catalogOrder": 32,
+      "publishedAt": null,
+      "deviceSupport": {
+        "mobile": true,
+        "tablet": true,
+        "desktop": true
+      },
+      "leaderboard": {
+        "enabled": false,
+        "direction": "desc",
+        "variants": [
+          "default"
+        ]
+      },
+      "delivery": {
+        "mode": "legacy-proxy",
+        "origin": "https://335prod.vercel.app",
+        "workerName": null,
+        "routePatterns": [
+          "mann.cool/meebitsmountain",
+          "mann.cool/meebitsmountain/*"
+        ]
+      },
+      "status": "published",
+      "legacy": {
+        "gameUrl": "https://335prod.vercel.app",
+        "platform": "desktop",
+        "aspectRatio": null,
+        "controls": null,
+        "permissions": []
+      }
     },
     {
       "id": 33,
-      "tokenId": 33,
       "slug": "100goombas",
       "title": "100 Goombas",
-      "image": "/nes-game-images/100goombas.png",
-      "gameUrl": "https://100goombas.vercel.app",
-      "platform": "desktop",
-      "aspectRatio": "16 / 9",
-      "controls": {
-        "dpad": {
-          "up": "ArrowUp",
-          "down": "ArrowDown",
-          "left": "ArrowLeft",
-          "right": "ArrowRight"
-        },
-        "actions": [
-          {
-            "key": "ArrowUp",
-            "label": "JUMP"
-          }
+      "description": "One hundred Goombas. One increasingly complicated problem.",
+      "cover": "/covers/100goombas.webp",
+      "hoverGif": "/game-gifs/100goombas.gif",
+      "tags": [
+        "funny",
+        "weird"
+      ],
+      "catalogOrder": 33,
+      "publishedAt": null,
+      "deviceSupport": {
+        "mobile": false,
+        "tablet": true,
+        "desktop": true
+      },
+      "leaderboard": {
+        "enabled": false,
+        "direction": "desc",
+        "variants": [
+          "default"
         ]
       },
-      "hidden": false
+      "delivery": {
+        "mode": "legacy-proxy",
+        "origin": "https://100goombas.vercel.app",
+        "workerName": null,
+        "routePatterns": [
+          "mann.cool/100goombas",
+          "mann.cool/100goombas/*"
+        ]
+      },
+      "status": "published",
+      "legacy": {
+        "gameUrl": "https://100goombas.vercel.app",
+        "platform": "desktop",
+        "aspectRatio": "16 / 9",
+        "controls": {
+          "dpad": {
+            "up": "ArrowUp",
+            "down": "ArrowDown",
+            "left": "ArrowLeft",
+            "right": "ArrowRight"
+          },
+          "actions": [
+            {
+              "key": "ArrowUp",
+              "label": "JUMP"
+            }
+          ]
+        },
+        "permissions": []
+      }
     },
     {
       "id": 34,
-      "tokenId": 34,
       "slug": "sledding",
       "title": "SLEDDING",
-      "image": "/nes-game-images/sledding.png",
-      "gameUrl": "https://sledding-peach.vercel.app",
-      "platform": "desktop",
-      "aspectRatio": "16 / 9",
-      "mobileMode": "landscape",
-      "controls": null,
-      "hidden": false
+      "description": "Launch a sled, chase distance, and try again.",
+      "cover": "/covers/sledding.webp",
+      "hoverGif": "/game-gifs/sledding.gif",
+      "tags": [
+        "funny",
+        "relaxing"
+      ],
+      "catalogOrder": 34,
+      "publishedAt": null,
+      "deviceSupport": {
+        "mobile": true,
+        "tablet": true,
+        "desktop": true
+      },
+      "leaderboard": {
+        "enabled": true,
+        "direction": "asc",
+        "variants": [
+          "default"
+        ],
+        "scoreDisplay": "absolute",
+        "apiAliases": [
+          "sledlaunch",
+          "sledlaunch2"
+        ]
+      },
+      "delivery": {
+        "mode": "legacy-proxy",
+        "origin": "https://sledding-peach.vercel.app",
+        "workerName": null,
+        "routePatterns": [
+          "mann.cool/sledding",
+          "mann.cool/sledding/*"
+        ]
+      },
+      "status": "published",
+      "legacy": {
+        "gameUrl": "https://sledding-peach.vercel.app",
+        "platform": "desktop",
+        "aspectRatio": "16 / 9",
+        "controls": null,
+        "permissions": []
+      }
     },
     {
       "id": 35,
-      "tokenId": 35,
       "slug": "hell",
       "title": "Lindsay Graham In Hell",
-      "image": "/nes-game-images/hell.png",
-      "gameUrl": "https://platformer-lindsay-in-hell-c94911.pages.dev",
-      "platform": "desktop",
-      "redirect": true,
-      "hidden": true
+      "description": "Escape a pixel-art inferno starring Senator Lindsey Graham.",
+      "cover": "/covers/hell.webp",
+      "tags": [
+        "political",
+        "funny",
+        "weird"
+      ],
+      "featuredRank": 3,
+      "catalogOrder": 35,
+      "publishedAt": null,
+      "deviceSupport": {
+        "mobile": true,
+        "tablet": true,
+        "desktop": true
+      },
+      "leaderboard": {
+        "enabled": true,
+        "direction": "asc",
+        "variants": [
+          "default"
+        ],
+        "provider": "hell-worker",
+        "path": "/hell/leaderboard/"
+      },
+      "delivery": {
+        "mode": "legacy-proxy",
+        "origin": "https://platformer-lindsay-in-hell-c94911.pages.dev",
+        "workerName": null,
+        "routePatterns": [
+          "mann.cool/hell",
+          "mann.cool/hell/*"
+        ]
+      },
+      "status": "published",
+      "legacy": {
+        "gameUrl": "https://platformer-lindsay-in-hell-c94911.pages.dev",
+        "platform": "desktop",
+        "aspectRatio": null,
+        "controls": null,
+        "permissions": []
+      }
     }
   ]
 }
