@@ -31,24 +31,25 @@
     render() {
       this.shadowRoot.innerHTML = `
         <style>
-          :host { --paper:#f8f5ea; --ink:#171713; --accent:#ffdd45; position:fixed; inset:0; z-index:2147483000; pointer-events:none; font:700 14px/1.2 Arial,Helvetica,sans-serif; color:var(--ink); }
+          :host { --paper:#f8f7f2; --ink:#171714; --muted:#6d6a61; --rule:#d8d6ce; --accent:#f2d24d; position:fixed; inset:0; z-index:2147483000; pointer-events:none; font:700 14px/1.2 Arial,Helvetica,sans-serif; color:var(--ink); }
           *,*::before,*::after { box-sizing:border-box; }
           button,a,input,textarea { font:inherit; }
           button,a,.panel,.backdrop { pointer-events:auto; }
-          .home { position:absolute; top:max(12px,env(safe-area-inset-top)); left:max(12px,env(safe-area-inset-left)); display:inline-flex; align-items:center; gap:8px; min-height:44px; padding:0 15px 0 12px; border:1px solid rgba(255,255,255,.45); border-radius:999px; color:#fff; background:rgba(18,18,15,.78); box-shadow:0 8px 28px rgba(0,0,0,.25); backdrop-filter:blur(12px); text-decoration:none; }
-          .home:hover,.home:focus-visible { background:rgba(18,18,15,.96); transform:translateX(-2px); }
-          .home b { font-size:19px; }
+          .home { position:absolute; top:max(12px,env(safe-area-inset-top)); left:max(12px,env(safe-area-inset-left)); display:inline-flex; align-items:center; gap:8px; min-height:42px; padding:0 12px; border:1px solid var(--ink); border-radius:0; color:var(--ink); background:var(--paper); text-decoration:none; }
+          .home:hover,.home:focus-visible { outline:none; color:var(--paper); background:var(--ink); }
+          .home b { font-size:16px; }
           .actions { position:absolute; top:50%; right:max(12px,env(safe-area-inset-right)); display:grid; gap:8px; transform:translateY(-50%); }
-          .action { display:grid; place-items:center; width:56px; min-height:56px; border:1px solid rgba(255,255,255,.5); border-radius:16px; color:#fff; background:rgba(18,18,15,.82); box-shadow:0 8px 28px rgba(0,0,0,.28); backdrop-filter:blur(12px); cursor:pointer; text-decoration:none; }
-          .action:hover,.action:focus-visible { transform:translateY(-2px); }
-          .tip { color:var(--ink); background:var(--accent); font-size:11px; text-transform:uppercase; }
+          .action { display:flex; align-items:center; justify-content:center; gap:5px; width:58px; min-height:48px; border:1px solid var(--ink); border-radius:0; color:var(--ink); background:var(--paper); cursor:pointer; text-decoration:none; }
+          .action:hover,.action:focus-visible { outline:none; color:var(--paper); background:var(--ink); }
+          .tip { color:var(--ink); background:var(--accent); font-size:11px; letter-spacing:.04em; text-transform:uppercase; }
+          .tip:hover,.tip:focus-visible { color:var(--paper); background:var(--ink); }
           .tip[hidden] { display:none; }
-          .menu-button { font-size:22px; }
-          .menu { position:absolute; top:0; right:64px; width:min(260px,calc(100vw - 96px)); padding:8px; border:1px solid rgba(255,255,255,.2); border-radius:18px; color:#fff; background:rgba(19,19,15,.96); box-shadow:0 18px 60px rgba(0,0,0,.42); }
+          .menu-button { font-size:20px; }
+          .menu { position:absolute; top:0; right:66px; width:min(260px,calc(100vw - 96px)); padding:0; border:1px solid var(--ink); border-radius:0; color:var(--ink); background:var(--paper); }
           .menu[hidden] { display:none; }
-          .menu-title { margin:0; padding:11px 12px 9px; overflow:hidden; color:rgba(255,255,255,.55); font-size:11px; letter-spacing:.07em; text-overflow:ellipsis; text-transform:uppercase; white-space:nowrap; }
-          .menu button,.menu a { display:flex; align-items:center; justify-content:space-between; width:100%; min-height:44px; padding:0 12px; border:0; border-radius:10px; color:#fff; background:transparent; text-align:left; text-decoration:none; cursor:pointer; }
-          .menu button:hover,.menu button:focus-visible,.menu a:hover,.menu a:focus-visible { outline:none; background:rgba(255,255,255,.1); }
+          .menu-title { margin:0; padding:12px; overflow:hidden; color:var(--muted); font-size:11px; letter-spacing:.07em; text-overflow:ellipsis; text-transform:uppercase; white-space:nowrap; }
+          .menu button,.menu a { display:flex; align-items:center; justify-content:space-between; width:100%; min-height:44px; padding:0 12px; border:0; border-top:1px solid var(--rule); border-radius:0; color:var(--ink); background:var(--paper); text-align:left; text-decoration:none; cursor:pointer; }
+          .menu button:hover,.menu button:focus-visible,.menu a:hover,.menu a:focus-visible { outline:none; color:var(--paper); background:var(--ink); }
           .backdrop { position:fixed; inset:0; display:grid; place-items:center; padding:20px; background:rgba(0,0,0,.66); backdrop-filter:blur(8px); }
           .backdrop[hidden] { display:none; }
           .panel { position:relative; width:min(620px,100%); max-height:min(720px,calc(100dvh - 40px)); padding:clamp(24px,5vw,42px); border:1px solid rgba(255,255,255,.22); border-radius:24px; color:#fff; background:#171713; box-shadow:0 30px 100px rgba(0,0,0,.58); overflow:auto; }
@@ -71,20 +72,20 @@
           .turnstile { min-height:65px; }
           @media (max-width:720px) {
             .actions { top:auto; right:max(10px,env(safe-area-inset-right)); bottom:max(14px,env(safe-area-inset-bottom)); display:flex; transform:none; }
-            .action { width:52px; min-height:52px; border-radius:14px; }
-            .menu { top:auto; right:0; bottom:61px; width:min(260px,calc(100vw - 20px)); }
+            .action { width:54px; min-height:46px; }
+            .menu { top:auto; right:0; bottom:54px; width:min(260px,calc(100vw - 20px)); }
             .backdrop { align-items:end; padding:10px; }
             .panel { max-height:calc(100dvh - 20px); border-radius:22px; }
           }
           @media (max-height:520px) and (orientation:landscape) {
             .actions { top:50%; right:max(10px,env(safe-area-inset-right)); bottom:auto; display:grid; transform:translateY(-50%); }
-            .menu { top:0; right:61px; bottom:auto; }
+            .menu { top:0; right:62px; bottom:auto; }
           }
           @media (prefers-reduced-motion:reduce) { * { transition:none!important; } }
         </style>
-        <a class="home" href="https://mann.cool/" aria-label="Return to mann.cool"><b aria-hidden="true">←</b><span>mann.cool</span></a>
+        <a class="home" href="https://mann.cool/" aria-label="Back to mann.cool"><b aria-hidden="true">←</b><span>Back to mann.cool</span></a>
         <div class="actions">
-          <a class="action tip" data-tip target="_blank" rel="noopener noreferrer" hidden>Tip</a>
+          <a class="action tip" data-tip target="_blank" rel="noopener noreferrer" hidden><span aria-hidden="true">$</span><span>Tip</span></a>
           <button class="action menu-button" type="button" aria-label="Open game menu" aria-expanded="false">☰</button>
           <div class="menu" hidden>
             <p class="menu-title"></p>
