@@ -6,10 +6,17 @@ const errors = [];
 const reserved = new Set(["api", "platform", "assets", "covers", "game-gifs", "nes-game-images", "archive"]);
 const tags = new Set(catalog.tagVocabulary || []);
 const expectedTags = ["political", "art", "relaxing", "multiplayer", "funny", "weird", "NSFW"];
+const launchSlugs = new Set([
+  "coldplay-canoodle", "ctn", "windows", "tallgrass", "chonksisyphus", "oil", "loki", "pong", "rcs",
+  "kevin", "fuckice", "bubble", "cyber", "punkmatch", "beepleblox", "doge", "girlscouts", "dream",
+  "kombatice", "lidstaysclosed", "meelode", "synthsnow", "protectgreenland", "penisvagina", "punksinspace",
+  "towerofpunks", "armfulofpunks", "punkfling", "dontscroll", "perilouspenguin", "flighttosfo",
+  "meebitsmountain", "100goombas", "sledding", "hell",
+]);
 
 if (catalog.version !== 1) errors.push("catalog version must be 1");
 if (JSON.stringify([...tags]) !== JSON.stringify(expectedTags)) errors.push("tag vocabulary changed without approval");
-if (!Array.isArray(catalog.games) || catalog.games.length !== 35) errors.push("catalog must contain all 35 launch games");
+if (!Array.isArray(catalog.games) || catalog.games.length < launchSlugs.size) errors.push("catalog must contain all 35 launch games");
 
 const slugs = new Set();
 const orders = new Set();
@@ -34,6 +41,7 @@ for (const game of catalog.games || []) {
   if (!fs.existsSync(coverPath)) errors.push(`${game.slug}: missing cover ${game.cover}`);
   if (game.hoverGif && !fs.existsSync(new URL(`public${game.hoverGif}`, root))) errors.push(`${game.slug}: missing hover GIF ${game.hoverGif}`);
 }
+for (const slug of launchSlugs) if (!slugs.has(slug)) errors.push(`missing launch game: ${slug}`);
 
 featuredRanks.sort((a, b) => a[0] - b[0]);
 if (JSON.stringify(featuredRanks) !== JSON.stringify([[1, "fuckice"], [2, "coldplay-canoodle"], [3, "hell"]])) {
