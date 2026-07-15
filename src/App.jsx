@@ -63,25 +63,24 @@ function GameCard({ game, featured = false, nsfwRevealed, onRevealNsfw }) {
   );
 }
 
-function Footer() {
-  const [tipUrl, setTipUrl] = useState("");
+function SupportLinks({ tipUrl }) {
+  return (
+    <>
+      <a href="https://www.patreon.com/jonathanmann" target="_blank" rel="noreferrer">Patreon</a>
+      {tipUrl && <a href={tipUrl} target="_blank" rel="noreferrer">Tip Jar</a>}
+      <a href="https://x.com/songadaymann" target="_blank" rel="noreferrer">X</a>
+      <a href="https://instagram.com/jonathanmann" target="_blank" rel="noreferrer">Instagram</a>
+      <a href="mailto:jonathan@jonathanmann.net">Contact</a>
+    </>
+  );
+}
 
-  useEffect(() => {
-    fetch("/platform/config.json")
-      .then((response) => response.json())
-      .then((config) => setTipUrl(config.tipUrl || ""))
-      .catch(() => {});
-  }, []);
-
+function Footer({ tipUrl }) {
   return (
     <footer className="site-footer">
       <p>Games by Jonathan Mann, maker of Song A Day.</p>
       <nav aria-label="Support and contact">
-        <a href="https://www.patreon.com/jonathanmann" target="_blank" rel="noreferrer">Patreon</a>
-        {tipUrl && <a href={tipUrl} target="_blank" rel="noreferrer">Tip Jar</a>}
-        <a href="https://x.com/songadaymann" target="_blank" rel="noreferrer">X</a>
-        <a href="https://instagram.com/jonathanmann" target="_blank" rel="noreferrer">Instagram</a>
-        <a href="mailto:jonathan@jonathanmann.net">Contact</a>
+        <SupportLinks tipUrl={tipUrl} />
       </nav>
     </footer>
   );
@@ -89,9 +88,17 @@ function Footer() {
 
 export default function App() {
   const [activeTag, setActiveTag] = useState(initialTag);
+  const [tipUrl, setTipUrl] = useState("");
   const [nsfwRevealed, setNsfwRevealed] = useState(
     () => window.localStorage.getItem("mann.cool:nsfw-revealed") === "true",
   );
+
+  useEffect(() => {
+    fetch("/platform/config.json")
+      .then((response) => response.json())
+      .then((config) => setTipUrl(config.tipUrl || ""))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     const onPopState = () => setActiveTag(initialTag());
@@ -119,8 +126,13 @@ export default function App() {
   return (
     <div className="site-shell">
       <header className="site-header">
-        <a className="wordmark" href="/">mann.cool</a>
-        <p>games by Jonathan Mann</p>
+        <div className="site-identity">
+          <a className="wordmark" href="/">mann.cool</a>
+          <p>games by Jonathan Mann, maker of Song A Day</p>
+        </div>
+        <nav className="site-nav" aria-label="Support and contact">
+          <SupportLinks tipUrl={tipUrl} />
+        </nav>
       </header>
 
       <main>
@@ -175,7 +187,7 @@ export default function App() {
         </section>
       </main>
 
-      <Footer />
+      <Footer tipUrl={tipUrl} />
     </div>
   );
 }
