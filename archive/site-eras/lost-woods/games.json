@@ -1,0 +1,589 @@
+{
+  "games": [
+    {
+      "id": 1,
+      "tokenId": 1,
+      "slug": "coldplay-canoodle",
+      "title": "Coldplay Canoodle",
+      "image": "/nes-game-images/coldplay-canoodle.png",
+      "gameUrl": "https://coldplay-canoodle.vercel.app",
+      "platform": "desktop",
+      "aspectRatio": "4 / 3",
+      "controls": {
+        "dpad": {
+          "up": "ArrowUp",
+          "down": "ArrowDown",
+          "left": "ArrowLeft",
+          "right": "ArrowRight"
+        },
+        "actions": [
+          {
+            "key": "z",
+            "label": "A"
+          },
+          {
+            "key": "x",
+            "label": "B"
+          }
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "tokenId": 2,
+      "slug": "ctn",
+      "title": "Crypto Tax Nightmare",
+      "image": "/nes-game-images/crypto-tax-nightmare.png",
+      "gameUrl": "https://game.songaday.world/",
+      "platform": "desktop",
+      "aspectRatio": "16 / 9",
+      "controls": {
+        "dpad": {
+          "up": "ArrowUp",
+          "down": "ArrowDown",
+          "left": "ArrowLeft",
+          "right": "ArrowRight"
+        },
+        "actions": [
+          {
+            "key": "ArrowUp",
+            "label": "JUMP"
+          },
+          {
+            "key": "click",
+            "label": "ATTACK",
+            "isClick": true
+          }
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "tokenId": 3,
+      "slug": "windows",
+      "title": "Windows Didn't Load Correctly",
+      "image": "/nes-game-images/windows-didn't-load.png",
+      "gameUrl": "https://windows-ruddy.vercel.app",
+      "platform": "desktop",
+      "aspectRatio": "3 / 2",
+      "controls": {
+        "dpad": {
+          "up": "w",
+          "down": "s",
+          "left": "a",
+          "right": "d"
+        },
+        "hasLookStick": true,
+        "actions": [
+          {
+            "key": " ",
+            "label": "JUMP"
+          },
+          {
+            "key": "click",
+            "label": "ATTACK",
+            "isClick": true
+          },
+          {
+            "key": "f",
+            "label": "DASH"
+          },
+          {
+            "key": "q",
+            "label": "CROUCH"
+          },
+          {
+            "key": "e",
+            "label": "POUND"
+          },
+          {
+            "keys": [
+              "Tab",
+              "g"
+            ],
+            "label": "TAB"
+          }
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "tokenId": 4,
+      "slug": "tallgrass",
+      "title": "Tall Grass",
+      "image": "/nes-game-images/tall-grass.png",
+      "gameUrl": "https://tall-grass.vercel.app",
+      "platform": "desktop",
+      "aspectRatio": "16 / 9",
+      "controls": {
+        "dpad": {
+          "up": "ArrowUp",
+          "down": "ArrowDown",
+          "left": "ArrowLeft",
+          "right": "ArrowRight"
+        },
+        "lookHint": "Swipe on game to look around",
+        "actions": [
+          {
+            "key": "f",
+            "label": "COLLECT"
+          },
+          {
+            "key": "i",
+            "label": "INV"
+          },
+          {
+            "key": "m",
+            "label": "MAP"
+          },
+          {
+            "key": "Shift",
+            "label": "RUN"
+          }
+        ]
+      }
+    },
+    {
+      "id": 5,
+      "tokenId": 5,
+      "slug": "chonksisyphus",
+      "title": "Sisyphus Chonk",
+      "image": "/nes-game-images/sisyphus-chonk.png",
+      "gameUrl": "https://chonksisyphus.vercel.app",
+      "platform": "mobile",
+      "aspectRatio": "9 / 16",
+      "controls": null,
+      "permissions": [
+        "microphone"
+      ]
+    },
+    {
+      "id": 6,
+      "tokenId": 6,
+      "slug": "oil",
+      "title": "Oil & Epstein",
+      "image": "/nes-game-images/oil.png",
+      "gameUrl": "https://oil-ruddy.vercel.app",
+      "platform": "mobile",
+      "aspectRatio": "9 / 16",
+      "controls": null
+    },
+    {
+      "id": 7,
+      "tokenId": 7,
+      "slug": "loki",
+      "title": "Loki Is Genderfluid",
+      "image": "/nes-game-images/loki.png",
+      "gameUrl": "https://loki-gules.vercel.app/",
+      "platform": "desktop",
+      "aspectRatio": "16 / 9",
+      "mobileMode": "landscape",
+      "controls": null
+    },
+    {
+      "id": 8,
+      "tokenId": 8,
+      "slug": "pong",
+      "title": "Anybody // Pong",
+      "image": "/nes-game-images/pong.png",
+      "gameUrl": "https://pong-gold-omega.vercel.app/",
+      "platform": "desktop",
+      "redirect": true,
+      "hidden": false
+    },
+    {
+      "id": 9,
+      "tokenId": 9,
+      "slug": "rcs",
+      "title": "Right-Click Save Kill",
+      "image": "/nes-game-images/rcs.png",
+      "gameUrl": "https://rcs-nine-psi.vercel.app",
+      "platform": "desktop",
+      "aspectRatio": "16 / 9",
+      "mobileMode": "landscape",
+      "controls": null
+    },
+    {
+      "id": 10,
+      "tokenId": 10,
+      "slug": "kevin",
+      "title": "Kevin",
+      "image": "/nes-game-images/kevin.png",
+      "gameUrl": "https://kevin-runner.vercel.app",
+      "platform": "mobile",
+      "aspectRatio": "9 / 16",
+      "aspectRatioDesktop": "16 / 9",
+      "controls": null,
+      "hidden": false
+    },
+    {
+      "id": 11,
+      "tokenId": 11,
+      "slug": "fuckice",
+      "title": "FUCK ICE",
+      "image": "/nes-game-images/fuckice.png",
+      "gameUrl": "https://fuckice.vercel.app/",
+      "platform": "desktop",
+      "aspectRatio": "16 / 9",
+      "mobileMode": "landscape",
+      "controls": null,
+      "hidden": false
+    },
+    {
+      "id": 12,
+      "tokenId": 12,
+      "slug": "bubble",
+      "title": "YOU ARE BUBBLE",
+      "image": "/nes-game-images/bubble.png",
+      "gameUrl": "https://bubble-shader-game.vercel.app/",
+      "platform": "desktop",
+      "aspectRatio": "16 / 9",
+      "mobileMode": "landscape",
+      "controls": null,
+      "hidden": false
+    },
+    {
+      "id": 13,
+      "tokenId": 13,
+      "slug": "cyber",
+      "title": "Cyber Sunshine Smash",
+      "image": "/nes-game-images/cyber.png",
+      "gameUrl": "https://cyber-sunshine-smash.novox-robot.workers.dev/",
+      "platform": "desktop",
+      "aspectRatio": "16 / 9",
+      "controls": {
+        "dpad": {
+          "up": "ArrowUp",
+          "down": "ArrowDown",
+          "left": "ArrowLeft",
+          "right": "ArrowRight"
+        },
+        "actions": [
+          {
+            "key": "z",
+            "label": "PUNCH"
+          },
+          {
+            "key": "x",
+            "label": "KICK"
+          },
+          {
+            "key": " ",
+            "label": "JUMP"
+          }
+        ]
+      },
+      "hidden": false
+    },
+    {
+      "id": 14,
+      "tokenId": 14,
+      "slug": "punkmatch",
+      "title": "game. punk. match.",
+      "image": "/nes-game-images/punkmatch.png",
+      "gameUrl": "https://punkmatch.vercel.app",
+      "platform": "mobile",
+      "aspectRatio": "9 / 16",
+      "controls": null,
+      "hidden": false
+    },
+    {
+      "id": 15,
+      "tokenId": 15,
+      "slug": "beepleblox",
+      "title": "Beeple Blox",
+      "image": "/nes-game-images/beepleblox.png",
+      "gameUrl": "https://beeple-blox.vercel.app",
+      "platform": "desktop",
+      "aspectRatio": "16 / 9",
+      "mobileMode": "landscape",
+      "controls": null,
+      "permissions": [
+        "camera"
+      ],
+      "hidden": false
+    },
+    {
+      "id": 16,
+      "tokenId": 16,
+      "slug": "doge",
+      "title": "Goodbye, Kabosu",
+      "image": "/nes-game-images/doge.png",
+      "gameUrl": "https://doge-henna-six.vercel.app",
+      "platform": "desktop",
+      "aspectRatio": "16 / 9",
+      "mobileMode": "desktop-only",
+      "controls": null,
+      "hidden": false
+    },
+    {
+      "id": 17,
+      "tokenId": 17,
+      "slug": "girlscouts",
+      "title": "ScoutSort",
+      "image": "/nes-game-images/girlscouts.png",
+      "gameUrl": "https://girlscouts.vercel.app",
+      "platform": "desktop",
+      "aspectRatio": "16 / 9",
+      "mobileMode": "landscape",
+      "controls": null,
+      "hidden": false
+    },
+    {
+      "id": 18,
+      "tokenId": 18,
+      "slug": "dream",
+      "title": "Mouth Dream",
+      "image": "/nes-game-images/dream.png",
+      "gameUrl": "https://dream-hazel.vercel.app",
+      "platform": "desktop",
+      "aspectRatio": "16 / 9",
+      "mobileMode": "landscape",
+      "controls": null,
+      "hidden": false
+    },
+    {
+      "id": 19,
+      "tokenId": 19,
+      "slug": "kombatice",
+      "title": "Kombat Ice",
+      "image": "/nes-game-images/kombatice.png",
+      "gameUrl": "https://kombatice.vercel.app/",
+      "platform": "mobile",
+      "aspectRatio": "9 / 16",
+      "controls": null,
+      "hidden": false
+    },
+    {
+      "id": 20,
+      "tokenId": 20,
+      "slug": "lidstaysclosed",
+      "title": "The Lid Stays Closed",
+      "image": "/nes-game-images/lidstaysclosed.png",
+      "gameUrl": "https://catlid.vercel.app",
+      "platform": "desktop",
+      "aspectRatio": "16 / 9",
+      "mobileMode": "landscape",
+      "controls": null,
+      "hidden": false
+    },
+    {
+      "id": 21,
+      "tokenId": 21,
+      "slug": "meelode",
+      "title": "LodeMeeRunnerBits",
+      "image": "/nes-game-images/meelode.png",
+      "gameUrl": "https://meelode.vercel.app/lodeRunner.html",
+      "platform": "desktop",
+      "aspectRatio": "16 / 9",
+      "controls": {
+        "dpad": {
+          "up": "ArrowUp",
+          "down": "ArrowDown",
+          "left": "ArrowLeft",
+          "right": "ArrowRight"
+        },
+        "actions": [
+          {
+            "key": "z",
+            "label": "DIG L"
+          },
+          {
+            "key": "x",
+            "label": "DIG R"
+          },
+          {
+            "key": "Enter",
+            "label": "OK"
+          }
+        ]
+      },
+      "hidden": false
+    },
+    {
+      "id": 22,
+      "tokenId": 22,
+      "slug": "synthsnow",
+      "title": "SynthSnow",
+      "image": "/nes-game-images/synthsnow.png",
+      "gameUrl": "https://synthsnow.vercel.app",
+      "platform": "desktop",
+      "aspectRatio": "16 / 9",
+      "mobileMode": "landscape",
+      "controls": null,
+      "permissions": [
+        "camera"
+      ],
+      "hidden": false
+    },
+    {
+      "id": 23,
+      "tokenId": 23,
+      "slug": "protectgreenland",
+      "title": "Protect Greenland",
+      "image": "/nes-game-images/protectgreenland.png",
+      "gameUrl": "https://protectgreenland.vercel.app",
+      "platform": "desktop",
+      "aspectRatio": "16 / 9",
+      "redirect": true,
+      "controls": null,
+      "hidden": false
+    },
+    {
+      "id": 24,
+      "tokenId": 24,
+      "slug": "penisvagina",
+      "title": "Penis // Vagina",
+      "image": "/nes-game-images/penisvagina.png",
+      "gameUrl": "https://penis-vagina.songadaymann.partykit.dev",
+      "platform": "desktop",
+      "redirect": true,
+      "hidden": false
+    },
+    {
+      "id": 25,
+      "tokenId": 25,
+      "slug": "punksinspace",
+      "title": "Punks In Space",
+      "image": "/nes-game-images/punksinspace.png",
+      "gameUrl": "https://punksinspace.vercel.app",
+      "platform": "mobile",
+      "aspectRatio": "9 / 16",
+      "aspectRatioDesktop": "16 / 9",
+      "controls": null,
+      "hidden": false
+    },
+    {
+      "id": 26,
+      "tokenId": 26,
+      "slug": "towerofpunks",
+      "title": "Tower of Punks",
+      "image": "/nes-game-images/towerofpunks.png",
+      "gameUrl": "https://towerofpunks.vercel.app",
+      "platform": "mobile",
+      "aspectRatio": "9 / 16",
+      "controls": null,
+      "hidden": false
+    },
+    {
+      "id": 27,
+      "tokenId": 27,
+      "slug": "armfulofpunks",
+      "title": "Armful of Punks",
+      "image": "/nes-game-images/armfulofpunks.png",
+      "gameUrl": "https://armfulofpunks.vercel.app",
+      "platform": "mobile",
+      "aspectRatio": "9 / 16",
+      "controls": null,
+      "hidden": false
+    },
+    {
+      "id": 28,
+      "tokenId": 28,
+      "slug": "punkfling",
+      "title": "Punk Fling",
+      "image": "/nes-game-images/punkfling.png",
+      "gameUrl": "https://punk-fling.vercel.app",
+      "platform": "mobile",
+      "redirect": true,
+      "hidden": false
+    },
+    {
+      "id": 29,
+      "tokenId": 29,
+      "slug": "dontscroll",
+      "title": "Don't Scroll",
+      "image": "/nes-game-images/dontscroll.png",
+      "gameUrl": "https://dontscroll.vercel.app",
+      "platform": "mobile",
+      "aspectRatio": "9 / 16",
+      "controls": null,
+      "hidden": false
+    },
+    {
+      "id": 30,
+      "tokenId": 30,
+      "slug": "perilouspenguin",
+      "title": "Perilous Penguin",
+      "image": "/nes-game-images/perilouspenguin.png",
+      "gameUrl": "https://perilouspenguin.vercel.app",
+      "platform": "mobile",
+      "aspectRatio": "9 / 16",
+      "controls": null,
+      "hidden": false
+    },
+    {
+      "id": 31,
+      "tokenId": 31,
+      "slug": "flighttosfo",
+      "title": "Flight To SFO",
+      "image": "/nes-game-images/flighttosfo.png",
+      "gameUrl": "https://848-seven.vercel.app",
+      "platform": "desktop",
+      "aspectRatio": "16 / 9",
+      "mobileMode": "desktop-only",
+      "controls": null,
+      "hidden": false
+    },
+    {
+      "id": 32,
+      "tokenId": 32,
+      "slug": "meebitsmountain",
+      "title": "Meebits Mountain",
+      "image": "/nes-game-images/meebitsmountain.png",
+      "gameUrl": "https://335prod.vercel.app",
+      "platform": "desktop",
+      "redirect": true,
+      "hidden": false
+    },
+    {
+      "id": 33,
+      "tokenId": 33,
+      "slug": "100goombas",
+      "title": "100 Goombas",
+      "image": "/nes-game-images/100goombas.png",
+      "gameUrl": "https://100goombas.vercel.app",
+      "platform": "desktop",
+      "aspectRatio": "16 / 9",
+      "controls": {
+        "dpad": {
+          "up": "ArrowUp",
+          "down": "ArrowDown",
+          "left": "ArrowLeft",
+          "right": "ArrowRight"
+        },
+        "actions": [
+          {
+            "key": "ArrowUp",
+            "label": "JUMP"
+          }
+        ]
+      },
+      "hidden": false
+    },
+    {
+      "id": 34,
+      "tokenId": 34,
+      "slug": "sledding",
+      "title": "SLEDDING",
+      "image": "/nes-game-images/sledding.png",
+      "gameUrl": "https://sledding-peach.vercel.app",
+      "platform": "desktop",
+      "aspectRatio": "16 / 9",
+      "mobileMode": "landscape",
+      "controls": null,
+      "hidden": false
+    },
+    {
+      "id": 35,
+      "tokenId": 35,
+      "slug": "hell",
+      "title": "Lindsay Graham In Hell",
+      "image": "/nes-game-images/hell.png",
+      "gameUrl": "https://platformer-lindsay-in-hell-c94911.pages.dev",
+      "platform": "desktop",
+      "redirect": true,
+      "hidden": true
+    }
+  ]
+}

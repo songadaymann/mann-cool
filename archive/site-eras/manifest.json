@@ -1,0 +1,17 @@
+{
+  "visibility": "internal-reference-only",
+  "eras": [
+    {
+      "name": "arcade",
+      "sourceCommit": "02a0aa6",
+      "gitTag": "site-era/arcade-final",
+      "publiclyRouted": false
+    },
+    {
+      "name": "lost-woods",
+      "sourceCommit": "5571cc6",
+      "gitTag": "site-era/lost-woods-final",
+      "publiclyRouted": false
+    }
+  ]
+}
