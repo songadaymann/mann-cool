@@ -47,6 +47,10 @@ const dedicatedWorkers = {
   fuckice: "mann-cool-fuckice",
   hell: "mann-cool-hell-redirect",
   sledding: "mann-cool-sledding",
+  pong: "mann-cool-pong",
+  protectgreenland: "mann-cool-protectgreenland",
+  penisvagina: "mann-cool-penisvagina",
+  punkfling: "mann-cool-punkfling",
 };
 const gifSlugs = new Set(fs.readdirSync(new URL("../public/game-gifs", import.meta.url)).map((name) => name.replace(/\.gif$/i, "")));
 

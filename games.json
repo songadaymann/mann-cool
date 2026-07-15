@@ -437,9 +437,9 @@
         ]
       },
       "delivery": {
-        "mode": "legacy-proxy",
-        "origin": "https://pong-gold-omega.vercel.app",
-        "workerName": null,
+        "mode": "worker-route",
+        "origin": "https://mann-cool-pong.novox-robot.workers.dev",
+        "workerName": "mann-cool-pong",
         "routePatterns": [
           "mann.cool/pong",
           "mann.cool/pong/*"
@@ -1140,9 +1140,9 @@
         ]
       },
       "delivery": {
-        "mode": "legacy-proxy",
-        "origin": "https://protectgreenland.vercel.app",
-        "workerName": null,
+        "mode": "worker-route",
+        "origin": "https://mann-cool-protectgreenland.novox-robot.workers.dev",
+        "workerName": "mann-cool-protectgreenland",
         "routePatterns": [
           "mann.cool/protectgreenland",
           "mann.cool/protectgreenland/*"
@@ -1185,9 +1185,9 @@
         "scoreDisplay": "absolute"
       },
       "delivery": {
-        "mode": "legacy-proxy",
-        "origin": "https://penis-vagina.songadaymann.partykit.dev",
-        "workerName": null,
+        "mode": "worker-route",
+        "origin": "https://mann-cool-penisvagina.novox-robot.workers.dev",
+        "workerName": "mann-cool-penisvagina",
         "routePatterns": [
           "mann.cool/penisvagina",
           "mann.cool/penisvagina/*"
@@ -1361,9 +1361,9 @@
         ]
       },
       "delivery": {
-        "mode": "legacy-proxy",
-        "origin": "https://punk-fling.vercel.app",
-        "workerName": null,
+        "mode": "worker-route",
+        "origin": "https://mann-cool-punkfling.novox-robot.workers.dev",
+        "workerName": "mann-cool-punkfling",
         "routePatterns": [
           "mann.cool/punkfling",
           "mann.cool/punkfling/*"

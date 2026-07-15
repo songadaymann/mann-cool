@@ -15,6 +15,7 @@
     "verify:catalog:live": "node scripts/verify-catalog-live.mjs",
     "deploy:featured": "wrangler deploy --config game-workers/coldplay-canoodle/wrangler.jsonc && wrangler deploy --config game-workers/fuckice/wrangler.jsonc && wrangler deploy --config game-workers/hell/wrangler.jsonc",
     "deploy:sledding": "wrangler deploy --config game-workers/sledding/wrangler.jsonc"
+    ,"deploy:redirect-batch": "wrangler deploy --config game-workers/pong/wrangler.jsonc && wrangler deploy --config game-workers/protectgreenland/wrangler.jsonc && wrangler deploy --config game-workers/penisvagina/wrangler.jsonc && wrangler deploy --config game-workers/punkfling/wrangler.jsonc"
   },
   "dependencies": {
     "@upstash/redis": "^1.36.0",

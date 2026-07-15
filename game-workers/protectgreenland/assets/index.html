@@ -1,0 +1,1739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Defend Nuuk!</title>
+    <style>
+        @font-face {
+            font-family: 'Averia Libre';
+            src: url('assets/Averia_Libre/AveriaLibre-Regular.ttf') format('truetype');
+            font-weight: normal;
+        }
+        @font-face {
+            font-family: 'Averia Libre';
+            src: url('assets/Averia_Libre/AveriaLibre-Bold.ttf') format('truetype');
+            font-weight: bold;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #000;
+            font-family: 'Arial', sans-serif;
+        }
+        #game-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        #gameCanvas {
+            display: block;
+            cursor: crosshair;
+        }
+        #ui {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            font-size: 18px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            pointer-events: none;
+        }
+        #ui div {
+            margin-bottom: 8px;
+            background: rgba(0,0,0,0.5);
+            padding: 5px 10px;
+            border-radius: 4px;
+        }
+        #message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-family: 'Averia Libre', Georgia, serif;
+            font-size: 48px;
+            font-weight: bold;
+            text-align: center;
+            text-shadow:
+                -1px -1px 0 rgba(255,255,255,0.3),
+                1px -1px 0 rgba(255,255,255,0.3),
+                -1px 1px 0 rgba(255,255,255,0.3),
+                1px 1px 0 rgba(255,255,255,0.3),
+                3px 3px 6px rgba(0,0,0,0.9);
+            pointer-events: none;
+            display: none;
+        }
+        #instructions {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            color: white;
+            font-size: 14px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+            background: rgba(0,0,0,0.5);
+            padding: 8px 12px;
+            border-radius: 4px;
+            pointer-events: none;
+        }
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 24px;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+        <video id="introVideo" preload="auto" playsinline style="display:none;">
+            <source src="assets/introvideo_optimized.mp4" type="video/mp4">
+        </video>
+        <audio id="introMusic" loop preload="auto">
+            <source src="assets/intromusic.mp3" type="audio/mpeg">
+        </audio>
+        <audio id="gameMusic" loop preload="auto">
+            <source src="assets/20ProtectGreenland.mp3" type="audio/mpeg">
+        </audio>
+        <div id="message"></div>
+        <div id="loading">Loading...</div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const container = document.getElementById('game-container');
+
+        // Game dimensions (match your map)
+        const WIDTH = 1920;
+        const HEIGHT = 1080;
+
+        // Mobile detection for larger touch targets
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 800;
+        canvas.width = WIDTH;
+        canvas.height = HEIGHT;
+
+        // Responsive scaling
+        function resizeGame() {
+            const windowWidth = window.innerWidth;
+            const windowHeight = window.innerHeight;
+            const aspectRatio = WIDTH / HEIGHT;
+
+            let newWidth, newHeight;
+
+            if (windowWidth / windowHeight > aspectRatio) {
+                // Window is wider than game - fit to height
+                newHeight = windowHeight;
+                newWidth = newHeight * aspectRatio;
+            } else {
+                // Window is taller than game - fit to width
+                newWidth = windowWidth;
+                newHeight = newWidth / aspectRatio;
+            }
+
+            canvas.style.width = newWidth + 'px';
+            canvas.style.height = newHeight + 'px';
+        }
+
+        window.addEventListener('resize', resizeGame);
+        resizeGame(); // Initial resize
+
+        // Game phase: 'start', 'intro', 'tutorial', 'playing'
+        let gamePhase = 'start';
+        const introVideo = document.getElementById('introVideo');
+        const introMusic = document.getElementById('introMusic');
+        const gameMusic = document.getElementById('gameMusic');
+        let introFadeStarted = false;
+        let introFadeOpacity = 0;
+
+        // Web Audio API for seamless tutorial music looping
+        let audioContext = null;
+        let tutorialMusicBuffer = null;
+        let tutorialMusicSource = null;
+        let tutorialMusicGain = null;
+        let tutorialMusicStartTime = 0;
+        let tutorialMusicPlaying = false;
+
+        // Load tutorial music with Web Audio API for gapless looping
+        async function loadTutorialMusic() {
+            try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const response = await fetch('assets/tutorial-music.mp3');
+                const arrayBuffer = await response.arrayBuffer();
+                tutorialMusicBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                console.log('Tutorial music loaded for seamless looping');
+            } catch (e) {
+                console.log('Failed to load tutorial music with Web Audio API:', e);
+            }
+        }
+
+        function startTutorialMusic() {
+            if (!audioContext || !tutorialMusicBuffer || tutorialMusicPlaying) return;
+
+            // Resume audio context if suspended (needed after user interaction)
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+
+            tutorialMusicSource = audioContext.createBufferSource();
+            tutorialMusicSource.buffer = tutorialMusicBuffer;
+            tutorialMusicSource.loop = true;
+
+            // Create gain node for volume control
+            tutorialMusicGain = audioContext.createGain();
+            tutorialMusicGain.gain.value = 0.25; // Lower volume
+
+            tutorialMusicSource.connect(tutorialMusicGain);
+            tutorialMusicGain.connect(audioContext.destination);
+
+            tutorialMusicSource.start(0);
+            tutorialMusicStartTime = audioContext.currentTime;
+            tutorialMusicPlaying = true;
+        }
+
+        function stopTutorialMusicAfterLoop(callback) {
+            if (!tutorialMusicSource || !tutorialMusicBuffer || !tutorialMusicPlaying) {
+                callback();
+                return;
+            }
+
+            // Calculate how much time is left in the current loop
+            const elapsed = audioContext.currentTime - tutorialMusicStartTime;
+            const loopDuration = tutorialMusicBuffer.duration;
+            const positionInLoop = elapsed % loopDuration;
+            const timeRemaining = loopDuration - positionInLoop;
+
+            // Stop looping
+            tutorialMusicSource.loop = false;
+
+            // Schedule callback for when current loop finishes
+            setTimeout(() => {
+                tutorialMusicPlaying = false;
+                callback();
+            }, timeRemaining * 1000);
+        }
+
+        // Start loading tutorial music
+        loadTutorialMusic();
+
+        // Tutorial system
+        let tutorialStep = 0;
+        // Steps:
+        // 0 - "Click on the snow!" (wait for snowflake click)
+        // 1 - "Snowflakes give you Snow Power!" (brief pause, then auto-advance)
+        // 2 - Point to More Snow: "You can increase snowfall by using 20 SP" (wait for purchase)
+        // 3 - "Tap on a road to place a defender" (wait for tupilaq placement)
+        // 4 - "That's a Tupilaq! He's helping you protect Greenland." (brief pause)
+        // 5 - Point to Tupilaq shop: "A Tupilaq costs 50 SP" (brief pause)
+        // 6 - "PROTECT GREENLAND!" (then start game)
+        let tutorialTimer = 0;
+        let tutorialSnowflakeSpawned = false;
+
+        // Game state
+        let snowPower = 100;
+        let lives = 10;
+        let wave = 1;
+        let gameOver = false;
+        let gameWon = false;
+        let lastSnowClickTime = 0; // Track when player last clicked snow
+        let showSnowHint = false; // Show hint to click snow
+
+        // Shop/Economy
+        let tupilakCost = 50;
+        let snowflakeCost = 20;
+        let snowRate = 0.006; // Starting snow spawn rate
+        let selectedItem = 'tupilak'; // 'tupilak' or null
+
+        // Shop panel dimensions (left side of canvas)
+        const SHOP_WIDTH = 120;
+        const SHOP_ITEM_HEIGHT = 140;
+
+        // Arrays
+        let enemies = [];
+        let tupilaks = [];
+        let projectiles = [];
+        let fallingSnowflakes = [];
+
+        // Detected from images
+        let spawnPoints = [];    // Red dots - where enemies spawn
+        let centerPoint = null;  // Green dot - target to protect
+        let waypoints = [];      // All waypoints including spawns, center, purple, yellow
+        let roadData = null;
+
+        // Assets
+        const assets = {
+            map: new Image(),
+            roads: new Image(),
+            inuksuk: new Image(),
+            tupilakIdle: [],
+            tupilakThrow: [],
+            bone: new Image(),
+            trumpRegular: [],
+            trumpHit: [],
+            snowflakes: []
+        };
+
+        // Load all assets
+        let assetsLoaded = 0;
+        const totalAssets = 22; // map(1), roads(1), inuksuk(1), 3 idle, 2 throw, bone(1), 5 trump regular, 3 trump hit, 5 snowflakes + 1 for hardcoded waypoints = 22
+
+        function assetLoaded() {
+            assetsLoaded++;
+            if (assetsLoaded === totalAssets) {
+                init();
+            }
+        }
+
+        assets.map.onload = assetLoaded;
+        assets.map.src = 'assets/nuuk_map.png';
+
+        assets.roads.onload = assetLoaded;
+        assets.roads.src = 'assets/roads.png';
+
+        // Waypoints are now hardcoded, no image needed
+        assetLoaded(); // Count this as loaded
+
+        assets.inuksuk.onload = assetLoaded;
+        assets.inuksuk.src = 'assets/Inuksuk.png';
+
+        // Load Tupilak humanoid sprites
+        for (let i = 1; i <= 3; i++) {
+            const img = new Image();
+            img.onload = assetLoaded;
+            img.src = `assets/Tupilaks/Tupilak-humanoid/idle${i}.png`;
+            assets.tupilakIdle.push(img);
+        }
+
+        for (let i = 1; i <= 2; i++) {
+            const img = new Image();
+            img.onload = assetLoaded;
+            img.src = `assets/Tupilaks/Tupilak-humanoid/throw${i}.png`;
+            assets.tupilakThrow.push(img);
+        }
+
+        assets.bone.onload = () => {
+            console.log('Bone loaded!', assets.bone.width, assets.bone.height);
+            assetLoaded();
+        };
+        assets.bone.onerror = () => console.error('Failed to load bone!');
+        assets.bone.src = 'assets/Tupilaks/Tupilak-humanoid/bone.png';
+
+        for (let i = 1; i <= 5; i++) {
+            const img = new Image();
+            img.onload = assetLoaded;
+            img.src = `assets/trump/regular${i}.png`;
+            assets.trumpRegular.push(img);
+        }
+
+        for (let i = 1; i <= 3; i++) {
+            const img = new Image();
+            img.onload = assetLoaded;
+            img.src = `assets/trump/hit${i}.png`;
+            assets.trumpHit.push(img);
+        }
+
+        for (let i = 1; i <= 5; i++) {
+            const img = new Image();
+            img.onload = assetLoaded;
+            img.src = `assets/snowflakes/snowflakes-${i}.png`;
+            assets.snowflakes.push(img);
+        }
+
+        // Check if a pixel is a road (purple #ba00ff)
+        function isRoad(x, y) {
+            if (!roadData) return false;
+            const px = Math.floor(x);
+            const py = Math.floor(y);
+            if (px < 0 || px >= WIDTH || py < 0 || py >= HEIGHT) return false;
+
+            const idx = (py * WIDTH + px) * 4;
+            const r = roadData[idx];
+            const g = roadData[idx + 1];
+            const b = roadData[idx + 2];
+            const a = roadData[idx + 3];
+
+            // Purple roads (#ba00ff) - high red, low green, high blue
+            return r > 150 && g < 50 && b > 200 && a > 50;
+        }
+
+        // Check if position is on or near a road (for placement)
+        // Now checks proximity to waypoints instead of road pixels
+        function isOnRoad(x, y) {
+            const checkRadius = 50; // Within 50px of a waypoint path
+            for (const wp of waypoints) {
+                const dist = Math.sqrt(Math.pow(x - wp.x, 2) + Math.pow(y - wp.y, 2));
+                if (dist < checkRadius) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // Helper: get waypoint by ID
+        function getWaypoint(id) {
+            return waypoints.find(w => w.id === id);
+        }
+
+        // Enemy class - follows waypoints toward center
+        class Enemy {
+            constructor(spawnPoint) {
+                this.x = spawnPoint.x;
+                this.y = spawnPoint.y;
+                // Speed increases with wave: wave 1 = ~0.08, wave 5 = ~0.25
+                const baseSpeed = 0.08 + (wave - 1) * 0.0425;
+                this.speed = baseSpeed + Math.random() * 0.02;
+                // HP increases in later waves: 1-2=3, 3=4, 4=5, 5=6
+                const hp = wave <= 2 ? 3 : wave + 1;
+                this.hp = hp;
+                this.maxHp = hp;
+                this.size = 40;
+                this.hitTimer = 0;
+                this.animFrame = Math.floor(Math.random() * 5);
+                this.animTimer = 0;
+
+                // Attack state
+                this.attackTarget = null;
+                this.attackTimer = 0;
+                this.attackRate = 60;
+
+                // Waypoint navigation
+                this.currentWaypoint = spawnPoint;  // Start at spawn waypoint
+                this.previousWaypointId = null;     // Track where we came from
+                this.targetWaypoint = null;         // Where we're heading
+                this.pickNextWaypoint();            // Choose first target
+            }
+
+            // Pick the next waypoint to move toward
+            pickNextWaypoint() {
+                if (!this.currentWaypoint || this.currentWaypoint.connections.length === 0) {
+                    this.targetWaypoint = centerPoint;
+                    return;
+                }
+
+                // Get connected waypoints, excluding where we came from
+                let options = this.currentWaypoint.connections
+                    .map(id => getWaypoint(id))
+                    .filter(wp => wp && wp.id !== this.previousWaypointId);
+
+                // Current distance to center
+                const currentDistToCenter = Math.sqrt(
+                    Math.pow(this.currentWaypoint.x - centerPoint.x, 2) +
+                    Math.pow(this.currentWaypoint.y - centerPoint.y, 2)
+                );
+
+                // Only consider waypoints that get us closer to center
+                const closerOptions = options.filter(wp => {
+                    const dist = Math.sqrt(
+                        Math.pow(wp.x - centerPoint.x, 2) +
+                        Math.pow(wp.y - centerPoint.y, 2)
+                    );
+                    return dist < currentDistToCenter;
+                });
+
+                // Prefer closer options, but fall back to any option if none are closer
+                if (closerOptions.length > 0) {
+                    options = closerOptions;
+                }
+
+                if (options.length === 0) {
+                    // Dead end - go back or head to center
+                    const backWp = getWaypoint(this.previousWaypointId);
+                    this.targetWaypoint = backWp || centerPoint;
+                    return;
+                }
+
+                // Always take the shortest path to center
+                let best = options[0];
+                let bestDist = Infinity;
+                for (const wp of options) {
+                    const dist = Math.sqrt(
+                        Math.pow(wp.x - centerPoint.x, 2) +
+                        Math.pow(wp.y - centerPoint.y, 2)
+                    );
+                    if (dist < bestDist) {
+                        bestDist = dist;
+                        best = wp;
+                    }
+                }
+                this.targetWaypoint = best;
+            }
+
+            update() {
+                // Animation
+                this.animTimer++;
+                if (this.animTimer > 15) {
+                    this.animTimer = 0;
+                    this.animFrame = (this.animFrame + 1) % 5;
+                }
+
+                if (this.hitTimer > 0) this.hitTimer--;
+
+                // Check if reached center
+                const distToCenter = Math.sqrt(
+                    Math.pow(this.x - centerPoint.x, 2) +
+                    Math.pow(this.y - centerPoint.y, 2)
+                );
+                if (distToCenter < 40) {
+                    return 'reached';
+                }
+
+                // Check if attacking a Tupilak
+                if (this.attackTarget) {
+                    if (this.attackTarget.hp <= 0 || !tupilaks.includes(this.attackTarget)) {
+                        this.attackTarget = null;
+                    } else {
+                        this.attackTimer++;
+                        if (this.attackTimer >= this.attackRate) {
+                            this.attackTimer = 0;
+                            this.attackTarget.hit(1);
+                        }
+                        return this.hp <= 0 ? 'dead' : 'alive';
+                    }
+                }
+
+                // Check for nearby Tupilaks to attack
+                for (const tupilak of tupilaks) {
+                    const dist = Math.sqrt(
+                        Math.pow(this.x - tupilak.x, 2) +
+                        Math.pow(this.y - tupilak.y, 2)
+                    );
+                    if (dist < 40) {
+                        this.attackTarget = tupilak;
+                        this.attackTimer = 0;
+                        return this.hp <= 0 ? 'dead' : 'alive';
+                    }
+                }
+
+                // Move toward target waypoint
+                if (this.targetWaypoint) {
+                    const dx = this.targetWaypoint.x - this.x;
+                    const dy = this.targetWaypoint.y - this.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+
+                    if (dist < this.speed + 5) {
+                        // Reached the waypoint
+                        this.x = this.targetWaypoint.x;
+                        this.y = this.targetWaypoint.y;
+                        this.previousWaypointId = this.currentWaypoint.id;
+                        this.currentWaypoint = this.targetWaypoint;
+                        this.pickNextWaypoint();
+                    } else {
+                        // Move toward waypoint
+                        this.x += (dx / dist) * this.speed;
+                        this.y += (dy / dist) * this.speed;
+                    }
+                }
+
+                return this.hp <= 0 ? 'dead' : 'alive';
+            }
+
+            draw() {
+                let sprite;
+                if (this.hitTimer > 0) {
+                    sprite = assets.trumpHit[Math.floor(Math.random() * 3)];
+                } else {
+                    sprite = assets.trumpRegular[this.animFrame];
+                }
+
+                ctx.drawImage(
+                    sprite,
+                    this.x - this.size/2,
+                    this.y - this.size/2,
+                    this.size,
+                    this.size
+                );
+
+                // Health bar
+                const barWidth = 30;
+                const barHeight = 4;
+                ctx.fillStyle = '#333';
+                ctx.fillRect(this.x - barWidth/2, this.y - this.size/2 - 8, barWidth, barHeight);
+                ctx.fillStyle = '#ff4444';
+                ctx.fillRect(this.x - barWidth/2, this.y - this.size/2 - 8, barWidth * (this.hp/this.maxHp), barHeight);
+            }
+
+            hit(damage) {
+                this.hp -= damage;
+                this.hitTimer = 10;
+            }
+        }
+
+        // Tupilak (tower) class
+        class Tupilak {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.range = 150;
+                this.fireRate = 300; // ~5 seconds between throws
+                this.fireTimer = 0;
+                // Base sprite is 427x278, scale it down
+                const scale = 0.22; // Adjust this to resize
+                this.width = 427 * scale;  // ~94
+                this.height = 278 * scale; // ~61
+
+                // HP system
+                this.hp = 3;
+                this.maxHp = 3;
+
+                // Animation state
+                this.state = 'idle'; // 'idle' or 'throwing'
+                this.animFrame = 0;
+                this.animTimer = 0;
+                this.throwTimer = 0;
+                this.facingLeft = false; // flip based on target direction
+            }
+
+            update() {
+                this.fireTimer++;
+                this.animTimer++;
+
+                // Animate idle (cycle through 3 frames)
+                if (this.state === 'idle' && this.animTimer > 12) {
+                    this.animTimer = 0;
+                    this.animFrame = (this.animFrame + 1) % 3;
+                }
+
+                // Handle throw animation
+                if (this.state === 'throwing') {
+                    this.throwTimer++;
+                    if (this.throwTimer > 8) {
+                        this.throwTimer = 0;
+                        this.animFrame++;
+                        if (this.animFrame >= 2) {
+                            this.state = 'idle';
+                            this.animFrame = 0;
+                        }
+                    }
+                }
+
+                // Find nearest enemy
+                let nearest = null;
+                let nearestDist = Infinity;
+
+                for (const enemy of enemies) {
+                    const dist = Math.sqrt(
+                        Math.pow(enemy.x - this.x, 2) +
+                        Math.pow(enemy.y - this.y, 2)
+                    );
+                    if (dist < this.range && dist < nearestDist) {
+                        nearest = enemy;
+                        nearestDist = dist;
+                    }
+                }
+
+                if (nearest) {
+                    // Face the target
+                    this.facingLeft = nearest.x < this.x;
+
+                    // Fire!
+                    if (this.fireTimer >= this.fireRate) {
+                        this.fireTimer = 0;
+                        this.state = 'throwing';
+                        this.animFrame = 0;
+                        this.throwTimer = 0;
+                        projectiles.push(new BoneProjectile(this.x, this.y, nearest));
+                    }
+                }
+            }
+
+            draw() {
+                // Draw range circle (faint)
+                ctx.strokeStyle = 'rgba(100, 200, 255, 0.2)';
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.range, 0, Math.PI * 2);
+                ctx.stroke();
+
+                // Get current sprite
+                let sprite;
+                if (this.state === 'throwing') {
+                    sprite = assets.tupilakThrow[this.animFrame] || assets.tupilakThrow[0];
+                } else {
+                    sprite = assets.tupilakIdle[this.animFrame] || assets.tupilakIdle[0];
+                }
+
+                ctx.save();
+                ctx.translate(this.x, this.y);
+
+                // Flip if facing left
+                if (this.facingLeft) {
+                    ctx.scale(-1, 1);
+                }
+
+                ctx.drawImage(
+                    sprite,
+                    -this.width/2,
+                    -this.height,
+                    this.width,
+                    this.height
+                );
+                ctx.restore();
+
+                // Draw HP bar above Tupilak
+                const barWidth = 40;
+                const barHeight = 5;
+                const barY = this.y - this.height - 10;
+                ctx.fillStyle = '#333';
+                ctx.fillRect(this.x - barWidth/2, barY, barWidth, barHeight);
+                ctx.fillStyle = '#44dd44';
+                ctx.fillRect(this.x - barWidth/2, barY, barWidth * (this.hp / this.maxHp), barHeight);
+            }
+
+            hit(damage) {
+                this.hp -= damage;
+            }
+        }
+
+        // Bone Projectile class (thrown by Tupilak)
+        class BoneProjectile {
+            constructor(x, y, target) {
+                this.x = x;
+                this.y = y - 40; // Start from Tupilak's hand area
+                this.target = target;
+                this.speed = 1.5; // Slower bone throw
+                this.size = 40; // Half size
+                this.rotation = 0;
+            }
+
+            update() {
+                const dx = this.target.x - this.x;
+                const dy = this.target.y - this.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                if (dist < this.speed) {
+                    this.target.hit(1);
+                    return 'hit';
+                }
+
+                this.x += (dx / dist) * this.speed;
+                this.y += (dy / dist) * this.speed;
+                this.rotation += 0.3; // Spin the bone
+
+                return 'flying';
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.rotation);
+
+                // Debug: draw a red circle if bone isn't loaded
+                if (!assets.bone || !assets.bone.complete) {
+                    ctx.fillStyle = 'red';
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 10, 0, Math.PI * 2);
+                    ctx.fill();
+                } else {
+                    ctx.drawImage(
+                        assets.bone,
+                        -this.size/2,
+                        -this.size/2,
+                        this.size,
+                        this.size
+                    );
+                }
+                ctx.restore();
+            }
+        }
+
+        // Falling snowflake class
+        class FallingSnowflake {
+            constructor() {
+                this.x = Math.random() * WIDTH;
+                this.y = -20;
+                this.speed = 0.2 + Math.random() * 0.8; // Even slower falling snow
+                // Much more size variety: 10-70 pixels
+                this.size = 10 + Math.random() * 60;
+                this.sprite = assets.snowflakes[Math.floor(Math.random() * 5)];
+                this.rotation = Math.random() * Math.PI * 2;
+                this.rotSpeed = (Math.random() - 0.5) * 0.05;
+                this.drift = (Math.random() - 0.5) * 0.5;
+                this.collected = false;
+            }
+
+            update() {
+                this.y += this.speed;
+                this.x += this.drift;
+                this.rotation += this.rotSpeed;
+
+                if (this.y > HEIGHT + 20) return 'gone';
+                return this.collected ? 'collected' : 'falling';
+            }
+
+            draw() {
+                if (this.collected) return;
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.rotation);
+                ctx.globalAlpha = 1.0; // Full brightness
+                ctx.drawImage(this.sprite, -this.size/2, -this.size/2, this.size, this.size);
+                ctx.globalAlpha = 1;
+                ctx.restore();
+            }
+
+            checkClick(mx, my) {
+                // Larger touch target on mobile
+                const touchRadius = isMobile ? this.size * 1.5 : this.size;
+                return Math.sqrt(Math.pow(mx - this.x, 2) + Math.pow(my - this.y, 2)) < touchRadius;
+            }
+        }
+
+        // Hardcoded waypoint data (generated from spawn-and-waypoints1.png)
+        const HARDCODED_CENTER = {"x":1062,"y":524};
+        const HARDCODED_SPAWNS = [{"x":837,"y":677},{"x":638,"y":604},{"x":930,"y":4},{"x":1214,"y":1074},{"x":826,"y":4},{"x":900,"y":1074},{"x":1419,"y":1074},{"x":1822,"y":4},{"x":1805,"y":1075}];
+        const HARDCODED_WAYPOINTS = [{"x":1090,"y":528},{"x":1028,"y":510},{"x":1089,"y":556},{"x":1023,"y":539},{"x":1105,"y":523},{"x":1016,"y":561},{"x":1101,"y":574},{"x":1125,"y":528},{"x":1002,"y":501},{"x":1011,"y":585},{"x":1146,"y":523},{"x":1119,"y":589},{"x":974,"y":494},{"x":986,"y":461},{"x":960,"y":500},{"x":1007,"y":616},{"x":1131,"y":618},{"x":1180,"y":523},{"x":986,"y":428},{"x":1006,"y":635},{"x":938,"y":503},{"x":1197,"y":521},{"x":980,"y":407},{"x":1144,"y":648},{"x":1001,"y":663},{"x":911,"y":509},{"x":1215,"y":516},{"x":893,"y":533},{"x":970,"y":381},{"x":1160,"y":674},{"x":994,"y":690},{"x":1244,"y":517},{"x":882,"y":557},{"x":964,"y":360},{"x":875,"y":578},{"x":1263,"y":517},{"x":876,"y":603},{"x":1170,"y":698},{"x":988,"y":719},{"x":859,"y":599},{"x":955,"y":333},{"x":1283,"y":515},{"x":869,"y":635},{"x":987,"y":739},{"x":1182,"y":726},{"x":859,"y":653},{"x":837,"y":613},{"x":945,"y":308},{"x":1310,"y":513},{"x":980,"y":763},{"x":1194,"y":746},{"x":924,"y":305},{"x":815,"y":618},{"x":1212,"y":747},{"x":904,"y":307},{"x":941,"y":284},{"x":976,"y":783},{"x":1344,"y":509},{"x":1239,"y":745},{"x":1209,"y":766},{"x":872,"y":314},{"x":932,"y":263},{"x":785,"y":627},{"x":971,"y":807},{"x":1220,"y":779},{"x":1267,"y":746},{"x":839,"y":314},{"x":1370,"y":509},{"x":932,"y":236},{"x":756,"y":615},{"x":965,"y":830},{"x":1235,"y":797},{"x":1297,"y":746},{"x":739,"y":585},{"x":1394,"y":560},{"x":1397,"y":534},{"x":794,"y":321},{"x":1399,"y":510},{"x":733,"y":443},{"x":745,"y":402},{"x":767,"y":355},{"x":1396,"y":591},{"x":726,"y":466},{"x":722,"y":500},{"x":756,"y":372},{"x":735,"y":423},{"x":961,"y":852},{"x":719,"y":530},{"x":778,"y":331},{"x":935,"y":206},{"x":1325,"y":748},{"x":1247,"y":818},{"x":716,"y":554},{"x":716,"y":564},{"x":1397,"y":629},{"x":1420,"y":509},{"x":1398,"y":653},{"x":957,"y":873},{"x":1350,"y":748},{"x":939,"y":180},{"x":764,"y":308},{"x":1406,"y":674},{"x":1265,"y":842},{"x":683,"y":557},{"x":1442,"y":507},{"x":1370,"y":748},{"x":1402,"y":707},{"x":757,"y":282},{"x":1394,"y":747},{"x":939,"y":151},{"x":953,"y":905},{"x":1406,"y":722},{"x":1462,"y":506},{"x":760,"y":258},{"x":1283,"y":866},{"x":653,"y":557},{"x":768,"y":236},{"x":938,"y":131},{"x":779,"y":216},{"x":946,"y":930},{"x":1409,"y":765},{"x":789,"y":196},{"x":932,"y":114},{"x":634,"y":576},{"x":1405,"y":790},{"x":1295,"y":893},{"x":1501,"y":498},{"x":801,"y":168},{"x":1423,"y":787},{"x":805,"y":155},{"x":926,"y":92},{"x":938,"y":963},{"x":1412,"y":819},{"x":1306,"y":915},{"x":813,"y":132},{"x":1449,"y":786},{"x":1412,"y":836},{"x":1533,"y":497},{"x":921,"y":74},{"x":1318,"y":934},{"x":929,"y":992},{"x":1415,"y":860},{"x":815,"y":101},{"x":1473,"y":793},{"x":1560,"y":496},{"x":1412,"y":884},{"x":920,"y":43},{"x":1283,"y":977},{"x":815,"y":83},{"x":1300,"y":971},{"x":927,"y":1013},{"x":1330,"y":956},{"x":1495,"y":796},{"x":1266,"y":995},{"x":922,"y":30},{"x":1409,"y":908},{"x":820,"y":64},{"x":1258,"y":1008},{"x":1505,"y":803},{"x":1590,"y":497},{"x":1346,"y":973},{"x":920,"y":1038},{"x":1525,"y":797},{"x":1409,"y":936},{"x":1247,"y":1034},{"x":822,"y":31},{"x":1611,"y":495},{"x":1358,"y":988},{"x":1234,"y":1053},{"x":1409,"y":959},{"x":908,"y":1061},{"x":1552,"y":803},{"x":1412,"y":975},{"x":1369,"y":1008},{"x":1637,"y":488},{"x":1410,"y":990},{"x":1373,"y":1017},{"x":1574,"y":812},{"x":1662,"y":486},{"x":1409,"y":1017},{"x":1383,"y":1040},{"x":1599,"y":816},{"x":1402,"y":1033},{"x":1681,"y":482},{"x":1613,"y":818},{"x":1386,"y":1061},{"x":1400,"y":1056},{"x":1700,"y":485},{"x":1637,"y":830},{"x":1713,"y":471},{"x":1722,"y":456},{"x":1737,"y":438},{"x":1667,"y":842},{"x":1755,"y":410},{"x":1686,"y":851},{"x":1703,"y":863},{"x":1775,"y":389},{"x":1788,"y":368},{"x":1721,"y":869},{"x":1803,"y":342},{"x":1737,"y":899},{"x":1820,"y":312},{"x":1751,"y":926},{"x":1825,"y":289},{"x":1829,"y":270},{"x":1763,"y":950},{"x":1840,"y":250},{"x":1845,"y":225},{"x":1776,"y":979},{"x":1850,"y":206},{"x":1783,"y":1005},{"x":1854,"y":173},{"x":1854,"y":146},{"x":1853,"y":120},{"x":1794,"y":1040},{"x":1853,"y":92},{"x":1796,"y":1052},{"x":1847,"y":73},{"x":1842,"y":57},{"x":1837,"y":38}];
+
+        // Build waypoints from hardcoded data
+        function buildWaypoints() {
+            waypoints = [];
+            let id = 0;
+
+            // Add center first (ID 0)
+            centerPoint = { id: id++, x: HARDCODED_CENTER.x, y: HARDCODED_CENTER.y, type: 'center', connections: [] };
+            waypoints.push(centerPoint);
+
+            // Add normal waypoints (already sorted by distance from center)
+            for (const p of HARDCODED_WAYPOINTS) {
+                waypoints.push({ id: id++, x: p.x, y: p.y, type: 'normal', connections: [] });
+            }
+
+            // Add spawns last (highest IDs)
+            for (const p of HARDCODED_SPAWNS) {
+                waypoints.push({ id: id++, x: p.x, y: p.y, type: 'spawn', connections: [] });
+            }
+            spawnPoints = waypoints.filter(w => w.type === 'spawn');
+
+            // Build connections - connect waypoints within distance threshold
+            const CONNECTION_DIST = 40; // Max distance to auto-connect
+            for (let i = 0; i < waypoints.length; i++) {
+                for (let j = i + 1; j < waypoints.length; j++) {
+                    const a = waypoints[i];
+                    const b = waypoints[j];
+                    const dist = Math.sqrt(Math.pow(a.x - b.x, 2) + Math.pow(a.y - b.y, 2));
+                    if (dist < CONNECTION_DIST) {
+                        a.connections.push(b.id);
+                        b.connections.push(a.id);
+                    }
+                }
+            }
+
+            console.log('Waypoints loaded:', waypoints.length);
+            console.log('  Center: ID 0');
+            console.log('  Path waypoints:', HARDCODED_WAYPOINTS.length);
+            console.log('  Spawns:', HARDCODED_SPAWNS.length);
+            console.log('  TIP: Shift+Click to log coordinates for new waypoints!');
+        }
+
+        // Debug: Shift+Click to capture coordinates for new waypoints
+        canvas.addEventListener('click', (e) => {
+            if (e.shiftKey) {
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = WIDTH / rect.width;
+                const scaleY = HEIGHT / rect.height;
+                const x = Math.round((e.clientX - rect.left) * scaleX);
+                const y = Math.round((e.clientY - rect.top) * scaleY);
+                console.log(`NEW WAYPOINT: {"x":${x},"y":${y}}`);
+                alert(`Waypoint coordinates: ${x}, ${y}\n\nCheck console for copy-paste format.`);
+            }
+        }, true);
+
+        // Cluster nearby points into single locations
+        function clusterPoints(points, threshold) {
+            const clusters = [];
+            const used = new Set();
+
+            for (let i = 0; i < points.length; i++) {
+                if (used.has(i)) continue;
+
+                const cluster = [points[i]];
+                used.add(i);
+
+                for (let j = i + 1; j < points.length; j++) {
+                    if (used.has(j)) continue;
+
+                    const dist = Math.sqrt(
+                        Math.pow(points[i].x - points[j].x, 2) +
+                        Math.pow(points[i].y - points[j].y, 2)
+                    );
+                    if (dist < threshold) {
+                        cluster.push(points[j]);
+                        used.add(j);
+                    }
+                }
+
+                // Average the cluster
+                const avgX = cluster.reduce((sum, p) => sum + p.x, 0) / cluster.length;
+                const avgY = cluster.reduce((sum, p) => sum + p.y, 0) / cluster.length;
+                clusters.push({x: avgX, y: avgY});
+            }
+
+            return clusters;
+        }
+
+        // Initialize game
+        function init() {
+            // Get road data
+            const roadCanvas = document.createElement('canvas');
+            roadCanvas.width = WIDTH;
+            roadCanvas.height = HEIGHT;
+            const roadCtx = roadCanvas.getContext('2d');
+            roadCtx.drawImage(assets.roads, 0, 0, WIDTH, HEIGHT);
+            roadData = roadCtx.getImageData(0, 0, WIDTH, HEIGHT).data;
+
+            // Build waypoints from hardcoded data
+            buildWaypoints();
+
+            // Hide loading
+            document.getElementById('loading').style.display = 'none';
+
+            // Check for URL parameters to skip to different states
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('skip')) {
+                gamePhase = 'playing';
+                waveTimer = 0;
+                waveActive = true;
+                lastSnowClickTime = Date.now();
+            } else if (urlParams.has('win')) {
+                gamePhase = 'playing';
+                gameWon = true;
+            } else if (urlParams.has('lose')) {
+                gamePhase = 'playing';
+                gameOver = true;
+            } else {
+                // Try to play intro music (may need user interaction on mobile)
+                introMusic.volume = 0.5;
+                introMusic.play().catch(e => {
+                    console.log('Autoplay prevented, music will start on first click');
+                    // Add one-time click handler to start music
+                    const startMusic = () => {
+                        if (gamePhase === 'start') {
+                            introMusic.play();
+                        }
+                        document.removeEventListener('click', startMusic);
+                    };
+                    document.addEventListener('click', startMusic);
+                });
+            }
+
+            // Start game loop (shows start screen first)
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Wave system - time-based with ramping enemy count
+        const WAVE_DURATION = 3600; // 60 seconds at 60fps
+        const WAVE_MAX_ENEMIES = [3, 9, 14, 17, 20]; // Max on screen per wave
+        let waveTimer = 0;
+        let waveActive = true;
+
+        function spawnEnemy() {
+            if (spawnPoints.length === 0) return;
+            const spawn = spawnPoints[Math.floor(Math.random() * spawnPoints.length)];
+            enemies.push(new Enemy(spawn));
+        }
+
+        // Handle clicks
+        canvas.addEventListener('click', (e) => {
+            // Handle start screen click
+            if (gamePhase === 'start') {
+                // Stop intro music, start video with sound
+                introMusic.pause();
+                introMusic.currentTime = 0;
+                introVideo.play();
+                gamePhase = 'intro';
+                return;
+            }
+
+            // Don't allow clicks during intro
+            if (gamePhase === 'intro') {
+                return;
+            }
+
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = WIDTH / rect.width;
+            const scaleY = HEIGHT / rect.height;
+            const mx = (e.clientX - rect.left) * scaleX;
+            const my = (e.clientY - rect.top) * scaleY;
+
+            // Handle tutorial clicks
+            if (gamePhase === 'tutorial') {
+                // Step 0: Click on snowflake
+                if (tutorialStep === 0) {
+                    for (const flake of fallingSnowflakes) {
+                        if (!flake.collected && flake.checkClick(mx, my)) {
+                            flake.collected = true;
+                            snowPower += 10;
+                            tutorialStep = 1;
+                            tutorialTimer = 0;
+                            return;
+                        }
+                    }
+                }
+                // Step 1: Click anywhere to continue
+                else if (tutorialStep === 1) {
+                    tutorialStep = 2;
+                    tutorialTimer = 0;
+                }
+                // Step 2: Buy More Snow
+                else if (tutorialStep === 2) {
+                    const panelX = SHOP_PANEL_X;
+                    const panelY = SHOP_PANEL_Y;
+                    const itemSize = SHOP_ITEM_SIZE;
+                    const padding = SHOP_PADDING;
+                    const gap = SHOP_GAP;
+                    const snowflakeLeft = panelX + padding + itemSize + gap;
+                    const snowflakeRight = snowflakeLeft + itemSize;
+                    const snowflakeTop = panelY + padding;
+                    const snowflakeBottom = snowflakeTop + itemSize;
+
+                    if (mx >= snowflakeLeft && mx <= snowflakeRight && my >= snowflakeTop && my <= snowflakeBottom) {
+                        if (snowPower >= snowflakeCost) {
+                            snowPower -= snowflakeCost;
+                            snowRate += 0.001;
+                            tutorialStep = 3;
+                            tutorialTimer = 0;
+                        }
+                    }
+                }
+                // Step 3: Place a Tupilaq
+                else if (tutorialStep === 3) {
+                    if (snowPower >= tupilakCost && isOnRoad(mx, my)) {
+                        tupilaks.push(new Tupilak(mx, my));
+                        snowPower -= tupilakCost;
+                        tutorialStep = 4;
+                        tutorialTimer = 0;
+                    }
+                }
+                // Step 4: Click anywhere to continue
+                else if (tutorialStep === 4) {
+                    tutorialStep = 5;
+                    tutorialTimer = 0;
+                }
+                // Step 5: Click anywhere to continue
+                else if (tutorialStep === 5) {
+                    tutorialStep = 6;
+                    tutorialTimer = 0;
+                }
+                // Step 6: Click to start game
+                else if (tutorialStep === 6) {
+                    gamePhase = 'playing';
+                    // Give player bonus SP to start the game
+                    snowPower += 60;
+                    // Reset wave timer to ensure fresh start
+                    waveTimer = 0;
+                    waveActive = true;
+                    // Initialize snow click timer so hint doesn't show immediately
+                    lastSnowClickTime = Date.now();
+                    // Stop tutorial music after current loop finishes, then start game music
+                    stopTutorialMusicAfterLoop(() => {
+                        gameMusic.volume = 0.65;
+                        gameMusic.play().catch(e => console.log('Game music autoplay prevented'));
+                    });
+                    console.log('Game started! SpawnPoints:', spawnPoints.length, 'WaveActive:', waveActive);
+                }
+                return;
+            }
+
+            if (gameOver || gameWon) {
+                location.reload();
+                return;
+            }
+
+            // Shop panel dimensions (must match drawShopPanel - horizontal layout)
+            const panelX = SHOP_PANEL_X;
+            const panelY = SHOP_PANEL_Y;
+            const itemSize = SHOP_ITEM_SIZE;
+            const padding = SHOP_PADDING;
+            const gap = SHOP_GAP;
+
+            // Check if click is on shop panel (horizontal layout)
+            const tupilakLeft = panelX + padding;
+            const tupilakRight = tupilakLeft + itemSize;
+            const tupilakTop = panelY + padding;
+            const tupilakBottom = tupilakTop + itemSize;
+
+            const snowflakeLeft = tupilakRight + gap;
+            const snowflakeRight = snowflakeLeft + itemSize;
+            const snowflakeTop = panelY + padding;
+            const snowflakeBottom = snowflakeTop + itemSize;
+
+            // Check Tupilak shop item (left)
+            if (mx >= tupilakLeft && mx <= tupilakRight && my >= tupilakTop && my <= tupilakBottom) {
+                selectedItem = 'tupilak';
+                return;
+            }
+
+            // Check Snowflake shop item (right)
+            if (mx >= snowflakeLeft && mx <= snowflakeRight && my >= snowflakeTop && my <= snowflakeBottom) {
+                if (snowPower >= snowflakeCost) {
+                    snowPower -= snowflakeCost;
+                    snowRate += 0.001;
+                }
+                return;
+            }
+
+            // Check falling snowflakes
+            for (const flake of fallingSnowflakes) {
+                if (!flake.collected && flake.checkClick(mx, my)) {
+                    flake.collected = true;
+                    snowPower += 10;
+                    lastSnowClickTime = Date.now();
+                    showSnowHint = false;
+                    return;
+                }
+            }
+
+            // Place tupilak if selected
+            if (selectedItem === 'tupilak' && snowPower >= tupilakCost && isOnRoad(mx, my)) {
+                let tooClose = false;
+                for (const t of tupilaks) {
+                    if (Math.sqrt(Math.pow(t.x - mx, 2) + Math.pow(t.y - my, 2)) < 60) {
+                        tooClose = true;
+                        break;
+                    }
+                }
+
+                if (!tooClose) {
+                    tupilaks.push(new Tupilak(mx, my));
+                    snowPower -= tupilakCost;
+                }
+            }
+        });
+
+        // Game loop
+        function gameLoop(timestamp) {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Tutorial update logic
+        function updateTutorial() {
+            tutorialTimer++;
+
+            // Step 0: Spawn a snowflake if we haven't yet
+            if (tutorialStep === 0 && !tutorialSnowflakeSpawned) {
+                // Spawn a big obvious snowflake in the center-ish area
+                const flake = new FallingSnowflake();
+                flake.x = WIDTH / 2 + (Math.random() - 0.5) * 200;
+                flake.y = 100;
+                flake.size = 60; // Big and easy to click
+                flake.speed = 0.3; // Slow fall
+                fallingSnowflakes.push(flake);
+                tutorialSnowflakeSpawned = true;
+            }
+
+            // Keep spawning snowflakes during step 0 if they fall off screen
+            if (tutorialStep === 0 && fallingSnowflakes.length === 0) {
+                tutorialSnowflakeSpawned = false;
+            }
+
+            // Steps 1, 4, 5, 6 now advance on click (handled in click handler)
+
+            // Update falling snowflakes during tutorial
+            fallingSnowflakes = fallingSnowflakes.filter(flake => flake.update() === 'falling');
+
+            // Update tupilaks (for animation)
+            for (const tupilak of tupilaks) {
+                tupilak.update();
+            }
+        }
+
+        function update() {
+            // Handle tutorial phase
+            if (gamePhase === 'tutorial') {
+                updateTutorial();
+                return;
+            }
+
+            // Only run game logic during playing phase
+            if (gamePhase !== 'playing') return;
+            if (gameOver || gameWon) return;
+
+            // Check if player hasn't clicked snow in 5 seconds and there are snowflakes available
+            if (Date.now() - lastSnowClickTime > 5000 && fallingSnowflakes.some(f => !f.collected)) {
+                showSnowHint = true;
+            }
+
+            // Wave system - time-based with ramping max enemies
+            if (waveActive) {
+                waveTimer++;
+
+                // Calculate current max enemies based on wave progress
+                const waveMaxEnemies = WAVE_MAX_ENEMIES[wave - 1] || 20;
+                const waveProgress = Math.min(waveTimer / WAVE_DURATION, 1);
+
+                // Ramp from 1 to max over the wave duration
+                const currentMaxEnemies = Math.ceil(1 + (waveMaxEnemies - 1) * waveProgress);
+
+                // Spawn enemies to maintain current max on screen
+                if (enemies.length < currentMaxEnemies) {
+                    spawnEnemy();
+                }
+
+                // Check if wave time is up
+                if (waveTimer >= WAVE_DURATION) {
+                    waveActive = false; // Stop spawning, wait for enemies to clear
+                }
+            } else {
+                // Wave spawning done, wait for all enemies to die
+                if (enemies.length === 0) {
+                    wave++;
+                    if (wave > 5) {
+                        gameWon = true;
+                    } else {
+                        waveTimer = 0;
+                        waveActive = true;
+                    }
+                }
+            }
+
+            // Spawn falling snowflakes (rate can be increased by buying snowflakes)
+            if (Math.random() < snowRate) {
+                fallingSnowflakes.push(new FallingSnowflake());
+            }
+
+            // Update enemies
+            enemies = enemies.filter(enemy => {
+                const status = enemy.update();
+                if (status === 'reached') {
+                    lives--;
+                    if (lives <= 0) gameOver = true;
+                    return false;
+                }
+                if (status === 'dead') {
+                    // No SP reward for kills
+                    return false;
+                }
+                return true;
+            });
+
+            // Update tupilaks and remove dead ones
+            tupilaks = tupilaks.filter(tupilak => {
+                tupilak.update();
+                return tupilak.hp > 0;
+            });
+
+            // Update projectiles
+            projectiles = projectiles.filter(proj => proj.update() === 'flying');
+
+            // Update falling snowflakes
+            fallingSnowflakes = fallingSnowflakes.filter(flake => flake.update() === 'falling');
+
+            // Update UI
+        }
+
+        // Draw start screen
+        function drawStartScreen() {
+            // Draw first frame of video as background
+            if (introVideo.readyState >= 2) {
+                ctx.drawImage(introVideo, 0, 0, WIDTH, HEIGHT);
+            } else {
+                // Fallback: dark background while video loads
+                ctx.fillStyle = '#111';
+                ctx.fillRect(0, 0, WIDTH, HEIGHT);
+            }
+
+            // Darken the background slightly
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+            ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+            // Draw title: PROTECT GREENLAND
+            ctx.font = 'bold 90px "Averia Libre", Georgia, serif';
+            ctx.textAlign = 'center';
+            ctx.shadowColor = 'rgba(100, 200, 255, 0.9)';
+            ctx.shadowBlur = 30;
+            ctx.fillStyle = '#fff';
+            ctx.fillText('PROTECT GREENLAND', WIDTH / 2, HEIGHT / 2 - 50);
+            // Outline
+            ctx.shadowBlur = 0;
+            ctx.strokeStyle = 'rgba(20, 60, 100, 0.8)';
+            ctx.lineWidth = 4;
+            ctx.strokeText('PROTECT GREENLAND', WIDTH / 2, HEIGHT / 2 - 50);
+            ctx.fillText('PROTECT GREENLAND', WIDTH / 2, HEIGHT / 2 - 50);
+
+            // Draw "Click/Tap to Start" with pulsing effect
+            const pulse = 0.7 + Math.sin(Date.now() / 400) * 0.3;
+            ctx.font = 'bold 36px "Averia Libre", Georgia, serif';
+            ctx.shadowColor = 'rgba(100, 200, 255, 0.8)';
+            ctx.shadowBlur = 15;
+            ctx.fillStyle = `rgba(200, 230, 255, ${pulse})`;
+            ctx.fillText('Click / Tap to Start', WIDTH / 2, HEIGHT / 2 + 60);
+            ctx.shadowBlur = 0;
+
+            ctx.textAlign = 'left';
+        }
+
+        // Draw intro video playing
+        function drawIntroVideo() {
+            // Draw the video frame
+            ctx.drawImage(introVideo, 0, 0, WIDTH, HEIGHT);
+
+            // Check if we should start fading to game (at 7 seconds)
+            if (introVideo.currentTime >= 7 && !introFadeStarted) {
+                introFadeStarted = true;
+            }
+
+            // Handle fade to game
+            if (introFadeStarted) {
+                introFadeOpacity += 0.02; // Fade speed
+                ctx.fillStyle = `rgba(0, 0, 0, ${Math.min(introFadeOpacity, 1)})`;
+                ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+                if (introFadeOpacity >= 1) {
+                    // Transition to tutorial
+                    gamePhase = 'tutorial';
+                    tutorialStep = 0;
+                    tutorialTimer = 0;
+                    // Don't stop video audio - let it play out
+                    // Start tutorial music when intro video audio ends
+                    introVideo.addEventListener('ended', () => {
+                        startTutorialMusic();
+                    }, { once: true });
+                }
+            }
+        }
+
+        // Draw tutorial screen
+        function drawTutorial() {
+            // Draw the game background
+            ctx.drawImage(assets.map, 0, 0, WIDTH, HEIGHT);
+            // Darken overlay for better character visibility
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx.fillRect(0, 0, WIDTH, HEIGHT);
+            ctx.globalAlpha = 0.7;
+            ctx.drawImage(assets.roads, 0, 0, WIDTH, HEIGHT);
+            ctx.globalAlpha = 1;
+
+            // Draw Inuksuk at center
+            if (centerPoint && assets.inuksuk.complete) {
+                const inuksukSize = 100;
+                ctx.drawImage(
+                    assets.inuksuk,
+                    centerPoint.x - inuksukSize/2,
+                    centerPoint.y - inuksukSize/2,
+                    inuksukSize,
+                    inuksukSize
+                );
+            }
+
+            // Draw falling snowflakes
+            for (const flake of fallingSnowflakes) {
+                flake.draw();
+            }
+
+            // Draw tupilaks (placed during tutorial)
+            for (const tupilak of tupilaks) {
+                tupilak.draw();
+            }
+
+            // Draw shop panel
+            drawShopPanel();
+
+            // Draw Snow Power display (below shop panel)
+            const tutorialShopBottom = SHOP_PANEL_Y + SHOP_ITEM_SIZE + SHOP_PADDING * 2;
+            const spText = `Snow Power: ${Math.floor(snowPower)}`;
+            ctx.font = 'bold 32px "Averia Libre", Georgia, serif';
+            ctx.textAlign = 'left';
+            ctx.shadowColor = 'rgba(100, 200, 255, 0.8)';
+            ctx.shadowBlur = 15;
+            ctx.fillStyle = '#fff';
+            ctx.fillText(spText, 20, tutorialShopBottom + 35);
+            ctx.shadowBlur = 0;
+            ctx.strokeStyle = 'rgba(20, 60, 100, 0.8)';
+            ctx.lineWidth = 3;
+            ctx.strokeText(spText, 20, tutorialShopBottom + 35);
+            ctx.fillText(spText, 20, tutorialShopBottom + 35);
+
+            // Tutorial messages and arrows
+            ctx.textAlign = 'center';
+            ctx.font = 'bold 42px "Averia Libre", Georgia, serif';
+            ctx.shadowColor = 'rgba(100, 200, 255, 0.9)';
+            ctx.shadowBlur = 20;
+            ctx.fillStyle = '#fff';
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+            ctx.lineWidth = 3;
+
+            const messages = [
+                "Click on the snowflake!",
+                "Snowflakes give you Snow Power!",
+                "Tap here to increase snowfall!",
+                "Now tap on a road to place a defender!",
+                "That's a Tupilaq! He's protecting Greenland.",
+                "A Tupilaq costs 50 SP",
+                "PROTECT GREENLAND!"
+            ];
+
+            const msg = messages[tutorialStep];
+
+            // Draw message at center of screen (or specific position for some steps)
+            let msgY = HEIGHT / 2;
+
+            if (tutorialStep === 2 || tutorialStep === 5) {
+                // Messages about shop items - position below shop
+                msgY = 280;
+            }
+
+            // Draw text with outline
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+            ctx.lineWidth = 4;
+            ctx.strokeText(msg, WIDTH / 2, msgY);
+            ctx.fillText(msg, WIDTH / 2, msgY);
+            ctx.shadowBlur = 0;
+
+            // Show "click to continue" hint for message-only steps
+            if (tutorialStep === 1 || tutorialStep === 4 || tutorialStep === 5 || tutorialStep === 6) {
+                const pulse = 0.5 + Math.sin(Date.now() / 400) * 0.3;
+                ctx.font = 'bold 24px "Averia Libre", Georgia, serif';
+                ctx.fillStyle = `rgba(200, 230, 255, ${pulse})`;
+                ctx.shadowColor = 'rgba(100, 200, 255, 0.6)';
+                ctx.shadowBlur = 10;
+                ctx.fillText('(click to continue)', WIDTH / 2, msgY + 50);
+                ctx.shadowBlur = 0;
+            }
+
+            // Draw pointing arrows for specific steps
+            if (tutorialStep === 0 && fallingSnowflakes.length > 0) {
+                // Arrow pointing to snowflake
+                const flake = fallingSnowflakes[0];
+                drawArrow(flake.x, flake.y - flake.size - 30, flake.x, flake.y - flake.size/2 - 10);
+            }
+
+            if (tutorialStep === 2) {
+                // Arrow pointing to More Snow shop item
+                const snowItemX = SHOP_PANEL_X + SHOP_PADDING + SHOP_ITEM_SIZE + SHOP_GAP + SHOP_ITEM_SIZE/2;
+                const snowItemY = SHOP_PANEL_Y + SHOP_PADDING + SHOP_ITEM_SIZE + 20;
+                drawArrow(snowItemX, snowItemY + 40, snowItemX, snowItemY);
+            }
+
+            if (tutorialStep === 5) {
+                // Arrow pointing to Tupilaq shop item
+                const tupilakItemX = SHOP_PANEL_X + SHOP_PADDING + SHOP_ITEM_SIZE/2;
+                const tupilakItemY = SHOP_PANEL_Y + SHOP_PADDING + SHOP_ITEM_SIZE + 20;
+                drawArrow(tupilakItemX, tupilakItemY + 40, tupilakItemX, tupilakItemY);
+            }
+
+            ctx.textAlign = 'left';
+        }
+
+        // Helper function to draw an arrow
+        function drawArrow(fromX, fromY, toX, toY) {
+            const headLen = 15;
+            const angle = Math.atan2(toY - fromY, toX - fromX);
+
+            // Pulsing effect
+            const pulse = 0.7 + Math.sin(Date.now() / 200) * 0.3;
+
+            ctx.strokeStyle = `rgba(255, 255, 100, ${pulse})`;
+            ctx.fillStyle = `rgba(255, 255, 100, ${pulse})`;
+            ctx.lineWidth = 4;
+
+            // Draw line
+            ctx.beginPath();
+            ctx.moveTo(fromX, fromY);
+            ctx.lineTo(toX, toY);
+            ctx.stroke();
+
+            // Draw arrowhead
+            ctx.beginPath();
+            ctx.moveTo(toX, toY);
+            ctx.lineTo(toX - headLen * Math.cos(angle - Math.PI/6), toY - headLen * Math.sin(angle - Math.PI/6));
+            ctx.lineTo(toX - headLen * Math.cos(angle + Math.PI/6), toY - headLen * Math.sin(angle + Math.PI/6));
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, WIDTH, HEIGHT);
+
+            // Handle different game phases
+            if (gamePhase === 'start') {
+                drawStartScreen();
+                return;
+            }
+
+            if (gamePhase === 'intro') {
+                drawIntroVideo();
+                return;
+            }
+
+            if (gamePhase === 'tutorial') {
+                drawTutorial();
+                return;
+            }
+
+            // Draw map
+            ctx.drawImage(assets.map, 0, 0, WIDTH, HEIGHT);
+            // Darken overlay for better character visibility
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+            // Draw roads overlay
+            ctx.globalAlpha = 0.7;
+            ctx.drawImage(assets.roads, 0, 0, WIDTH, HEIGHT);
+            ctx.globalAlpha = 1;
+
+            // Draw Inuksuk at center
+            if (centerPoint && assets.inuksuk.complete) {
+                const inuksukSize = 100; // Adjust size as needed
+                ctx.drawImage(
+                    assets.inuksuk,
+                    centerPoint.x - inuksukSize/2,
+                    centerPoint.y - inuksukSize/2,
+                    inuksukSize,
+                    inuksukSize
+                );
+
+                // Draw Inuksuk health bar
+                const barWidth = 80;
+                const barHeight = 8;
+                const barX = centerPoint.x - barWidth/2;
+                const barY = centerPoint.y + inuksukSize/2 + 10;
+                const maxLives = 10;
+
+                // Background
+                ctx.fillStyle = '#333';
+                ctx.fillRect(barX, barY, barWidth, barHeight);
+
+                // Health
+                ctx.fillStyle = lives > 3 ? '#44dd44' : (lives > 1 ? '#dddd44' : '#dd4444');
+                ctx.fillRect(barX, barY, barWidth * (lives / maxLives), barHeight);
+
+                // Border
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(barX, barY, barWidth, barHeight);
+            }
+
+            // Draw falling snowflakes
+            for (const flake of fallingSnowflakes) {
+                flake.draw();
+            }
+
+            // Draw tupilaks
+            for (const tupilak of tupilaks) {
+                tupilak.draw();
+            }
+
+            // Draw enemies
+            for (const enemy of enemies) {
+                enemy.draw();
+            }
+
+            // Draw projectiles
+            for (const proj of projectiles) {
+                proj.draw();
+            }
+
+            // Draw shop panel on left side
+            drawShopPanel();
+
+            // Draw Snow Power display (left side, below shop)
+            const shopPanelBottom = SHOP_PANEL_Y + SHOP_ITEM_SIZE + SHOP_PADDING * 2;
+            const spText = `Snow Power: ${Math.floor(snowPower)}`;
+            ctx.font = 'bold 32px "Averia Libre", Georgia, serif';
+            ctx.textAlign = 'left';
+            // Icy glow effect
+            ctx.shadowColor = 'rgba(100, 200, 255, 0.8)';
+            ctx.shadowBlur = 15;
+            ctx.fillStyle = '#fff';
+            ctx.fillText(spText, 20, shopPanelBottom + 35);
+            // Outline for readability
+            ctx.shadowBlur = 0;
+            ctx.strokeStyle = 'rgba(20, 60, 100, 0.8)';
+            ctx.lineWidth = 3;
+            ctx.strokeText(spText, 20, shopPanelBottom + 35);
+            ctx.fillText(spText, 20, shopPanelBottom + 35);
+
+            // Draw wave indicator
+            ctx.font = 'bold 26px "Averia Libre", Georgia, serif';
+            ctx.shadowColor = 'rgba(100, 200, 255, 0.8)';
+            ctx.shadowBlur = 10;
+            ctx.fillStyle = '#aef';
+            ctx.fillText(`Wave ${wave}/5`, 20, shopPanelBottom + 70);
+            ctx.shadowBlur = 0;
+
+            // Draw snow click hint if player hasn't clicked snow in a while
+            if (showSnowHint && !gameOver && !gameWon) {
+                const pulse = 0.7 + Math.sin(Date.now() / 300) * 0.3;
+                ctx.globalAlpha = pulse;
+                ctx.font = 'bold 36px "Averia Libre", Georgia, serif';
+                ctx.textAlign = 'center';
+                ctx.fillStyle = '#fff';
+                ctx.shadowColor = 'rgba(100, 200, 255, 0.9)';
+                ctx.shadowBlur = 20;
+                ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+                ctx.lineWidth = 3;
+                ctx.strokeText('Click snowflakes to earn Snow Power!', WIDTH / 2, HEIGHT - 50);
+                ctx.fillText('Click snowflakes to earn Snow Power!', WIDTH / 2, HEIGHT - 50);
+                ctx.shadowBlur = 0;
+                ctx.globalAlpha = 1;
+                ctx.textAlign = 'left';
+            }
+
+            // Game over / win messages
+            if (gameOver) {
+                const msg = document.getElementById('message');
+                msg.style.display = 'block';
+                msg.style.color = '#ff4444';
+                msg.innerHTML = 'NUUK, THE CAPITAL OF GREENLAND HAS FALLEN.<br><span style="font-size: 28px">PROTECT THE WORLD FROM THE UNITED STATES!</span><br><span style="font-size: 20px">Click to restart</span>';
+            }
+            if (gameWon) {
+                const msg = document.getElementById('message');
+                msg.style.display = 'block';
+                msg.style.color = '#44ff44';
+                msg.innerHTML = 'YOU HAVE PROTECTED NUUK, THE CAPITAL OF GREENLAND!<br><span style="font-size: 28px">PROTECT THE WORLD FROM THE UNITED STATES!</span><br><span style="font-size: 20px">Click to restart</span>';
+            }
+        }
+
+        // DEBUG: Draw all waypoints with their IDs
+        function drawWaypointDebug() {
+            ctx.font = '10px Arial';
+            ctx.textAlign = 'center';
+
+            for (const wp of waypoints) {
+                // Color based on type
+                if (wp.type === 'spawn') {
+                    ctx.fillStyle = 'red';
+                } else if (wp.type === 'center') {
+                    ctx.fillStyle = 'lime';
+                } else {
+                    ctx.fillStyle = 'magenta';
+                }
+
+                // Draw dot
+                ctx.beginPath();
+                ctx.arc(wp.x, wp.y, 5, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Draw ID
+                ctx.fillStyle = 'white';
+                ctx.strokeStyle = 'black';
+                ctx.lineWidth = 2;
+                ctx.strokeText(wp.id, wp.x, wp.y - 8);
+                ctx.fillText(wp.id, wp.x, wp.y - 8);
+
+                // Draw connections as lines
+                ctx.strokeStyle = 'rgba(255,255,0,0.3)';
+                ctx.lineWidth = 1;
+                for (const connId of wp.connections) {
+                    const other = getWaypoint(connId);
+                    if (other && other.id > wp.id) {
+                        ctx.beginPath();
+                        ctx.moveTo(wp.x, wp.y);
+                        ctx.lineTo(other.x, other.y);
+                        ctx.stroke();
+                    }
+                }
+            }
+            ctx.textAlign = 'left';
+        }
+
+        // Shop panel constants (used by drawing and click detection)
+        const SHOP_PANEL_X = 15;
+        const SHOP_PANEL_Y = 15;
+        const SHOP_ITEM_SIZE = 160; // Big item boxes for mobile
+        const SHOP_PADDING = 15;
+        const SHOP_GAP = 15;
+
+        // Draw shop panel (horizontal layout)
+        function drawShopPanel() {
+            const panelX = SHOP_PANEL_X;
+            const panelY = SHOP_PANEL_Y;
+            const itemSize = SHOP_ITEM_SIZE;
+            const padding = SHOP_PADDING;
+            const gap = SHOP_GAP;
+
+            // Icy panel background - horizontal
+            ctx.fillStyle = 'rgba(20, 40, 60, 0.85)';
+            ctx.strokeStyle = 'rgba(150, 200, 255, 0.6)';
+            ctx.lineWidth = 2;
+            const panelWidth = (itemSize + gap) * 2 + padding * 2 - gap;
+            const panelHeight = itemSize + padding * 2;
+            ctx.fillRect(panelX, panelY, panelWidth, panelHeight);
+            ctx.strokeRect(panelX, panelY, panelWidth, panelHeight);
+
+            // Helper function to draw an item with fill meter
+            function drawShopItem(x, y, sprite, spriteW, spriteH, label, cost, isSelected) {
+                const canAfford = snowPower >= cost;
+                const fillPercent = Math.min(snowPower / cost, 1);
+
+                // Grey background (unaffordable portion)
+                ctx.fillStyle = 'rgba(40, 40, 40, 0.9)';
+                ctx.fillRect(x, y, itemSize, itemSize);
+
+                // Blue fill from bottom (affordable progress)
+                const fillHeight = itemSize * fillPercent;
+                const fillY = y + itemSize - fillHeight;
+                ctx.fillStyle = isSelected ? 'rgba(100, 180, 255, 0.6)' : 'rgba(60, 120, 180, 0.7)';
+                ctx.fillRect(x, fillY, itemSize, fillHeight);
+
+                // Border
+                ctx.strokeStyle = isSelected ? '#8cf' : 'rgba(100, 150, 200, 0.5)';
+                ctx.lineWidth = isSelected ? 3 : 2;
+                ctx.strokeRect(x, y, itemSize, itemSize);
+
+                // Draw sprite
+                if (sprite) {
+                    // Grey out sprite if can't afford
+                    if (!canAfford) {
+                        ctx.globalAlpha = 0.5;
+                    }
+                    ctx.drawImage(
+                        sprite,
+                        x + (itemSize - spriteW) / 2,
+                        y + 10,
+                        spriteW,
+                        spriteH
+                    );
+                    ctx.globalAlpha = 1;
+                }
+
+                // Label and cost
+                ctx.font = 'bold 20px "Averia Libre", Georgia, serif';
+                ctx.textAlign = 'center';
+                ctx.fillStyle = canAfford ? '#cef' : '#888';
+                ctx.fillText(label, x + itemSize/2, y + itemSize - 30);
+                ctx.fillStyle = canAfford ? '#aef' : '#666';
+                ctx.font = 'bold 18px "Averia Libre", Georgia, serif';
+                ctx.fillText(cost + ' SP', x + itemSize/2, y + itemSize - 10);
+            }
+
+            // Tupilaq item (left)
+            const tupilakX = panelX + padding;
+            const tupilakY = panelY + padding;
+            const tupilakSpriteW = 427 * 0.18;
+            const tupilakSpriteH = 278 * 0.18;
+            drawShopItem(
+                tupilakX, tupilakY,
+                assets.tupilakIdle[0],
+                tupilakSpriteW, tupilakSpriteH,
+                'Tupilaq', tupilakCost,
+                selectedItem === 'tupilak'
+            );
+
+            // Snowflake item (right)
+            const snowflakeX = tupilakX + itemSize + gap;
+            const snowflakeY = panelY + padding;
+            const flakeSize = 50;
+            drawShopItem(
+                snowflakeX, snowflakeY,
+                assets.snowflakes[0],
+                flakeSize, flakeSize,
+                'More Snow', snowflakeCost,
+                false
+            );
+
+            ctx.textAlign = 'left';
+        }
+    </script>
+</body>
+</html>

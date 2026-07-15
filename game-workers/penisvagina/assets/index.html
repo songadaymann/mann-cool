@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="x-ogp-key" content="64ee7b61-3b07-437b-bcea-565ee94a0ddc" id="ogp-key-meta" />
+    <title>Penis vs Vagina</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            touch-action: none;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        body {
+            background: #fff;
+        }
+        canvas {
+            display: block;
+        }
+
+        /* Mobile Touch Controls */
+        .touch-controls {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 140px;
+            pointer-events: none;
+            z-index: 1000;
+            display: none; /* Hidden by default, shown on touch devices */
+        }
+
+        .touch-controls.visible {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            padding: 10px 15px;
+        }
+
+        .control-group {
+            display: flex;
+            gap: 8px;
+            pointer-events: auto;
+        }
+
+        .control-group.left {
+            align-items: flex-end;
+        }
+
+        .control-group.right {
+            align-items: flex-end;
+        }
+
+        .touch-btn {
+            width: 70px;
+            height: 70px;
+            border: 3px solid #000;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.85);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: monospace;
+            font-size: 24px;
+            font-weight: bold;
+            color: #000;
+            /* Hand-drawn wobble effect */
+            transform: rotate(-1deg);
+            box-shadow: 2px 2px 0 #000;
+        }
+
+        .touch-btn:nth-child(2) {
+            transform: rotate(1deg);
+        }
+
+        .touch-btn.active {
+            background: rgba(200, 200, 200, 0.9);
+            transform: rotate(0deg) scale(0.95);
+            box-shadow: 1px 1px 0 #000;
+        }
+
+        .touch-btn.jump {
+            width: 65px;
+            height: 65px;
+            font-size: 14px;
+            transform: rotate(2deg);
+        }
+
+        .touch-btn.shoot {
+            width: 80px;
+            height: 80px;
+            font-size: 14px;
+            background: rgba(255, 230, 230, 0.9);
+            transform: rotate(-2deg);
+        }
+
+        .touch-btn.shoot.active {
+            background: rgba(255, 150, 150, 0.9);
+        }
+
+        /* Arrow symbols */
+        .arrow-left::before {
+            content: '◀';
+        }
+        .arrow-right::before {
+            content: '▶';
+        }
+        .arrow-down::before {
+            content: '▼';
+        }
+
+        /* Rotate Phone Message */
+        .rotate-message {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #fff;
+            z-index: 2000;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: monospace;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .rotate-message h2 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #000;
+        }
+
+        .rotate-message p {
+            font-size: 16px;
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .rotate-icon {
+            width: 80px;
+            height: 120px;
+            border: 4px solid #000;
+            border-radius: 12px;
+            position: relative;
+            animation: rotatePhone 2s ease-in-out infinite;
+            box-shadow: 3px 3px 0 #000;
+        }
+
+        .rotate-icon::before {
+            content: '';
+            position: absolute;
+            top: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 8px;
+            height: 8px;
+            background: #000;
+            border-radius: 50%;
+        }
+
+        .rotate-icon::after {
+            content: '';
+            position: absolute;
+            bottom: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 20px;
+            height: 20px;
+            border: 3px solid #000;
+            border-radius: 50%;
+        }
+
+        @keyframes rotatePhone {
+            0%, 30% { transform: rotate(0deg); }
+            50%, 80% { transform: rotate(-90deg); }
+            100% { transform: rotate(0deg); }
+        }
+
+        /* Show rotate message on mobile portrait */
+        @media screen and (max-width: 768px) and (orientation: portrait) {
+            .rotate-message {
+                display: flex;
+            }
+            #game-container {
+                display: none;
+            }
+            .touch-controls {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Rotate Phone Message -->
+    <div class="rotate-message" id="rotate-message">
+        <div class="rotate-icon"></div>
+        <h2>ROTATE YOUR PHONE</h2>
+        <p>This game plays best in landscape mode</p>
+    </div>
+
+    <div id="game-container"></div>
+
+    <!-- Mobile Touch Controls -->
+    <div class="touch-controls" id="touch-controls">
+        <div class="control-group left">
+            <div class="touch-btn arrow-left" data-control="left"></div>
+            <!-- DUCKING DISABLED
+            <div class="touch-btn arrow-down" data-control="down"></div>
+            -->
+            <div class="touch-btn arrow-right" data-control="right"></div>
+        </div>
+        <div class="control-group right">
+            <div class="touch-btn jump" data-control="up">JUMP</div>
+            <div class="touch-btn shoot" data-control="action">SHOOT</div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+    <script src="https://sdk.play.fun"></script>
+    <script src="js/game.js"></script>
+
+    <script>
+        // Play.fun SDK initialization
+        var playfunSDK = null;
+        (async function initPlayFun() {
+            if (typeof OpenGameSDK === 'undefined') {
+                console.warn('Play.fun SDK not loaded');
+                return;
+            }
+            try {
+                playfunSDK = new OpenGameSDK({ ui: { usePointsWidget: true } });
+                await playfunSDK.init();
+                console.log('Play.fun SDK initialized');
+            } catch (e) {
+                console.warn('Play.fun SDK failed:', e);
+                playfunSDK = null;
+            }
+        })();
+        window.addEventListener('beforeunload', function() {
+            if (playfunSDK) playfunSDK.savePoints();
+        });
+    </script>
+
+    <script>
+        // Mobile Touch Controls Handler
+        (function() {
+            const touchControls = document.getElementById('touch-controls');
+            const buttons = touchControls.querySelectorAll('.touch-btn');
+
+            // Detect if we're in an iframe (mann.cool embeds us)
+            const isInIframe = window.parent !== window;
+
+            // Detect if touch device
+            const isTouchDevice = ('ontouchstart' in window) ||
+                                  (navigator.maxTouchPoints > 0) ||
+                                  (navigator.msMaxTouchPoints > 0);
+
+            // Show controls on touch devices when not in iframe
+            if (isTouchDevice && !isInIframe) {
+                touchControls.classList.add('visible');
+            }
+
+            // Handle touch events
+            function handleTouch(e, isDown) {
+                e.preventDefault();
+
+                const touches = e.changedTouches || [e];
+
+                for (let touch of touches) {
+                    const target = document.elementFromPoint(touch.clientX, touch.clientY);
+                    if (target && target.classList.contains('touch-btn')) {
+                        const control = target.dataset.control;
+                        if (control && window.touchControls && window.touchControls.directions) {
+                            window.touchControls.directions[control] = isDown;
+
+                            if (isDown) {
+                                target.classList.add('active');
+                            } else {
+                                target.classList.remove('active');
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Track active touches per button
+            const activeTouches = new Map();
+
+            buttons.forEach(btn => {
+                btn.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    const control = btn.dataset.control;
+                    if (control && window.touchControls && window.touchControls.directions) {
+                        window.touchControls.directions[control] = true;
+                        btn.classList.add('active');
+
+                        // Track this touch
+                        for (let touch of e.changedTouches) {
+                            activeTouches.set(touch.identifier, { btn, control });
+                        }
+                    }
+                }, { passive: false });
+
+                btn.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+
+                    for (let touch of e.changedTouches) {
+                        const touchData = activeTouches.get(touch.identifier);
+                        if (touchData) {
+                            const { btn: touchBtn, control } = touchData;
+                            if (window.touchControls && window.touchControls.directions) {
+                                window.touchControls.directions[control] = false;
+                            }
+                            touchBtn.classList.remove('active');
+                            activeTouches.delete(touch.identifier);
+                        }
+                    }
+                }, { passive: false });
+
+                btn.addEventListener('touchcancel', (e) => {
+                    e.preventDefault();
+
+                    for (let touch of e.changedTouches) {
+                        const touchData = activeTouches.get(touch.identifier);
+                        if (touchData) {
+                            const { btn: touchBtn, control } = touchData;
+                            if (window.touchControls && window.touchControls.directions) {
+                                window.touchControls.directions[control] = false;
+                            }
+                            touchBtn.classList.remove('active');
+                            activeTouches.delete(touch.identifier);
+                        }
+                    }
+                }, { passive: false });
+            });
+
+            // Also handle touchmove to allow sliding between buttons
+            touchControls.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+            }, { passive: false });
+
+            // Clear all on touchend outside buttons
+            document.addEventListener('touchend', (e) => {
+                // Check if any tracked touches ended
+                for (let touch of e.changedTouches) {
+                    if (activeTouches.has(touch.identifier)) {
+                        const { btn, control } = activeTouches.get(touch.identifier);
+                        if (window.touchControls && window.touchControls.directions) {
+                            window.touchControls.directions[control] = false;
+                        }
+                        btn.classList.remove('active');
+                        activeTouches.delete(touch.identifier);
+                    }
+                }
+            }, { passive: false });
+        })();
+    </script>
+</body>
+</html>

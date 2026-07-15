@@ -1,0 +1,1182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="x-ogp-key" content="64ee7b61-3b07-437b-bcea-565ee94a0ddc" id="ogp-key-meta" />
+    <title>Fling Punk</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+    <script src="https://sdk.play.fun"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: url('assets/punks.png') center center no-repeat;
+            background-size: cover;
+            image-rendering: pixelated;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'Press Start 2P', monospace;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            max-width: calc(100vh * 9 / 16);
+            background: #E56399;
+            overflow: hidden;
+            margin: 0 auto;
+        }
+
+        #game-canvas {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            height: 100%;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+            cursor: grab;
+        }
+
+        #game-canvas.grabbing {
+            cursor: grabbing;
+        }
+
+        #height-display {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: #fff;
+            font-size: clamp(10px, 3vw, 14px);
+            text-shadow: 2px 2px 0 #000;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        #best-display {
+            position: absolute;
+            top: 35px;
+            right: 10px;
+            color: #fff;
+            font-size: clamp(7px, 2.2vw, 10px);
+            text-shadow: 1px 1px 0 #000;
+            pointer-events: none;
+            opacity: 0.8;
+            z-index: 10;
+        }
+
+        #instructions {
+            position: absolute;
+            bottom: 75px;
+            left: 0;
+            right: 0;
+            color: #fff;
+            font-size: clamp(6px, 2vw, 8px);
+            text-align: center;
+            text-shadow: 1px 1px 0 #000;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .modal {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .modal.hidden {
+            display: none;
+        }
+
+        .modal h2 {
+            color: #E56399;
+            font-size: clamp(16px, 5vw, 24px);
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 0 #000;
+        }
+
+        .modal p {
+            color: #fff;
+            font-size: clamp(8px, 2.5vw, 10px);
+            margin-bottom: 10px;
+            text-align: center;
+            max-width: 80%;
+            line-height: 1.8;
+            padding: 0 10px;
+        }
+
+        .modal .score {
+            color: #4ecdc4;
+            font-size: clamp(20px, 7vw, 32px);
+            margin: 20px 0;
+        }
+
+        .modal button {
+            background: #E56399;
+            color: #fff;
+            border: none;
+            padding: 15px 30px;
+            font-family: 'Press Start 2P', monospace;
+            font-size: clamp(10px, 3vw, 12px);
+            cursor: pointer;
+            margin-top: 20px;
+            transition: transform 0.1s;
+        }
+
+        .modal button:hover {
+            transform: scale(1.05);
+        }
+
+        .modal button:active {
+            transform: scale(0.95);
+        }
+
+        .modal button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        #punk-preview {
+            width: 96px;
+            height: 96px;
+            margin: 20px 0;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+
+    </style>
+</head>
+<body>
+    <div id="game-container">
+            <canvas id="game-canvas"></canvas>
+
+            <div id="height-display">0m</div>
+            <div id="best-display">BEST: 0m</div>
+            <div id="instructions">CLICK TO SWING - RELEASE TO FLING!</div>
+
+            <div id="start-modal" class="modal">
+                <h2>FLING PUNK</h2>
+                <canvas id="punk-preview"></canvas>
+                <p>SWING THE PUNK ON THE STRING AND FLING IT AS HIGH AS YOU CAN!</p>
+                <p>CLICK TO SWING<br>RELEASE TO LAUNCH!</p>
+                <button id="start-btn" disabled>LOADING...</button>
+            </div>
+
+            <div id="gameover-modal" class="modal hidden">
+                <h2>NICE FLING!</h2>
+                <div class="score" id="final-score">0m</div>
+                <p id="new-record" style="color: #4ecdc4; display: none;">NEW RECORD!</p>
+                <button id="restart-btn">PLAY AGAIN</button>
+            </div>
+    </div>
+
+    <script>
+        // Matter.js modules
+        const { Engine, Render, Runner, Bodies, Body, Composite, Constraint, Events, Mouse, Vector } = Matter;
+
+        // Play.fun SDK (OpenGameProtocol)
+        // The SDK reads the game's API key from <meta name="x-ogp-key"> automatically
+        let playfunSDK = null;
+
+        async function initPlayFun() {
+            try {
+                if (typeof OpenGameSDK === 'undefined') {
+                    console.warn('Play.fun SDK script not loaded');
+                    return;
+                }
+                playfunSDK = new OpenGameSDK({
+                    ui: { usePointsWidget: true }
+                });
+                await playfunSDK.init();
+                console.log('Play.fun SDK initialized');
+            } catch (e) {
+                console.warn('Play.fun SDK failed to initialize:', e);
+                playfunSDK = null;
+            }
+        }
+
+        // Design base resolution (all game logic is authored against this)
+        const BASE_WIDTH = 400;
+        const BASE_HEIGHT = 700;
+
+        // Actual canvas size — matches container (9:16 capped on desktop)
+        const container = document.getElementById('game-container');
+        let CANVAS_WIDTH = container.clientWidth || window.innerWidth;
+        let CANVAS_HEIGHT = container.clientHeight || window.innerHeight;
+
+        // Scale factor: how much bigger/smaller the viewport is vs the design base
+        let SCALE = Math.min(CANVAS_WIDTH / BASE_WIDTH, CANVAS_HEIGHT / BASE_HEIGHT);
+
+        // Scaled game constants
+        let PUNK_SIZE = 64 * SCALE;
+        let STRING_LENGTH = 150 * SCALE;
+        let PIXELS_PER_METER = 40 * SCALE;
+        let ANCHOR_Y = CANVAS_HEIGHT * 0.53; // ~53% down the screen
+        let POWER_UP_SIZE_SCALED = 48 * SCALE;
+        let GROUND_TILE_SIZE_SCALED = 32 * SCALE;
+        const GRAVITY = 0.8;
+        const SWING_FORCE = 0.002;
+
+        function recalcScale() {
+            CANVAS_WIDTH = container.clientWidth;
+            CANVAS_HEIGHT = container.clientHeight;
+            SCALE = Math.min(CANVAS_WIDTH / BASE_WIDTH, CANVAS_HEIGHT / BASE_HEIGHT);
+            PUNK_SIZE = 64 * SCALE;
+            STRING_LENGTH = 150 * SCALE;
+            PIXELS_PER_METER = 40 * SCALE;
+            ANCHOR_Y = CANVAS_HEIGHT * 0.53;
+            POWER_UP_SIZE_SCALED = 48 * SCALE;
+            GROUND_TILE_SIZE_SCALED = 32 * SCALE;
+        }
+
+        // Game state
+        let engine;
+        let punk, anchor, string;
+        let leftWall, rightWall;
+
+        // Fixed-timestep physics (ensures consistent speed across all devices/framerates)
+        const FIXED_STEP = 1000 / 60;
+        let lastTime = 0;
+        let accumulator = 0;
+        let punkCanvas, punkCtx;
+        let isHolding = false;
+        let gameStarted = false;
+        let gameOver = false;
+        let frozen = false;
+        let released = false;
+        let cameraY = 0;
+        let maxHeight = 0;
+        let bestHeight = parseInt(localStorage.getItem('flingPunkBest') || '0');
+        let currentPunkData = null;
+        let mousePos = { x: CANVAS_WIDTH / 2, y: CANVAS_HEIGHT / 2 };
+        let trailPoints = [];
+
+        // Cloud system
+        let cloudImages = [];
+        let clouds = []; // Array of { x, y, imageIndex, scale }
+
+        // Power-up system
+        let powerUpImages = {}; // { mushroom, flower, star }
+        let powerUps = []; // Array of { type, x, y, collected, size }
+        let highestGeneratedHeight = 0; // Track how far we've generated power-ups
+        const POWER_UP_BASE_DENSITY = 8; // Base power-ups per 100 meters (at ground level)
+        const GENERATION_BUFFER = 200; // Generate this many meters ahead
+
+        // Ground tile
+        let groundTileImage = null;
+
+        // Trait manifest
+        let manifest = null;
+
+        // DOM elements
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const startModal = document.getElementById('start-modal');
+        const gameoverModal = document.getElementById('gameover-modal');
+        const heightDisplay = document.getElementById('height-display');
+        const bestDisplay = document.getElementById('best-display');
+        const finalScore = document.getElementById('final-score');
+        const newRecord = document.getElementById('new-record');
+        const punkPreview = document.getElementById('punk-preview');
+
+        // Initialize canvases
+        function resizeCanvas() {
+            recalcScale();
+            canvas.width = CANVAS_WIDTH;
+            canvas.height = CANVAS_HEIGHT;
+        }
+        resizeCanvas();
+        punkPreview.width = 96;
+        punkPreview.height = 96;
+
+        // Handle resize (e.g. orientation change, iframe resize)
+        window.addEventListener('resize', () => {
+            // Save old values before resize
+            const oldScale = SCALE;
+            const oldCanvasWidth = CANVAS_WIDTH;
+            const oldAnchorY = ANCHOR_Y;
+            const oldPixelsPerMeter = PIXELS_PER_METER;
+            const oldGroundY = ANCHOR_Y + STRING_LENGTH + PUNK_SIZE + 50 * oldScale;
+
+            resizeCanvas();
+
+            // If game isn't actively running with physics, nothing else to do
+            if (!gameStarted || gameOver || !punk) return;
+
+            const scaleRatio = SCALE / oldScale;
+
+            // Scale gravity to match new scale
+            engine.gravity.y = GRAVITY * SCALE;
+            const newGroundY = ANCHOR_Y + STRING_LENGTH + PUNK_SIZE + 50 * SCALE;
+
+            if (!released) {
+                // Swinging phase: reposition anchor, update constraint
+                Body.setPosition(anchor, { x: CANVAS_WIDTH / 2, y: ANCHOR_Y });
+                string.length = STRING_LENGTH;
+
+                // Scale punk's offset from old anchor position
+                const offsetX = punk.position.x - oldCanvasWidth / 2;
+                const offsetY = punk.position.y - oldAnchorY;
+                Body.setPosition(punk, {
+                    x: CANVAS_WIDTH / 2 + offsetX * scaleRatio,
+                    y: ANCHOR_Y + offsetY * scaleRatio
+                });
+                Body.setVelocity(punk, {
+                    x: punk.velocity.x * scaleRatio,
+                    y: punk.velocity.y * scaleRatio
+                });
+
+                // Reset camera for swing view
+                cameraY = ANCHOR_Y - CANVAS_HEIGHT / 3;
+            } else {
+                // Flying phase: maintain punk's height in meters
+                const heightAboveGround = oldGroundY - punk.position.y;
+                const heightMeters = heightAboveGround / oldPixelsPerMeter;
+                const xRatio = punk.position.x / oldCanvasWidth;
+
+                Body.setPosition(punk, {
+                    x: xRatio * CANVAS_WIDTH,
+                    y: newGroundY - heightMeters * PIXELS_PER_METER
+                });
+                Body.setVelocity(punk, {
+                    x: punk.velocity.x * scaleRatio,
+                    y: punk.velocity.y * scaleRatio
+                });
+
+                // Update camera to follow punk
+                cameraY = punk.position.y - CANVAS_HEIGHT / 2;
+
+                // Remap trail points
+                for (const point of trailPoints) {
+                    const trailHeight = oldGroundY - point.y;
+                    const trailMeters = trailHeight / oldPixelsPerMeter;
+                    point.x = (point.x / oldCanvasWidth) * CANVAS_WIDTH;
+                    point.y = newGroundY - trailMeters * PIXELS_PER_METER;
+                }
+            }
+
+            // Recreate walls for new dimensions
+            if (leftWall) Composite.remove(engine.world, leftWall);
+            if (rightWall) Composite.remove(engine.world, rightWall);
+            const wallThickness = 50;
+            const wallHeight = 100000 * SCALE;
+            const wallCenterY = -wallHeight / 2 + 1000 * SCALE;
+            leftWall = Bodies.rectangle(-wallThickness / 2, wallCenterY, wallThickness, wallHeight,
+                { isStatic: true, restitution: 0.5, friction: 0, label: 'wall' });
+            rightWall = Bodies.rectangle(CANVAS_WIDTH + wallThickness / 2, wallCenterY, wallThickness, wallHeight,
+                { isStatic: true, restitution: 0.5, friction: 0, label: 'wall' });
+            Composite.add(engine.world, [leftWall, rightWall]);
+
+            // Remap power-up positions to new coordinate system
+            for (const powerUp of powerUps) {
+                const pHeight = oldGroundY - powerUp.y;
+                const pMeters = pHeight / oldPixelsPerMeter;
+                powerUp.x = (powerUp.x / oldCanvasWidth) * CANVAS_WIDTH;
+                powerUp.y = newGroundY - pMeters * PIXELS_PER_METER;
+                powerUp.boost = (powerUp.boost / oldScale) * SCALE;
+            }
+
+            // Recreate punk canvas at new size
+            createPunkCanvas();
+
+            // Regenerate clouds for new dimensions
+            generateClouds();
+        });
+
+        // Update best display
+        bestDisplay.textContent = `BEST: ${bestHeight}m`;
+
+        // Load cloud images
+        async function loadClouds() {
+            const cloudSources = ['assets/cloud.png', 'assets/cloud1.png'];
+            for (const src of cloudSources) {
+                const img = new Image();
+                img.src = src;
+                await new Promise(resolve => {
+                    img.onload = resolve;
+                    img.onerror = resolve;
+                });
+                cloudImages.push(img);
+            }
+        }
+
+        // Generate cloud positions throughout the sky
+        function generateClouds() {
+            clouds = [];
+            const groundY = ANCHOR_Y + STRING_LENGTH + PUNK_SIZE + 50 * SCALE;
+            const maxWorldHeight = 80000 * SCALE; // Enough for 2000m
+
+            // Generate clouds every ~100 pixels (2.5m) with some randomness
+            for (let y = groundY - 200 * SCALE; y > -maxWorldHeight; y -= (80 + Math.random() * 120) * SCALE) {
+                // 1-2 clouds per height level
+                const numCloudsAtLevel = Math.random() < 0.4 ? 2 : 1;
+
+                for (let i = 0; i < numCloudsAtLevel; i++) {
+                    clouds.push({
+                        x: 30 + Math.random() * (CANVAS_WIDTH - 60),
+                        y: y + (Math.random() - 0.5) * 40,
+                        imageIndex: Math.floor(Math.random() * cloudImages.length),
+                        scale: (0.8 + Math.random() * 0.6) * SCALE // Random size variation, scaled
+                    });
+                }
+            }
+        }
+
+        // Load power-up images
+        async function loadPowerUps() {
+            const types = ['mushroom', 'flower', 'star'];
+            for (const type of types) {
+                const img = new Image();
+                img.src = `assets/${type}.png`;
+                await new Promise(resolve => {
+                    img.onload = resolve;
+                    img.onerror = resolve;
+                });
+                powerUpImages[type] = img;
+            }
+        }
+
+        // Power-up type definitions with probabilities and boosts
+        const POWER_UP_TYPES = [
+            { type: 'mushroom', weight: 50, boost: 10 },  // 50% chance
+            { type: 'flower', weight: 35, boost: 12 },    // 35% chance
+            { type: 'star', weight: 15, boost: 15 },      // 15% chance
+        ];
+        const TOTAL_WEIGHT = POWER_UP_TYPES.reduce((sum, p) => sum + p.weight, 0);
+
+        // Get a random power-up type based on weights
+        function getRandomPowerUpType() {
+            let rand = Math.random() * TOTAL_WEIGHT;
+            for (const powerUp of POWER_UP_TYPES) {
+                rand -= powerUp.weight;
+                if (rand <= 0) return powerUp;
+            }
+            return POWER_UP_TYPES[0];
+        }
+
+        // Density range at a given altitude (power-ups per 100m)
+        // Returns { min, max } interpolated between breakpoints
+        const DENSITY_CURVE = [
+            //  [height, min, max]
+            [0,     11, 20],
+            [400,    8, 11],
+            [1000,   6,  8],
+            [2000,   3,  6],
+            [3000,   2,  4],
+            [5000,   1,  2],
+        ];
+
+        function getDensityRange(height) {
+            for (let i = 0; i < DENSITY_CURVE.length - 1; i++) {
+                if (height <= DENSITY_CURVE[i + 1][0]) {
+                    const [h0, min0, max0] = DENSITY_CURVE[i];
+                    const [h1, min1, max1] = DENSITY_CURVE[i + 1];
+                    const t = (height - h0) / (h1 - h0);
+                    return { min: min0 + t * (min1 - min0), max: max0 + t * (max1 - max0) };
+                }
+            }
+            const last = DENSITY_CURVE[DENSITY_CURVE.length - 1];
+            return { min: last[1], max: last[2] };
+        }
+
+        // Generate power-ups in a height range (in meters)
+        // Density decreases with altitude + random variance per chunk,
+        // so runs naturally end but you never know exactly when.
+        function generatePowerUpsInRange(fromHeight, toHeight) {
+            const groundY = ANCHOR_Y + STRING_LENGTH + PUNK_SIZE + 50 * SCALE;
+            const heightRange = toHeight - fromHeight;
+            const midHeight = (fromHeight + toHeight) / 2;
+
+            // Look up density range for this altitude and roll randomly within it
+            const { min, max } = getDensityRange(midHeight);
+            const effectiveDensity = min + Math.random() * (max - min);
+
+            const numPowerUps = Math.floor(heightRange * effectiveDensity / 100);
+
+            for (let i = 0; i < numPowerUps; i++) {
+                const heightMeters = fromHeight + Math.random() * heightRange;
+                const powerUpType = getRandomPowerUpType();
+                powerUps.push({
+                    type: powerUpType.type,
+                    x: (40 * SCALE) + Math.random() * (CANVAS_WIDTH - 80 * SCALE),
+                    y: groundY - heightMeters * PIXELS_PER_METER,
+                    collected: false,
+                    boost: powerUpType.boost * SCALE
+                });
+            }
+        }
+
+        // Initialize power-ups for a new round
+        function generatePowerUps() {
+            powerUps = [];
+            highestGeneratedHeight = 0;
+            // Generate initial batch from 20m to GENERATION_BUFFER
+            generatePowerUpsInRange(20, GENERATION_BUFFER);
+            highestGeneratedHeight = GENERATION_BUFFER;
+        }
+
+        // Extend power-ups ahead of the punk as it climbs
+        function extendPowerUpsIfNeeded(currentHeightMeters) {
+            const targetHeight = currentHeightMeters + GENERATION_BUFFER;
+            // Only generate when enough range has accumulated to produce at least 1 power-up
+            const minBatch = 100 / POWER_UP_BASE_DENSITY;
+            if (targetHeight >= highestGeneratedHeight + minBatch) {
+                generatePowerUpsInRange(highestGeneratedHeight, targetHeight);
+                highestGeneratedHeight = targetHeight;
+                
+                // Clean up collected power-ups that are way below to save memory
+                const cleanupThreshold = currentHeightMeters - 100;
+                powerUps = powerUps.filter(p => {
+                    const groundY = ANCHOR_Y + STRING_LENGTH + PUNK_SIZE + 50 * SCALE;
+                    const pHeight = (groundY - p.y) / PIXELS_PER_METER;
+                    return pHeight > cleanupThreshold || !p.collected;
+                });
+            }
+        }
+
+        // Load manifest and initialize
+        async function init() {
+            try {
+                // Load clouds, power-ups, and ground tile first
+                await loadClouds();
+                await loadPowerUps();
+                groundTileImage = new Image();
+                groundTileImage.src = 'assets/ground-tile.png';
+                await new Promise(resolve => { groundTileImage.onload = resolve; groundTileImage.onerror = resolve; });
+                generateClouds();
+
+                const response = await fetch('assets/traits/manifest.json');
+                manifest = await response.json();
+                await generateRandomPunk();
+                drawPunkPreview();
+            } catch (e) {
+                console.error('Failed to load manifest:', e);
+                // Fallback: just use a colored square
+                manifest = { base: ['male1'], male: [], female: [] };
+                currentPunkData = { base: 'male1', traits: [], traitFolder: 'm', images: {} };
+            }
+
+            // Enable start button now that punk data is ready
+            const startBtn = document.getElementById('start-btn');
+            startBtn.disabled = false;
+            startBtn.textContent = 'START';
+        }
+
+        // Generate a random punk
+        async function generateRandomPunk() {
+            const baseTypes = manifest.base;
+            const base = baseTypes[Math.floor(Math.random() * baseTypes.length)];
+
+            // Determine gender for traits
+            const isMale = base.startsWith('male') || base === 'alien' || base === 'ape' || base === 'zombie';
+            const traitList = isMale ? manifest.male : manifest.female;
+            const traitFolder = isMale ? 'm' : 'f';
+
+            // Pick 1-3 random traits
+            const numTraits = Math.floor(Math.random() * 3) + 1;
+            const shuffled = [...traitList].sort(() => Math.random() - 0.5);
+            const selectedTraits = shuffled.slice(0, numTraits);
+
+            currentPunkData = {
+                base,
+                traits: selectedTraits,
+                traitFolder,
+                images: {}
+            };
+
+            // Preload images
+            await loadPunkImages();
+        }
+
+        // Load punk images
+        async function loadPunkImages() {
+            const loadImage = (src) => {
+                return new Promise((resolve, reject) => {
+                    const img = new Image();
+                    img.onload = () => resolve(img);
+                    img.onerror = () => resolve(null); // Resolve with null on error
+                    img.src = src;
+                });
+            };
+
+            // Load base
+            currentPunkData.images.base = await loadImage(`assets/traits/base/${currentPunkData.base}.png`);
+
+            // Load traits
+            for (const trait of currentPunkData.traits) {
+                currentPunkData.images[trait] = await loadImage(`assets/traits/${currentPunkData.traitFolder}/${trait}.png`);
+            }
+        }
+
+        // Create offscreen punk canvas
+        function createPunkCanvas() {
+            punkCanvas = document.createElement('canvas');
+            punkCanvas.width = PUNK_SIZE;
+            punkCanvas.height = PUNK_SIZE;
+            punkCtx = punkCanvas.getContext('2d');
+            punkCtx.imageSmoothingEnabled = false;
+
+            // Draw base
+            if (currentPunkData.images.base) {
+                punkCtx.drawImage(currentPunkData.images.base, 0, 0, PUNK_SIZE, PUNK_SIZE);
+            } else {
+                // Fallback pink square
+                punkCtx.fillStyle = '#E56399';
+                punkCtx.fillRect(0, 0, PUNK_SIZE, PUNK_SIZE);
+            }
+
+            // Draw traits
+            for (const trait of currentPunkData.traits) {
+                const img = currentPunkData.images[trait];
+                if (img) {
+                    punkCtx.drawImage(img, 0, 0, PUNK_SIZE, PUNK_SIZE);
+                }
+            }
+        }
+
+        // Draw punk preview on start screen
+        function drawPunkPreview() {
+            const previewCtx = punkPreview.getContext('2d');
+            previewCtx.imageSmoothingEnabled = false;
+            previewCtx.clearRect(0, 0, 96, 96);
+
+            // Draw base
+            if (currentPunkData.images.base) {
+                previewCtx.drawImage(currentPunkData.images.base, 0, 0, 96, 96);
+            }
+
+            // Draw traits
+            for (const trait of currentPunkData.traits) {
+                const img = currentPunkData.images[trait];
+                if (img) {
+                    previewCtx.drawImage(img, 0, 0, 96, 96);
+                }
+            }
+        }
+
+        // Setup Matter.js physics
+        function setupPhysics() {
+            engine = Engine.create();
+            engine.gravity.y = GRAVITY * SCALE;
+
+            // Create anchor point (static)
+            anchor = Bodies.circle(CANVAS_WIDTH / 2, ANCHOR_Y, 5, {
+                isStatic: true,
+                render: { visible: false }
+            });
+
+            // Create punk body - start at bottom of swing
+            punk = Bodies.circle(CANVAS_WIDTH / 2, ANCHOR_Y + STRING_LENGTH, PUNK_SIZE / 2, {
+                restitution: 0.5,
+                friction: 0.1,
+                frictionAir: 0.001,
+                density: 0.003,
+                label: 'punk'
+            });
+
+            // Create string constraint
+            string = Constraint.create({
+                bodyA: anchor,
+                bodyB: punk,
+                length: STRING_LENGTH,
+                stiffness: 0.9,
+                damping: 0.01
+            });
+
+            // Create walls to contain the punk (very tall to cover flight path)
+            const wallThickness = 50;
+            const wallHeight = 100000 * SCALE; // Tall enough for high flights
+            // Center walls vertically to cover from ground to high up
+            const wallCenterY = -wallHeight / 2 + 1000 * SCALE;
+
+            leftWall = Bodies.rectangle(
+                -wallThickness / 2,
+                wallCenterY,
+                wallThickness,
+                wallHeight,
+                { isStatic: true, restitution: 0.5, friction: 0, label: 'wall' }
+            );
+
+            rightWall = Bodies.rectangle(
+                CANVAS_WIDTH + wallThickness / 2,
+                wallCenterY,
+                wallThickness,
+                wallHeight,
+                { isStatic: true, restitution: 0.5, friction: 0, label: 'wall' }
+            );
+
+            Composite.add(engine.world, [anchor, punk, string, leftWall, rightWall]);
+        }
+
+        // Start the game
+        function startGame() {
+            startModal.classList.add('hidden');
+            gameStarted = true;
+            gameOver = false;
+            frozen = false;
+            released = false;
+            isHolding = false;
+            maxHeight = 0;
+            trailPoints = [];
+
+            // Recalculate scale and canvas size at game start
+            resizeCanvas();
+
+            createPunkCanvas();
+            setupPhysics();
+            generateClouds();
+            generatePowerUps();
+
+            // Initialize camera to show the swing area
+            // Punk starts at ANCHOR_Y + STRING_LENGTH, we want that near bottom of screen
+            cameraY = ANCHOR_Y - CANVAS_HEIGHT / 3;
+
+            // Reset timing for fixed-timestep loop
+            lastTime = 0;
+            accumulator = 0;
+
+            // Start game loop (physics + render in one synchronized loop)
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Main game loop — fixed-timestep physics with variable-rate rendering
+        function gameLoop(timestamp) {
+            if (!gameStarted) return;
+
+            // Initialize lastTime on first frame
+            if (lastTime === 0) lastTime = timestamp;
+            let elapsed = timestamp - lastTime;
+            lastTime = timestamp;
+
+            // Cap elapsed to prevent spiral of death (e.g. tab was backgrounded)
+            if (elapsed > 200) elapsed = 200;
+
+            accumulator += elapsed;
+
+            // Run physics in fixed steps for consistent behavior across all devices
+            // Skip physics when frozen (apex freeze-frame effect)
+            while (accumulator >= FIXED_STEP && !gameOver && !frozen) {
+                update();
+                if (gameOver || frozen) break;
+                Engine.update(engine, FIXED_STEP);
+                accumulator -= FIXED_STEP;
+            }
+
+            render();
+
+            if (!gameOver) {
+                requestAnimationFrame(gameLoop);
+            }
+        }
+
+        // Update game logic
+        function update() {
+            if (gameOver) return;
+
+            const groundY = ANCHOR_Y + STRING_LENGTH + PUNK_SIZE;
+
+            // Apply swing force when holding
+            if (isHolding && !released) {
+                // Get mouse position in world coordinates (account for camera offset)
+                const worldMouseY = mousePos.y + cameraY;
+                const dx = mousePos.x - punk.position.x;
+                const dy = worldMouseY - punk.position.y;
+
+                Body.applyForce(punk, punk.position, {
+                    x: dx * SWING_FORCE,
+                    y: dy * SWING_FORCE
+                });
+            }
+
+            // Track height (always, even during swing for fun)
+            const height = Math.max(0, groundY - punk.position.y);
+            const heightMeters = Math.floor(height / PIXELS_PER_METER);
+            if (heightMeters > maxHeight) {
+                maxHeight = heightMeters;
+            }
+            heightDisplay.textContent = `${maxHeight}m`;
+            
+            // Dynamically generate more power-ups as we climb
+            if (released) {
+                extendPowerUpsIfNeeded(heightMeters);
+            }
+
+            // After release, update trail and camera
+            if (released) {
+                // Add trail point
+                trailPoints.push({ x: punk.position.x, y: punk.position.y });
+                if (trailPoints.length > 50) {
+                    trailPoints.shift();
+                }
+
+                // Camera follows punk - keep punk centered on screen
+                // cameraY = world Y coordinate at TOP of screen
+                // We want punk at screen center (CANVAS_HEIGHT/2 from top)
+                // screenY = worldY - cameraY, so CANVAS_HEIGHT/2 = punk.y - cameraY
+                // cameraY = punk.y - CANVAS_HEIGHT/2
+                const targetCameraY = punk.position.y - CANVAS_HEIGHT / 2;
+                cameraY = targetCameraY;
+
+                // Check for power-up collisions
+                for (const powerUp of powerUps) {
+                    if (!powerUp.collected) {
+                        const dx = punk.position.x - powerUp.x;
+                        const dy = punk.position.y - powerUp.y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        const collisionDist = (PUNK_SIZE + POWER_UP_SIZE_SCALED) / 2;
+
+                        if (distance < collisionDist) {
+                            // Collected!
+                            powerUp.collected = true;
+
+                            // Apply upward boost
+                            const currentVel = punk.velocity;
+                            Body.setVelocity(punk, {
+                                x: currentVel.x,
+                                y: currentVel.y - powerUp.boost // Boost upward (negative Y)
+                            });
+                        }
+                    }
+                }
+
+                // Detect apex: punk is falling and has dropped 3m from peak
+                // Freeze the frame for a dramatic pause before showing score
+                if (!frozen && punk.velocity.y > 0 && maxHeight > 3 && (maxHeight - heightMeters) > 3) {
+                    frozen = true;
+                    setTimeout(() => endGame(), 800);
+                    return;
+                }
+
+                // Fallback: punk fell below ground (very short runs)
+                if (!frozen && punk.velocity.y > 0 && punk.position.y > groundY + 200 * SCALE) {
+                    endGame();
+                }
+            }
+
+        }
+
+        // Render the game
+        function render() {
+            const groundY = ANCHOR_Y + STRING_LENGTH + PUNK_SIZE + 50 * SCALE;
+
+            // Clear canvas with transparent so background punk shows through
+            ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+            // Save context for camera transform
+            ctx.save();
+            // Camera offset: negative cameraY moves view up
+            ctx.translate(0, -cameraY);
+
+            // Draw height markers
+            drawHeightMarkers();
+
+            // Draw clouds
+            drawClouds();
+
+            // Draw power-ups
+            drawPowerUps();
+
+            // Draw string
+            if (!released) {
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 3 * SCALE;
+                ctx.beginPath();
+                ctx.moveTo(anchor.position.x, anchor.position.y);
+                ctx.lineTo(punk.position.x, punk.position.y);
+                ctx.stroke();
+
+                // Draw anchor
+                ctx.fillStyle = '#fff';
+                ctx.beginPath();
+                ctx.arc(anchor.position.x, anchor.position.y, 8 * SCALE, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Draw trail when flying
+            if (released && trailPoints.length > 1) {
+                ctx.strokeStyle = 'rgba(229, 99, 153, 0.5)';
+                ctx.lineWidth = 2 * SCALE;
+                ctx.beginPath();
+                ctx.moveTo(trailPoints[0].x, trailPoints[0].y);
+                for (let i = 1; i < trailPoints.length; i++) {
+                    ctx.lineTo(trailPoints[i].x, trailPoints[i].y);
+                }
+                ctx.stroke();
+            }
+
+            // Draw punk
+            ctx.save();
+            ctx.translate(punk.position.x, punk.position.y);
+            ctx.rotate(punk.angle);
+            ctx.drawImage(punkCanvas, -PUNK_SIZE / 2, -PUNK_SIZE / 2, PUNK_SIZE, PUNK_SIZE);
+            ctx.restore();
+
+            // Draw ground area (when visible) - 2 layers of Mario tiles
+            const groundScreenY = groundY - cameraY;
+            if (groundScreenY < CANVAS_HEIGHT + 200 && groundTileImage) {
+                ctx.imageSmoothingEnabled = false;
+                const tilesAcross = Math.ceil(CANVAS_WIDTH / GROUND_TILE_SIZE_SCALED) + 1;
+
+                // Draw 2 rows of ground tiles
+                for (let row = 0; row < 2; row++) {
+                    for (let col = 0; col < tilesAcross; col++) {
+                        ctx.drawImage(
+                            groundTileImage,
+                            col * GROUND_TILE_SIZE_SCALED,
+                            groundY + row * GROUND_TILE_SIZE_SCALED,
+                            GROUND_TILE_SIZE_SCALED,
+                            GROUND_TILE_SIZE_SCALED
+                        );
+                    }
+                }
+            }
+
+            ctx.restore();
+
+            // Draw grab indicator when holding (in screen space)
+            if (isHolding && !released) {
+                ctx.fillStyle = 'rgba(229, 99, 153, 0.3)';
+                ctx.beginPath();
+                ctx.arc(mousePos.x, mousePos.y, 30 * SCALE, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        // Draw height markers on left side
+        function drawHeightMarkers() {
+            const groundY = ANCHOR_Y + STRING_LENGTH + PUNK_SIZE + 50 * SCALE;
+
+            const markerFontSize = Math.round(10 * SCALE);
+            ctx.font = `${markerFontSize}px "Press Start 2P"`;
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+            ctx.textAlign = 'left';
+
+            // Draw markers (view window in world coordinates)
+            const viewTop = cameraY;
+            const viewBottom = cameraY + CANVAS_HEIGHT;
+
+            for (let m = 0; m <= 2000; m += 10) {
+                const y = groundY - (m * PIXELS_PER_METER);
+
+                // Only draw if in view
+                if (y > viewTop - 100 && y < viewBottom + 100) {
+                    // Line
+                    const isMajor = m % 100 === 0;
+                    const isMinor = m % 50 === 0;
+                    ctx.strokeStyle = isMajor ? 'rgba(229, 99, 153, 0.6)' : 'rgba(255, 255, 255, 0.15)';
+                    ctx.lineWidth = isMajor ? 2 : 1;
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(isMajor ? 60 * SCALE : (isMinor ? 40 * SCALE : 20 * SCALE), y);
+                    ctx.stroke();
+
+                    // Label (every 50m)
+                    if (isMinor && m > 0) {
+                        ctx.fillStyle = isMajor ? '#E56399' : 'rgba(255, 255, 255, 0.5)';
+                        ctx.fillText(`${m}m`, 5 * SCALE, y - 5 * SCALE);
+                    }
+                }
+            }
+        }
+
+        // Draw clouds in view
+        function drawClouds() {
+            const viewTop = cameraY - 100;
+            const viewBottom = cameraY + CANVAS_HEIGHT + 100;
+
+            ctx.imageSmoothingEnabled = false;
+
+            for (const cloud of clouds) {
+                // Only draw if in view
+                if (cloud.y > viewTop && cloud.y < viewBottom) {
+                    const img = cloudImages[cloud.imageIndex];
+                    if (img && img.complete) {
+                        const width = img.width * cloud.scale;
+                        const height = img.height * cloud.scale;
+                        ctx.drawImage(img, cloud.x - width / 2, cloud.y - height / 2, width, height);
+                    }
+                }
+            }
+        }
+
+        // Draw power-ups
+        function drawPowerUps() {
+            const viewTop = cameraY - 100;
+            const viewBottom = cameraY + CANVAS_HEIGHT + 100;
+
+            ctx.imageSmoothingEnabled = false;
+
+            for (const powerUp of powerUps) {
+                // Only draw if in view and not collected
+                if (!powerUp.collected && powerUp.y > viewTop && powerUp.y < viewBottom) {
+                    const img = powerUpImages[powerUp.type];
+                    if (img && img.complete) {
+                        ctx.drawImage(
+                            img,
+                            powerUp.x - POWER_UP_SIZE_SCALED / 2,
+                            powerUp.y - POWER_UP_SIZE_SCALED / 2,
+                            POWER_UP_SIZE_SCALED,
+                            POWER_UP_SIZE_SCALED
+                        );
+                    }
+                }
+            }
+        }
+
+        // End the game
+        async function endGame() {
+            gameOver = true;
+            Composite.clear(engine.world);
+
+            // Check for new record
+            if (maxHeight > bestHeight) {
+                bestHeight = maxHeight;
+                localStorage.setItem('flingPunkBest', bestHeight.toString());
+                bestDisplay.textContent = `BEST: ${bestHeight}m`;
+                newRecord.style.display = 'block';
+            } else {
+                newRecord.style.display = 'none';
+            }
+
+            finalScore.textContent = `${maxHeight}m`;
+            gameoverModal.classList.remove('hidden');
+
+            // Award Play.fun points: 1 point per meter of max height
+            // addPoints is async (initializes flush state on first call),
+            // so we must await it before endGame flushes the buffer
+            if (playfunSDK && maxHeight > 0) {
+                try {
+                    await playfunSDK.addPoints(maxHeight);
+                    await playfunSDK.endGame();
+                    console.log(`Play.fun: saved ${maxHeight} points`);
+                } catch (e) {
+                    console.warn('Play.fun: failed to save points:', e);
+                }
+            }
+        }
+
+        // Restart the game
+        async function restartGame() {
+            gameoverModal.classList.add('hidden');
+            await generateRandomPunk();
+            startGame();
+        }
+
+        // Mouse/Touch handlers
+        function getEventPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = CANVAS_WIDTH / rect.width;
+            const scaleY = CANVAS_HEIGHT / rect.height;
+
+            if (e.touches && e.touches.length > 0) {
+                return {
+                    x: (e.touches[0].clientX - rect.left) * scaleX,
+                    y: (e.touches[0].clientY - rect.top) * scaleY
+                };
+            }
+            return {
+                x: (e.clientX - rect.left) * scaleX,
+                y: (e.clientY - rect.top) * scaleY
+            };
+        }
+
+        function onPointerDown(e) {
+            e.preventDefault();
+            if (!gameStarted || gameOver || released) return;
+
+            mousePos = getEventPos(e);
+            isHolding = true;
+            canvas.classList.add('grabbing');
+        }
+
+        function onPointerMove(e) {
+            e.preventDefault();
+            if (!gameStarted || gameOver) return;
+
+            mousePos = getEventPos(e);
+        }
+
+        function onPointerUp(e) {
+            e.preventDefault();
+            if (!gameStarted || gameOver || released) return;
+
+            if (isHolding) {
+                // Release the punk!
+                released = true;
+                isHolding = false;
+                canvas.classList.remove('grabbing');
+
+                // Remove string constraint
+                Composite.remove(engine.world, string);
+                Composite.remove(engine.world, anchor);
+
+                // Calculate release boost based on swing velocity
+                const currentVel = punk.velocity;
+                const speed = Math.sqrt(currentVel.x * currentVel.x + currentVel.y * currentVel.y);
+
+                // Keep horizontal momentum
+                let boostX = currentVel.x * 1.3;
+
+                // ALWAYS launch upward - use swing speed to determine power
+                // Minimum upward velocity plus bonus from swing speed
+                const minUpwardSpeed = 15 * SCALE;
+                const speedBonus = speed * 1.2;
+                let boostY = -(minUpwardSpeed + speedBonus); // Negative = upward
+
+                // Clamp to prevent insane speeds
+                const maxSpeed = 35 * SCALE;
+                const newSpeed = Math.sqrt(boostX * boostX + boostY * boostY);
+                if (newSpeed > maxSpeed) {
+                    const scale = maxSpeed / newSpeed;
+                    boostX *= scale;
+                    boostY *= scale;
+                }
+
+                Body.setVelocity(punk, { x: boostX, y: boostY });
+
+                // Add first trail point
+                trailPoints.push({ x: punk.position.x, y: punk.position.y });
+            }
+        }
+
+        // Event listeners
+        canvas.addEventListener('mousedown', onPointerDown);
+        canvas.addEventListener('mousemove', onPointerMove);
+        canvas.addEventListener('mouseup', onPointerUp);
+        canvas.addEventListener('mouseleave', onPointerUp);
+
+        canvas.addEventListener('touchstart', onPointerDown, { passive: false });
+        canvas.addEventListener('touchmove', onPointerMove, { passive: false });
+        canvas.addEventListener('touchend', onPointerUp, { passive: false });
+        canvas.addEventListener('touchcancel', onPointerUp, { passive: false });
+
+        document.getElementById('start-btn').addEventListener('click', startGame);
+        document.getElementById('restart-btn').addEventListener('click', restartGame);
+
+        // Prevent scrolling on mobile
+        document.body.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
+
+        // Initialize
+        init();
+        initPlayFun();
+    </script>
+</body>
+</html>
