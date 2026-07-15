@@ -127,7 +127,6 @@ export default function App() {
         <section className="featured-section" aria-labelledby="featured-title">
           <div className="section-heading">
             <h1 id="featured-title">Featured games</h1>
-            <p>Three places to start.</p>
           </div>
           <div className="featured-grid">
             {featuredGames.map((game) => (
