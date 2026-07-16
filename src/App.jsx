@@ -18,7 +18,7 @@ function canAnimatePreview() {
     && !navigator.connection?.saveData;
 }
 
-function GameCard({ game, featured = false, nsfwRevealed, onRevealNsfw }) {
+function GameCard({ game, featured = false, nsfwRevealed, onRevealNsfw, playCount }) {
   const [previewActive, setPreviewActive] = useState(false);
   const [previewFailed, setPreviewFailed] = useState(false);
   const isNsfw = game.tags.includes("NSFW");
@@ -51,7 +51,12 @@ function GameCard({ game, featured = false, nsfwRevealed, onRevealNsfw }) {
         </span>
         <span className="game-card-copy">
           <strong>{game.title}</strong>
-          <span>{game.description}</span>
+          <span className="game-card-description">{game.description}</span>
+          {Number.isFinite(playCount) && (
+            <span className="game-card-plays">
+              {playCount.toLocaleString()} {playCount === 1 ? "play" : "plays"}
+            </span>
+          )}
         </span>
       </a>
       {artworkHidden && (
@@ -89,6 +94,7 @@ function Footer({ tipUrl }) {
 export default function App() {
   const [activeTag, setActiveTag] = useState(initialTag);
   const [tipUrl, setTipUrl] = useState("");
+  const [playCounts, setPlayCounts] = useState({});
   const [nsfwRevealed, setNsfwRevealed] = useState(
     () => window.localStorage.getItem("mann.cool:nsfw-revealed") === "true",
   );
@@ -98,6 +104,18 @@ export default function App() {
       .then((response) => response.json())
       .then((config) => setTipUrl(config.tipUrl || ""))
       .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch("/api/v1/plays", { signal: controller.signal })
+      .then((response) => {
+        if (!response.ok) throw new Error("Could not load play counts");
+        return response.json();
+      })
+      .then((data) => setPlayCounts(data.counts || {}))
+      .catch(() => {});
+    return () => controller.abort();
   }, []);
 
   useEffect(() => {
@@ -148,6 +166,7 @@ export default function App() {
                 featured
                 nsfwRevealed={nsfwRevealed}
                 onRevealNsfw={revealNsfw}
+                playCount={playCounts[game.slug]}
               />
             ))}
           </div>
@@ -180,6 +199,7 @@ export default function App() {
                 game={game}
                 nsfwRevealed={nsfwRevealed}
                 onRevealNsfw={revealNsfw}
+                playCount={playCounts[game.slug]}
               />
             ))}
           </div>
