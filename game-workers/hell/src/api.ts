@@ -184,8 +184,10 @@ async function signGuestbook(request: Request, env: Env): Promise<Response> {
 
 async function leaderboard(requestUrl: URL, env: Env): Promise<Response> {
   const gameId = cleanId(requestUrl.searchParams.get('gameId'), 'gameId');
-  const limit = Math.min(25, cleanInteger(requestUrl.searchParams.get('limit') ?? 10, 'limit', 1, 25));
-  const result = await env.SCORES_DB.prepare(`
+  const requestedLimit = requestUrl.searchParams.get('limit') ?? '10';
+  const showAll = requestedLimit === 'all';
+  const limit = showAll ? null : cleanInteger(requestedLimit, 'limit', 1, 100);
+  const statement = env.SCORES_DB.prepare(`
     SELECT player_name AS playerName, time_ms AS timeMs, birdos, coins, lives,
       hearts_collected AS heartsCollected, cockrings, completion_percent AS completionPercent,
       created_at AS createdAt
@@ -196,8 +198,11 @@ async function leaderboard(requestUrl: URL, env: Env): Promise<Response> {
     )
     WHERE player_rank = 1
     ORDER BY completionPercent DESC, timeMs ASC, coins DESC, createdAt ASC
-    LIMIT ?2
-  `).bind(gameId, limit).all();
+    ${showAll ? '' : 'LIMIT ?2'}
+  `);
+  const result = showAll
+    ? await statement.bind(gameId).all()
+    : await statement.bind(gameId, limit).all();
   return json({ entries: result.results });
 }
 
