@@ -1,4 +1,5 @@
 const HTML_LIMIT = 5 * 1024 * 1024;
+const GAME_SHELL_URL = "https://mann.cool/platform/v1/game-shell.js?v=20260717-theme1";
 
 function responseHeaders(headers) {
   const next = new Headers(headers);
@@ -12,7 +13,10 @@ function responseHeaders(headers) {
 function gameShell(config) {
   const leaderboardUrl = config.leaderboardUrl ? ` data-leaderboard-url="${config.leaderboardUrl}"` : "";
   const leaderboardVariant = config.leaderboardVariant ? ` data-leaderboard-variant="${config.leaderboardVariant}"` : "";
-  return `<script src="https://mann.cool/platform/v1/game-shell.js" data-slug="${config.slug}" data-title="${config.title.replaceAll("&", "&amp;").replaceAll('"', "&quot;")}" data-leaderboard="${config.leaderboard ? "true" : "false"}"${leaderboardUrl}${leaderboardVariant} defer></script>`;
+  const shellTheme = config.shellTheme
+    ? ` data-shell-theme="${JSON.stringify(config.shellTheme).replaceAll("&", "&amp;").replaceAll('"', "&quot;")}"`
+    : "";
+  return `<script src="${GAME_SHELL_URL}" data-slug="${config.slug}" data-title="${config.title.replaceAll("&", "&amp;").replaceAll('"', "&quot;")}" data-leaderboard="${config.leaderboard ? "true" : "false"}"${leaderboardUrl}${leaderboardVariant}${shellTheme} defer></script>`;
 }
 
 function injectShell(html, config) {
