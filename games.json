@@ -1293,6 +1293,66 @@
         ]
       },
       "status": "published"
+    },
+    {
+      "id": 36,
+      "slug": "poop",
+      "title": "THE DIARRHEAPOCOLYPSE!",
+      "description": "A three-minute third-person turf war: cover the arena, dismantle DOGE, plaster political posters, and collect Cyclospora before time runs out.",
+      "cover": "/covers/poop.jpg",
+      "tags": [
+        "political",
+        "multiplayer",
+        "funny",
+        "weird"
+      ],
+      "catalogOrder": 36,
+      "publishedAt": "2026-07-17",
+      "deviceSupport": {
+        "mobile": true,
+        "tablet": true,
+        "desktop": true
+      },
+      "leaderboard": {
+        "enabled": true,
+        "direction": "desc",
+        "variants": [
+          "solo",
+          "versus"
+        ],
+        "boards": [
+          {
+            "variant": "solo",
+            "label": "Solo",
+            "metric": "totalScore",
+            "metricLabel": "Combined score: turf coverage + objectives",
+            "direction": "desc",
+            "display": "number",
+            "aggregation": "best",
+            "minimumMatches": 1
+          },
+          {
+            "variant": "versus",
+            "label": "Multiplayer",
+            "metric": "winRate",
+            "metricLabel": "Win / loss rate",
+            "direction": "desc",
+            "display": "record",
+            "aggregation": "win-loss-rate",
+            "minimumMatches": 1
+          }
+        ]
+      },
+      "delivery": {
+        "mode": "worker-route",
+        "origin": "https://mann-cool-poop.novox-robot.workers.dev",
+        "workerName": "mann-cool-poop",
+        "routePatterns": [
+          "mann.cool/poop",
+          "mann.cool/poop/*"
+        ]
+      },
+      "status": "published"
     }
   ]
 }

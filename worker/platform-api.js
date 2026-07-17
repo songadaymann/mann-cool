@@ -215,6 +215,58 @@ function leaderboardEntry(row, config, rank) {
   };
 }
 
+function leaderboardBoard(config, variant) {
+  return config.boards.find((board) => board.variant === variant) || null;
+}
+
+function winLossEntry(row, rank) {
+  const wins = Number(row.wins || 0);
+  const losses = Number(row.losses || 0);
+  const draws = Number(row.draws || 0);
+  const matches = Number(row.matches || 0);
+  const score = Number(row.score || 0);
+  const metadata = { wins, losses, draws, matches, winRate: score };
+  return {
+    name: row.name,
+    playerId: row.playerId,
+    address: row.playerId,
+    score,
+    displayScore: score,
+    timestamp: row.timestamp,
+    rank,
+    ...metadata,
+    metadata,
+  };
+}
+
+async function readWinLossLeaderboard(env, slug, variant, board, limit) {
+  const result = await env.DB.prepare(`
+    WITH records AS (
+      SELECT player_id AS playerId,
+        SUM(CASE WHEN score = 1 THEN 1 ELSE 0 END) AS wins,
+        SUM(CASE WHEN score = 0 THEN 1 ELSE 0 END) AS losses,
+        SUM(CASE WHEN score = 0.5 THEN 1 ELSE 0 END) AS draws,
+        COUNT(*) AS matches,
+        100.0 * SUM(score) / COUNT(*) AS score,
+        MAX(created_at) AS timestamp
+      FROM leaderboard_entries
+      WHERE slug = ? AND variant = ? AND moderation_status = 'approved'
+        AND player_id IS NOT NULL AND player_id != '' AND score IN (0, 0.5, 1)
+      GROUP BY player_id
+      HAVING COUNT(*) >= ?
+    )
+    SELECT records.*,
+      (SELECT player_name FROM leaderboard_entries latest
+       WHERE latest.slug = ? AND latest.variant = ?
+         AND latest.player_id = records.playerId AND latest.moderation_status = 'approved'
+       ORDER BY latest.created_at DESC LIMIT 1) AS name
+    FROM records
+    ORDER BY score DESC, wins DESC, matches DESC, timestamp ASC
+    LIMIT ?
+  `).bind(slug, variant, board.minimumMatches, slug, variant, limit).all();
+  return result.results.map((row, index) => winLossEntry(row, index + 1));
+}
+
 async function handleLeaderboard(request, env, legacy = false) {
   const url = new URL(request.url);
   const requestedSlug = request.method === "GET"
@@ -230,11 +282,17 @@ async function handleLeaderboard(request, env, legacy = false) {
     const config = getLeaderboardConfig(game);
     if (!config.enabled) throw new HttpError(404, "Leaderboard is not enabled for this game");
     const variant = cleanText(url.searchParams.get("variant") || "default", 40);
-    if (!config.variants.includes("*") && !config.variants.includes(variant)) {
+    const board = leaderboardBoard(config, variant);
+    if (!board && !config.variants.includes("*")) {
       throw new HttpError(400, "Unknown leaderboard variant");
     }
     const limit = Math.min(Math.max(Number(url.searchParams.get("limit")) || 25, 1), 100);
-    const order = config.direction === "asc" ? "ASC" : "DESC";
+    if (board?.aggregation === "win-loss-rate") {
+      const entries = await readWinLossLeaderboard(env, slug, variant, board, limit);
+      return json({ success: true, game: slug, slug, variant, direction: board.direction, board, entries });
+    }
+    const direction = board?.direction || config.direction;
+    const order = direction === "asc" ? "ASC" : "DESC";
     const result = await env.DB.prepare(`
       SELECT submission_id AS submissionId, player_name AS name, player_id AS playerId,
         score, metadata, created_at AS timestamp
@@ -243,7 +301,7 @@ async function handleLeaderboard(request, env, legacy = false) {
       ORDER BY score ${order}, created_at ASC LIMIT ?
     `).bind(slug, variant, limit).all();
     const entries = result.results.map((row, index) => leaderboardEntry(row, config, index + 1));
-    return json({ success: true, game: slug, slug, variant, direction: config.direction, entries });
+    return json({ success: true, game: slug, slug, variant, direction, board, entries });
   }
 
   if (request.method === "POST") {
@@ -256,15 +314,26 @@ async function handleLeaderboard(request, env, legacy = false) {
     const config = getLeaderboardConfig(game);
     if (!config.enabled) throw new HttpError(404, "Leaderboard is not enabled for this game");
     const variant = cleanText(body.variant || "default", 40);
-    if (!config.variants.includes("*") && !config.variants.includes(variant)) {
+    const board = leaderboardBoard(config, variant);
+    if (!board && !config.variants.includes("*")) {
       throw new HttpError(400, "Unknown leaderboard variant");
     }
     const name = cleanText(body.name || body.playerName, 30);
     if (!name) throw new HttpError(400, "Player name is required");
-    const score = Number(body.score);
-    if (!Number.isFinite(score) || Math.abs(score) > 1e15) throw new HttpError(400, "Score must be a finite number");
     const metadata = leaderboardMetadata(body);
     const playerId = (body.playerId || body.address) ? cleanText(body.playerId || body.address, 100) : null;
+    let score;
+    if (board?.aggregation === "win-loss-rate") {
+      if (!playerId) throw new HttpError(400, "A stable playerId is required for win/loss leaderboards");
+      const result = String(body.result || metadata.result || "").toLowerCase();
+      const outcomes = { win: 1, draw: 0.5, loss: 0 };
+      if (!(result in outcomes)) throw new HttpError(400, "result must be win, loss, or draw");
+      score = outcomes[result];
+      metadata.result = result;
+    } else {
+      score = Number(body.score);
+      if (!Number.isFinite(score) || Math.abs(score) > 1e15) throw new HttpError(400, "Score must be a finite number");
+    }
     const submissionId = cleanText(
       request.headers.get("idempotency-key") || body.submissionId || crypto.randomUUID(),
       100,
@@ -296,8 +365,16 @@ async function handleLeaderboard(request, env, legacy = false) {
     `).bind(submissionId, slug, variant).first();
     if (!row) throw new HttpError(409, "Submission ID already belongs to another score");
     const entry = leaderboardEntry(row, config);
+    if (board?.aggregation === "win-loss-rate") {
+      const records = await readWinLossLeaderboard(env, slug, variant, board, 100);
+      const record = records.find((candidate) => candidate.playerId === playerId);
+      return json(
+        { success: true, game: slug, slug, variant, entry: record || entry, rank: record?.rank || null },
+        { status: legacy ? 200 : 201 },
+      );
+    }
     const storedScore = Number(row.score);
-    const comparator = config.direction === "asc" ? "<" : ">";
+    const comparator = (board?.direction || config.direction) === "asc" ? "<" : ">";
     const rankRow = await env.DB.prepare(`
       SELECT 1 + COUNT(*) AS rank FROM leaderboard_entries
       WHERE slug = ? AND variant = ? AND moderation_status = 'approved'

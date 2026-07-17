@@ -5,6 +5,14 @@
   const leaderboardEnabled = script?.dataset.leaderboard === "true";
   const leaderboardUrl = script?.dataset.leaderboardUrl || "";
   const leaderboardVariant = script?.dataset.leaderboardVariant || "default";
+  const leaderboardBoards = (() => {
+    if (!leaderboardEnabled) return [];
+    try {
+      const parsed = JSON.parse(script?.dataset.leaderboardBoards || "[]");
+      if (Array.isArray(parsed) && parsed.length) return parsed;
+    } catch {}
+    return [{ variant: leaderboardVariant, label: "Leaderboard", metricLabel: "Score", display: "number", aggregation: "best" }];
+  })();
   if (!slug || document.querySelector("mann-cool-game-shell")) return;
 
   fetch("https://mann.cool/api/v1/plays", {
@@ -20,6 +28,8 @@
       this.config = null;
       this.turnstileToken = "";
       this.turnstileWidgetId = null;
+      this.turnstileSetupPromise = null;
+      this.leaderboardBoard = leaderboardBoards[0] || null;
     }
 
     connectedCallback() {
@@ -69,6 +79,12 @@
           .entry p { margin:8px 0 0; color:rgba(255,255,255,.72); font-weight:400; line-height:1.45; white-space:pre-wrap; }
           .score { grid-template-columns:36px minmax(0,1fr) auto; align-items:center; }
           .rank { color:var(--accent); }
+          .leaderboard-tabs { display:flex; flex-wrap:wrap; gap:0; margin:0 0 12px; border:1px solid rgba(255,255,255,.3); }
+          .leaderboard-tabs[hidden] { display:none; }
+          .leaderboard-tabs button { flex:1 1 120px; min-height:42px; padding:0 12px; border:0; border-right:1px solid rgba(255,255,255,.3); border-radius:0; color:#fff; background:transparent; cursor:pointer; }
+          .leaderboard-tabs button:last-child { border-right:0; }
+          .leaderboard-tabs button[aria-selected="true"] { color:var(--ink); background:var(--accent); }
+          .leaderboard-metric { margin:0; color:rgba(255,255,255,.62); font-size:12px; text-transform:uppercase; }
           .turnstile { min-height:65px; }
           @media (max-width:720px) {
             .actions { top:max(10px,env(safe-area-inset-top)); right:max(10px,env(safe-area-inset-right)); bottom:auto; }
@@ -115,11 +131,31 @@
           <section class="panel" role="dialog" aria-modal="true" aria-labelledby="mann-cool-leaderboard-title">
             <button class="close" type="button" aria-label="Close">×</button><p class="kicker"></p>
             <h2 id="mann-cool-leaderboard-title">Leaderboard</h2>
+            <div class="leaderboard-tabs" role="tablist" aria-label="Leaderboard boards"></div>
+            <p class="leaderboard-metric"></p>
             <ol class="scores"><p class="status">Loading scores…</p></ol>
           </section>
         </div>`;
       this.shadowRoot.querySelector(".menu-title").textContent = gameTitle;
       this.shadowRoot.querySelectorAll(".kicker").forEach((element) => { element.textContent = gameTitle; });
+      this.renderLeaderboardControls();
+    }
+
+    renderLeaderboardControls() {
+      const tabs = this.shadowRoot.querySelector(".leaderboard-tabs");
+      const metric = this.shadowRoot.querySelector(".leaderboard-metric");
+      tabs.replaceChildren();
+      tabs.hidden = leaderboardBoards.length <= 1;
+      leaderboardBoards.forEach((board) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.dataset.leaderboardBoard = board.variant;
+        button.setAttribute("role", "tab");
+        button.setAttribute("aria-selected", String(board.variant === this.leaderboardBoard?.variant));
+        button.textContent = board.label || board.variant;
+        tabs.append(button);
+      });
+      metric.textContent = this.leaderboardBoard?.metricLabel || "Score";
     }
 
     bindEvents() {
@@ -142,6 +178,15 @@
         backdrop.querySelector(".close").addEventListener("click", () => this.closeModal(backdrop));
       });
       this.shadowRoot.querySelector("form").addEventListener("submit", (event) => this.submitGuestbook(event));
+      this.shadowRoot.querySelector(".leaderboard-tabs").addEventListener("click", (event) => {
+        const button = event.target.closest("[data-leaderboard-board]");
+        if (!button) return;
+        const board = leaderboardBoards.find((candidate) => candidate.variant === button.dataset.leaderboardBoard);
+        if (!board || board.variant === this.leaderboardBoard?.variant) return;
+        this.leaderboardBoard = board;
+        this.renderLeaderboardControls();
+        this.loadLeaderboard();
+      });
       window.addEventListener("keydown", (event) => {
         if (event.key === "Escape") this.shadowRoot.querySelectorAll(".backdrop:not([hidden])").forEach((modal) => this.closeModal(modal));
       });
@@ -158,8 +203,7 @@
       patreon.href = this.config.patreonUrl || "https://www.patreon.com/jonathanmann";
       const tip = this.shadowRoot.querySelector("[data-tip]");
       if (this.config.tipUrl) { tip.href = this.config.tipUrl; tip.hidden = false; }
-      if (this.config.turnstileSiteKey) await this.setupTurnstile();
-      else this.setFormStatus("Guestbook signing is temporarily unavailable.");
+      if (!this.config.turnstileSiteKey) this.setFormStatus("Guestbook signing is temporarily unavailable.");
     }
 
     async setupTurnstile() {
@@ -182,12 +226,21 @@
       });
     }
 
+    ensureTurnstile() {
+      if (!this.config?.turnstileSiteKey || this.turnstileWidgetId !== null) return;
+      if (!this.turnstileSetupPromise) {
+        this.turnstileSetupPromise = this.setupTurnstile().catch(() => {
+          this.setFormStatus("Guestbook verification could not load. Please try again.", true);
+        }).finally(() => { this.turnstileSetupPromise = null; });
+      }
+    }
+
     openModal(name) {
       const modal = this.shadowRoot.querySelector(`[data-modal="${name}"]`);
       if (!modal) return;
       modal.hidden = false;
       modal.querySelector(".close").focus();
-      if (name === "guestbook") this.loadGuestbook();
+      if (name === "guestbook") { this.loadGuestbook(); this.ensureTurnstile(); }
       if (name === "leaderboard") this.loadLeaderboard();
     }
 
@@ -234,8 +287,10 @@
 
     async loadLeaderboard() {
       const container = this.shadowRoot.querySelector(".scores");
+      const board = this.leaderboardBoard || { variant: leaderboardVariant, display: "number", aggregation: "best" };
+      container.innerHTML = '<p class="status">Loading scores…</p>';
       try {
-        const response = await fetch(`/api/v1/leaderboard?slug=${encodeURIComponent(slug)}&variant=${encodeURIComponent(leaderboardVariant)}&limit=25`);
+        const response = await fetch(`/api/v1/leaderboard?slug=${encodeURIComponent(slug)}&variant=${encodeURIComponent(board.variant)}&limit=25`);
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || "Leaderboard unavailable");
         container.replaceChildren();
@@ -244,10 +299,30 @@
           const item = document.createElement("li"); item.className = "score";
           const rank = document.createElement("span"); rank.className = "rank"; rank.textContent = entry.rank;
           const name = document.createElement("span"); name.textContent = entry.name;
-          const score = document.createElement("strong"); score.textContent = Number(entry.displayScore ?? entry.score).toLocaleString();
+          const score = document.createElement("strong"); score.textContent = this.formatLeaderboardScore(entry, board);
           item.append(rank, name, score); container.append(item);
         });
       } catch (error) { container.innerHTML = `<p class="status"></p>`; container.firstElementChild.textContent = error.message; }
+    }
+
+    formatLeaderboardScore(entry, board) {
+      const value = Number(entry.displayScore ?? entry.score);
+      if (board.display === "record" || board.aggregation === "win-loss-rate") {
+        const wins = Number(entry.wins ?? entry.metadata?.wins ?? 0);
+        const losses = Number(entry.losses ?? entry.metadata?.losses ?? 0);
+        const draws = Number(entry.draws ?? entry.metadata?.draws ?? 0);
+        const rate = Number.isFinite(value) ? `${value.toLocaleString(undefined, { maximumFractionDigits: 1 })}%` : "—";
+        return `${rate} · ${wins}-${losses}${draws ? `-${draws}` : ""}`;
+      }
+      if (board.display === "percent") return Number.isFinite(value) ? `${value.toLocaleString(undefined, { maximumFractionDigits: 1 })}%` : "—";
+      if (board.display === "integer") return Number.isFinite(value) ? Math.round(value).toLocaleString() : "—";
+      if (board.display === "time-ms" && Number.isFinite(value)) {
+        const totalSeconds = Math.max(0, value) / 1000;
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds - minutes * 60;
+        return `${minutes}:${seconds.toFixed(2).padStart(5, "0")}`;
+      }
+      return Number.isFinite(value) ? value.toLocaleString() : "—";
     }
   }
 

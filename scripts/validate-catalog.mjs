@@ -40,6 +40,22 @@ for (const game of catalog.games || []) {
   const coverPath = new URL(`public${game.cover}`, root);
   if (!fs.existsSync(coverPath)) errors.push(`${game.slug}: missing cover ${game.cover}`);
   if (game.hoverGif && !fs.existsSync(new URL(`public${game.hoverGif}`, root))) errors.push(`${game.slug}: missing hover GIF ${game.hoverGif}`);
+  if (game.leaderboard?.boards !== undefined) {
+    if (!Array.isArray(game.leaderboard.boards) || !game.leaderboard.boards.length) errors.push(`${game.slug}: leaderboard boards must be a non-empty array`);
+    const boardVariants = new Set();
+    for (const board of game.leaderboard.boards || []) {
+      if (!/^[a-z0-9]+(?:[-_][a-z0-9]+)*$/.test(board.variant || "")) errors.push(`${game.slug}: invalid leaderboard board variant ${board.variant}`);
+      if (boardVariants.has(board.variant)) errors.push(`${game.slug}: duplicate leaderboard board ${board.variant}`);
+      boardVariants.add(board.variant);
+      if (!board.label || !board.metric || !board.metricLabel) errors.push(`${game.slug}/${board.variant}: board label and metric fields are required`);
+      if (!["asc", "desc"].includes(board.direction)) errors.push(`${game.slug}/${board.variant}: invalid board direction`);
+      if (!["number", "integer", "percent", "time-ms", "record"].includes(board.display)) errors.push(`${game.slug}/${board.variant}: invalid board display`);
+      if (!["best", "win-loss-rate"].includes(board.aggregation)) errors.push(`${game.slug}/${board.variant}: invalid board aggregation`);
+      if (board.aggregation === "win-loss-rate" && board.direction !== "desc") errors.push(`${game.slug}/${board.variant}: win/loss rate must rank descending`);
+    }
+    const legacyVariants = game.leaderboard.variants || [];
+    if (JSON.stringify([...boardVariants]) !== JSON.stringify(legacyVariants)) errors.push(`${game.slug}: leaderboard variants must match board order`);
+  }
 }
 for (const slug of launchSlugs) if (!slugs.has(slug)) errors.push(`missing launch game: ${slug}`);
 

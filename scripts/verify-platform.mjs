@@ -29,8 +29,8 @@ if (config.json?.version !== 1 || !config.json?.homeUrl || !config.json?.patreon
   throw new Error("Platform config is incomplete");
 }
 const shell = await check("/platform/v1/game-shell.js", 200);
-if (!shell.body.includes("api/v1/plays") || !shell.body.includes("api/v1/guestbook")) {
-  throw new Error("Shared shell does not reference the v1 platform APIs");
+if (!shell.body.includes("api/v1/plays") || !shell.body.includes("api/v1/guestbook") || !shell.body.includes("leaderboardBoards") || !shell.body.includes("data-leaderboard-board")) {
+  throw new Error("Shared shell does not reference the v1 APIs and toggleable leaderboard boards");
 }
 
 for (const prefix of ["/api/v1", "/api"]) {
