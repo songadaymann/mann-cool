@@ -5,7 +5,7 @@ const catalog = JSON.parse(fs.readFileSync(new URL("games.json", root), "utf8"))
 const errors = [];
 const reserved = new Set(["api", "platform", "assets", "covers", "game-gifs", "nes-game-images", "archive"]);
 const tags = new Set(catalog.tagVocabulary || []);
-const expectedTags = ["political", "art", "relaxing", "multiplayer", "funny", "weird", "NSFW"];
+const expectedTags = ["political", "art", "relaxing", "multiplayer", "funny", "weird", "game a day", "NSFW"];
 const launchSlugs = new Set([
   "coldplay-canoodle", "ctn", "windows", "tallgrass", "chonksisyphus", "oil", "loki", "pong", "rcs",
   "kevin", "fuckice", "bubble", "cyber", "punkmatch", "beepleblox", "doge", "girlscouts", "dream",

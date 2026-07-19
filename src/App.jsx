@@ -6,6 +6,12 @@ const featuredGames = publishedGames
   .filter((game) => Number.isFinite(game.featuredRank))
   .sort((a, b) => a.featuredRank - b.featuredRank)
   .slice(0, 3);
+const latestGame = publishedGames
+  .slice()
+  .sort((a, b) => b.catalogOrder - a.catalogOrder)[0];
+const playCountsUrl = ["localhost", "127.0.0.1"].includes(window.location.hostname)
+  ? "https://mann.cool/api/v1/plays"
+  : "/api/v1/plays";
 
 function initialTag() {
   const value = new URLSearchParams(window.location.search).get("tag");
@@ -41,6 +47,7 @@ function GameCard({ game, featured = false, nsfwRevealed, onRevealNsfw, playCoun
       >
         <span className="game-card-art">
           <img
+            className={showPreview ? "game-card-preview" : "game-card-cover"}
             src={showPreview ? game.hoverGif : game.cover}
             alt=""
             loading={featured ? "eager" : "lazy"}
@@ -65,6 +72,43 @@ function GameCard({ game, featured = false, nsfwRevealed, onRevealNsfw, playCoun
         </button>
       )}
     </article>
+  );
+}
+
+function TopSpotlights({ playCount }) {
+  return (
+    <section className="top-spotlights" aria-label="Game spotlights">
+      <a className="spotlight-card wamp-spotlight" href="https://wamp.land/" target="_blank" rel="noreferrer">
+        <span className="wamp-spotlight-mark" aria-hidden="true">
+          <img src="/wamp/icon-512.png" alt="" />
+          <span className="wamp-beta">BETA</span>
+          <span className="wamp-color-bar" />
+        </span>
+        <span className="spotlight-copy">
+          <span className="spotlight-eyebrow">Welcome to WAMP!</span>
+          <strong>We All Make A Platformer</strong>
+          <span className="spotlight-description">It's like if r/place and Mario Maker had a baby.</span>
+          <span className="spotlight-action">Enter WAMP <span aria-hidden="true">↗</span></span>
+        </span>
+      </a>
+
+      <a className="spotlight-card latest-spotlight" href={`/${latestGame.slug}/`}>
+        <span className="latest-spotlight-art">
+          <img src={latestGame.cover} alt="" decoding="async" />
+        </span>
+        <span className="spotlight-copy">
+          <span className="spotlight-eyebrow">Latest game</span>
+          <strong>{latestGame.title}</strong>
+          <span className="spotlight-description">{latestGame.description}</span>
+          {Number.isFinite(playCount) && (
+            <span className="spotlight-plays">
+              {playCount.toLocaleString()} {playCount === 1 ? "play" : "plays"}
+            </span>
+          )}
+          <span className="spotlight-action">Play now <span aria-hidden="true">→</span></span>
+        </span>
+      </a>
+    </section>
   );
 }
 
@@ -108,7 +152,7 @@ export default function App() {
 
   useEffect(() => {
     const controller = new AbortController();
-    fetch("/api/v1/plays", { signal: controller.signal })
+    fetch(playCountsUrl, { signal: controller.signal })
       .then((response) => {
         if (!response.ok) throw new Error("Could not load play counts");
         return response.json();
@@ -154,6 +198,8 @@ export default function App() {
       </header>
 
       <main>
+        <TopSpotlights playCount={playCounts[latestGame.slug]} />
+
         <section className="featured-section" aria-labelledby="featured-title">
           <div className="section-heading">
             <h1 id="featured-title">Featured games</h1>

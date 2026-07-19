@@ -7,6 +7,7 @@
     "multiplayer",
     "funny",
     "weird",
+    "game a day",
     "NSFW"
   ],
   "games": [
@@ -14,7 +15,7 @@
       "id": 1,
       "slug": "coldplay-canoodle",
       "title": "Coldplay Canoodle",
-      "description": "A tiny word game about the kiss-cam moment nobody could stop watching.",
+      "description": "My first viral game. You're the kiss cam operator. Find the cheating CEO at the Coldplay Concert.",
       "cover": "/covers/coldplay-canoodle.webp",
       "tags": [
         "funny",
@@ -50,7 +51,7 @@
       "id": 2,
       "slug": "ctn",
       "title": "Crypto Tax Nightmare",
-      "description": "Run, jump, and survive the annual nightmare of crypto taxes.",
+      "description": "The first video game I ever made. Relive the trauma of selling your life's work for $3 million then losing it all to bad decisions and taxes.",
       "cover": "/covers/crypto-tax-nightmare.webp",
       "tags": [
         "funny",
@@ -85,7 +86,7 @@
       "id": 3,
       "slug": "windows",
       "title": "Windows Didn't Load Correctly",
-      "description": "A broken-computer fever dream where the error messages fight back.",
+      "description": "A game based on the song I wrote Based on the time CrowdStrike took all Windows computers offline. You play as Steve Ballmer.",
       "cover": "/covers/windows-didn't-load.webp",
       "tags": [
         "funny",
@@ -125,7 +126,8 @@
       "hoverGif": "/game-gifs/tallgrass.gif",
       "tags": [
         "art",
-        "relaxing"
+        "relaxing",
+        "game a day"
       ],
       "catalogOrder": 4,
       "publishedAt": null,
@@ -156,12 +158,13 @@
       "id": 5,
       "slug": "chonksisyphus",
       "title": "Sisyphus Chonk",
-      "description": "Help a very determined chonk push onward against impossible odds.",
+      "description": "Blow into your phone or computer to become a very determined Chonk push onward against impossible odds.",
       "cover": "/covers/sisyphus-chonk.webp",
       "hoverGif": "/game-gifs/chonksisyphus.gif",
       "tags": [
         "funny",
-        "weird"
+        "weird",
+        "game a day"
       ],
       "catalogOrder": 5,
       "publishedAt": null,
@@ -192,13 +195,14 @@
       "id": 6,
       "slug": "oil",
       "title": "Oil & Epstein",
-      "description": "A slippery mobile game about power, scandal, and keeping your balance.",
+      "description": "A game about how Trump uses war to distract from the Epstien files.",
       "cover": "/covers/oil.webp",
       "hoverGif": "/game-gifs/oil.gif",
       "tags": [
         "political",
         "funny",
-        "weird"
+        "weird",
+        "game a day"
       ],
       "catalogOrder": 6,
       "publishedAt": null,
@@ -229,12 +233,13 @@
       "id": 7,
       "slug": "loki",
       "title": "Loki Is Genderfluid",
-      "description": "A mythic, shape-shifting browser adventure.",
+      "description": "A simple auto-runner based on a song I wrote about how the fact that Loki is genderfluid makes chuds mad.",
       "cover": "/covers/loki.webp",
       "hoverGif": "/game-gifs/loki.gif",
       "tags": [
         "art",
-        "weird"
+        "weird",
+        "game a day"
       ],
       "catalogOrder": 7,
       "publishedAt": null,
@@ -265,12 +270,13 @@
       "id": 8,
       "slug": "pong",
       "title": "Anybody // Pong",
-      "description": "Pong rebuilt as a collaborative music game.",
+      "description": "Chat roulette but it's just pong.",
       "cover": "/covers/pong.webp",
       "hoverGif": "/game-gifs/pong.gif",
       "tags": [
         "art",
-        "multiplayer"
+        "multiplayer",
+        "game a day"
       ],
       "catalogOrder": 8,
       "publishedAt": null,
@@ -301,12 +307,13 @@
       "id": 9,
       "slug": "rcs",
       "title": "Right-Click Save Kill",
-      "description": "Save the art before somebody else right-clicks it first.",
+      "description": "A first person shooter based on the art of XCOPY featuring a song I wrote called There Are No People In The Future.",
       "cover": "/covers/rcs.webp",
       "hoverGif": "/game-gifs/rcs.gif",
       "tags": [
         "art",
-        "funny"
+        "funny",
+        "game a day"
       ],
       "catalogOrder": 9,
       "publishedAt": null,
@@ -337,12 +344,13 @@
       "id": 10,
       "slug": "kevin",
       "title": "Kevin",
-      "description": "Run with Kevin. Do not ask Kevin to slow down.",
+      "description": "An endless runner featuring a song I wrote about Kevin, a notoriously silly looking NFT.",
       "cover": "/covers/kevin.webp",
       "hoverGif": "/game-gifs/kevin.gif",
       "tags": [
         "funny",
-        "weird"
+        "weird",
+        "game a day"
       ],
       "catalogOrder": 10,
       "publishedAt": null,
@@ -373,12 +381,13 @@
       "id": 11,
       "slug": "fuckice",
       "title": "FUCK ICE",
-      "description": "A furious arcade game about resisting ICE.",
+      "description": "You are Flurry from SMB2. Stomp the heads of ICE agents while you search for Birdo to help you close the ICE Hell Mouths.",
       "cover": "/covers/fuckice.webp",
       "hoverGif": "/game-gifs/fuckice.gif",
       "tags": [
         "political",
-        "funny"
+        "funny",
+        "game a day"
       ],
       "featuredRank": 1,
       "catalogOrder": 11,
@@ -410,13 +419,14 @@
       "id": 12,
       "slug": "bubble",
       "title": "YOU ARE BUBBLE",
-      "description": "Drift, distort, and become one with a very strange bubble.",
+      "description": "A realaxing and stylish Flappy Bird clone.",
       "cover": "/covers/bubble.webp",
       "hoverGif": "/game-gifs/bubble.gif",
       "tags": [
         "art",
         "relaxing",
-        "weird"
+        "weird",
+        "game a day"
       ],
       "catalogOrder": 12,
       "publishedAt": null,
@@ -447,13 +457,14 @@
       "id": 13,
       "slug": "cyber",
       "title": "Cyber Sunshine Smash",
-      "description": "Smash through a bright cyber-sunshine playground.",
+      "description": "A M.U.S.C.L.E man destroys a Cybertruck.",
       "cover": "/covers/cyber.webp",
       "hoverGif": "/game-gifs/cyber.gif",
       "tags": [
         "art",
         "funny",
-        "weird"
+        "weird",
+        "game a day"
       ],
       "catalogOrder": 13,
       "publishedAt": null,
@@ -484,12 +495,13 @@
       "id": 14,
       "slug": "punkmatch",
       "title": "game. punk. match.",
-      "description": "A fast memory-matching game made from CryptoPunks.",
+      "description": "A memory game with CryptoPunks",
       "cover": "/covers/punkmatch.webp",
       "hoverGif": "/game-gifs/punkmatch.gif",
       "tags": [
         "art",
-        "relaxing"
+        "relaxing",
+        "game a day"
       ],
       "catalogOrder": 14,
       "publishedAt": null,
@@ -522,12 +534,13 @@
       "id": 15,
       "slug": "beepleblox",
       "title": "Beeple Blox",
-      "description": "Stack, sort, and survive a world built from Beeple blocks.",
+      "description": "Using your actual hand, throw dildos at towers to knock Beeple to the ground.",
       "cover": "/covers/beepleblox.webp",
       "hoverGif": "/game-gifs/beepleblox.gif",
       "tags": [
         "art",
-        "weird"
+        "weird",
+        "game a day"
       ],
       "catalogOrder": 15,
       "publishedAt": null,
@@ -562,12 +575,13 @@
       "id": 16,
       "slug": "doge",
       "title": "Goodbye, Kabosu",
-      "description": "A small game made in memory of Kabosu.",
+      "description": "An auto-runner in the sky featuring everyone's favorite DOGE.",
       "cover": "/covers/doge.webp",
       "hoverGif": "/game-gifs/doge.gif",
       "tags": [
         "art",
-        "relaxing"
+        "relaxing",
+        "game a day"
       ],
       "catalogOrder": 16,
       "publishedAt": null,
@@ -598,11 +612,12 @@
       "id": 17,
       "slug": "girlscouts",
       "title": "ScoutSort",
-      "description": "Sort the scouts before the whole troop gets out of hand.",
+      "description": "Sort the girlscout cookies so everyone gets the correct order. I made it to help my daughter sell cookies.",
       "cover": "/covers/girlscouts.webp",
       "hoverGif": "/game-gifs/girlscouts.gif",
       "tags": [
-        "funny"
+        "funny",
+        "game a day"
       ],
       "catalogOrder": 17,
       "publishedAt": null,
@@ -633,12 +648,13 @@
       "id": 18,
       "slug": "dream",
       "title": "Mouth Dream",
-      "description": "A surreal journey into the mouth dream.",
+      "description": "Pull an endless string out of my mouth. Based on a recurring dream.",
       "cover": "/covers/dream.webp",
       "hoverGif": "/game-gifs/dream.gif",
       "tags": [
         "art",
-        "weird"
+        "weird",
+        "game a day"
       ],
       "catalogOrder": 18,
       "publishedAt": null,
@@ -669,11 +685,12 @@
       "id": 19,
       "slug": "kombatice",
       "title": "Kombat Ice",
-      "description": "Fight the cold in a pocket-sized combat game.",
+      "description": "Based on a GIF by my pal Jude Buffum, play as Sub Zero and shoot ice to make ICE fall.",
       "cover": "/covers/kombatice.webp",
       "hoverGif": "/game-gifs/kombatice.gif",
       "tags": [
-        "funny"
+        "funny",
+        "game a day"
       ],
       "catalogOrder": 19,
       "publishedAt": null,
@@ -704,12 +721,13 @@
       "id": 20,
       "slug": "lidstaysclosed",
       "title": "The Lid Stays Closed",
-      "description": "Whatever happens, the lid stays closed.",
+      "description": "The game based on the song I wrote about cats knocking things over and closing lids.",
       "cover": "/covers/lidstaysclosed.webp",
       "hoverGif": "/game-gifs/lidstaysclosed.gif",
       "tags": [
         "funny",
-        "weird"
+        "weird",
+        "game a day"
       ],
       "catalogOrder": 20,
       "publishedAt": null,
@@ -740,11 +758,12 @@
       "id": 21,
       "slug": "meelode",
       "title": "LodeMeeRunnerBits",
-      "description": "Classic platforming rebuilt with Meebits and pixels.",
+      "description": "A port of LodeRunner featuring MeeBits",
       "cover": "/covers/meelode.webp",
       "hoverGif": "/game-gifs/meelode.gif",
       "tags": [
-        "art"
+        "art",
+        "game a day"
       ],
       "catalogOrder": 21,
       "publishedAt": null,
@@ -780,12 +799,13 @@
       "id": 22,
       "slug": "synthsnow",
       "title": "SynthSnow",
-      "description": "Make music in an endless field of synthesized snow.",
+      "description": "Use your hands to manipulate sound until you resonate all the snow off of the tree.",
       "cover": "/covers/synthsnow.webp",
       "hoverGif": "/game-gifs/synthsnow.gif",
       "tags": [
         "art",
-        "relaxing"
+        "relaxing",
+        "game a day"
       ],
       "catalogOrder": 22,
       "publishedAt": null,
@@ -816,12 +836,13 @@
       "id": 23,
       "slug": "protectgreenland",
       "title": "Protect Greenland",
-      "description": "Defend Greenland in a political arcade scramble.",
+      "description": "Protect greenland against Donald Trump.",
       "cover": "/covers/protectgreenland.webp",
       "hoverGif": "/game-gifs/protectgreenland.gif",
       "tags": [
         "political",
-        "funny"
+        "funny",
+        "game a day"
       ],
       "catalogOrder": 23,
       "publishedAt": null,
@@ -852,13 +873,14 @@
       "id": 24,
       "slug": "penisvagina",
       "title": "Penis // Vagina",
-      "description": "An adults-only multiplayer game about bodies and boundaries.",
+      "description": "Hand drawn male and female anatomy destroy ICE and MAGA hats.",
       "cover": "/covers/penisvagina.webp",
       "hoverGif": "/game-gifs/penisvagina.gif",
       "tags": [
         "multiplayer",
         "funny",
-        "NSFW"
+        "NSFW",
+        "game a day"
       ],
       "catalogOrder": 24,
       "publishedAt": null,
@@ -890,12 +912,13 @@
       "id": 25,
       "slug": "punksinspace",
       "title": "Punks In Space",
-      "description": "Launch a crew of punks into the void.",
+      "description": "A shmup where every single element is made of CryptoPunks",
       "cover": "/covers/punksinspace.webp",
       "hoverGif": "/game-gifs/punksinspace.gif",
       "tags": [
         "art",
-        "funny"
+        "funny",
+        "game a day"
       ],
       "catalogOrder": 25,
       "publishedAt": null,
@@ -927,12 +950,13 @@
       "id": 26,
       "slug": "towerofpunks",
       "title": "Tower of Punks",
-      "description": "Build a precarious tower out of tiny punks.",
+      "description": "First of three games made while traveling to a Punks exhibit. Stack punks as high as you can.",
       "cover": "/covers/towerofpunks.webp",
       "hoverGif": "/game-gifs/towerofpunks.gif",
       "tags": [
         "art",
-        "funny"
+        "funny",
+        "game a day"
       ],
       "catalogOrder": 26,
       "publishedAt": null,
@@ -963,12 +987,13 @@
       "id": 27,
       "slug": "armfulofpunks",
       "title": "Armful of Punks",
-      "description": "Catch as many falling punks as your arms can hold.",
+      "description": "Second of three games made while traveling to a Punks exhibit. Drop as many punks as you can into Matt's arms.",
       "cover": "/covers/armfulofpunks.webp",
       "hoverGif": "/game-gifs/armfulofpunks.gif",
       "tags": [
         "art",
-        "funny"
+        "funny",
+        "game a day"
       ],
       "catalogOrder": 27,
       "publishedAt": null,
@@ -999,12 +1024,13 @@
       "id": 28,
       "slug": "punkfling",
       "title": "Punk Fling",
-      "description": "Fling a punk and see how far chaos can carry it.",
+      "description": "Third of three games made while traveling to a Punks exhibit. Fling a punk as high as you can.",
       "cover": "/covers/punkfling.webp",
       "hoverGif": "/game-gifs/punkfling.gif",
       "tags": [
         "art",
-        "funny"
+        "funny",
+        "game a day"
       ],
       "catalogOrder": 28,
       "publishedAt": null,
@@ -1038,12 +1064,13 @@
       "id": 29,
       "slug": "dontscroll",
       "title": "Don't Scroll",
-      "description": "The only rule is right there in the title.",
+      "description": "You are lying in your hotel room, trying to sleep. You can look around or close your eyes. Try to sleep for at least 7 hours, but if you take out your phone to scroll, you lose. ",
       "cover": "/covers/dontscroll.webp",
       "hoverGif": "/game-gifs/dontscroll.gif",
       "tags": [
         "funny",
-        "weird"
+        "weird",
+        "game a day"
       ],
       "catalogOrder": 29,
       "publishedAt": null,
@@ -1074,11 +1101,12 @@
       "id": 30,
       "slug": "perilouspenguin",
       "title": "Perilous Penguin",
-      "description": "Guide a brave penguin through a very bad day.",
+      "description": "The arctic is melting. Don't get seperated from your friends.",
       "cover": "/covers/perilouspenguin.webp",
       "hoverGif": "/game-gifs/perilouspenguin.gif",
       "tags": [
-        "funny"
+        "funny",
+        "game a day"
       ],
       "catalogOrder": 30,
       "publishedAt": null,
@@ -1109,13 +1137,14 @@
       "id": 31,
       "slug": "flighttosfo",
       "title": "Flight To SFO",
-      "description": "Take a strange and scenic flight to San Francisco.",
+      "description": "A realtime flight simulator but you're a passenger.",
       "cover": "/covers/flighttosfo.webp",
       "hoverGif": "/game-gifs/flighttosfo.gif",
       "tags": [
         "art",
         "relaxing",
-        "weird"
+        "weird",
+        "game a day"
       ],
       "catalogOrder": 31,
       "publishedAt": null,
@@ -1146,11 +1175,12 @@
       "id": 32,
       "slug": "meebitsmountain",
       "title": "Meebits Mountain",
-      "description": "Climb a mountain populated by Meebits.",
+      "description": "You are a MeeBit who must scale another MeeBit.",
       "cover": "/covers/meebitsmountain.webp",
       "hoverGif": "/game-gifs/meebitsmountain.gif",
       "tags": [
-        "art"
+        "art",
+        "game a day"
       ],
       "catalogOrder": 32,
       "publishedAt": null,
@@ -1181,12 +1211,13 @@
       "id": 33,
       "slug": "100goombas",
       "title": "100 Goombas",
-      "description": "One hundred Goombas. One increasingly complicated problem.",
+      "description": "A multiplayer game with up to 100 goombas. You play as a Goomba trying to defeat the bot Mario.",
       "cover": "/covers/100goombas.webp",
       "hoverGif": "/game-gifs/100goombas.gif",
       "tags": [
         "funny",
-        "weird"
+        "weird",
+        "game a day"
       ],
       "catalogOrder": 33,
       "publishedAt": null,
@@ -1217,12 +1248,13 @@
       "id": 34,
       "slug": "sledding",
       "title": "SLEDDING",
-      "description": "Launch a sled, chase distance, and try again.",
+      "description": "Draw a hill and launch your sled as far as you can.",
       "cover": "/covers/sledding.webp",
       "hoverGif": "/game-gifs/sledding.gif",
       "tags": [
         "funny",
-        "relaxing"
+        "relaxing",
+        "game a day"
       ],
       "catalogOrder": 34,
       "publishedAt": null,
