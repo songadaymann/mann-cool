@@ -101,7 +101,7 @@ function TopSpotlights({ playCount }) {
         <span className="wamp-spotlight-mark" aria-hidden="true">
           <img
             className={showWampPreview ? "wamp-preview" : "wamp-icon"}
-            src={showWampPreview ? "/wamp/wamp.gif" : "/wamp/icon-512.png"}
+            src={showWampPreview ? "/game-gifs/wamp.gif" : "/wamp/icon-512.png"}
             alt=""
             decoding="async"
             onError={() => setWampPreviewFailed(true)}
