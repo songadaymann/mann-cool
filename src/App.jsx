@@ -19,8 +19,7 @@ function initialTag() {
 }
 
 function canAnimatePreview() {
-  return window.matchMedia("(hover: hover) and (pointer: fine)").matches
-    && !window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  return !window.matchMedia("(prefers-reduced-motion: reduce)").matches
     && !navigator.connection?.saveData;
 }
 
@@ -76,11 +75,37 @@ function GameCard({ game, featured = false, nsfwRevealed, onRevealNsfw, playCoun
 }
 
 function TopSpotlights({ playCount }) {
+  const [wampPreviewActive, setWampPreviewActive] = useState(false);
+  const [wampPreviewFailed, setWampPreviewFailed] = useState(false);
+  const [latestPreviewActive, setLatestPreviewActive] = useState(false);
+  const [latestPreviewFailed, setLatestPreviewFailed] = useState(false);
+  const showWampPreview = wampPreviewActive && !wampPreviewFailed;
+  const showLatestPreview = latestPreviewActive && latestGame.hoverGif && !latestPreviewFailed;
+
+  const startPreview = (setPreviewActive) => {
+    if (canAnimatePreview()) setPreviewActive(true);
+  };
+
   return (
     <section className="top-spotlights" aria-label="Game spotlights">
-      <a className="spotlight-card wamp-spotlight" href="https://wamp.land/" target="_blank" rel="noreferrer">
+      <a
+        className="spotlight-card wamp-spotlight"
+        href="https://wamp.land/"
+        target="_blank"
+        rel="noreferrer"
+        onMouseEnter={() => startPreview(setWampPreviewActive)}
+        onMouseLeave={() => setWampPreviewActive(false)}
+        onFocus={() => startPreview(setWampPreviewActive)}
+        onBlur={() => setWampPreviewActive(false)}
+      >
         <span className="wamp-spotlight-mark" aria-hidden="true">
-          <img src="/wamp/icon-512.png" alt="" />
+          <img
+            className={showWampPreview ? "wamp-preview" : "wamp-icon"}
+            src={showWampPreview ? "/wamp/wamp.gif" : "/wamp/icon-512.png"}
+            alt=""
+            decoding="async"
+            onError={() => setWampPreviewFailed(true)}
+          />
           <span className="wamp-beta">BETA</span>
           <span className="wamp-color-bar" />
         </span>
@@ -92,9 +117,21 @@ function TopSpotlights({ playCount }) {
         </span>
       </a>
 
-      <a className="spotlight-card latest-spotlight" href={`/${latestGame.slug}/`}>
+      <a
+        className="spotlight-card latest-spotlight"
+        href={`/${latestGame.slug}/`}
+        onMouseEnter={() => startPreview(setLatestPreviewActive)}
+        onMouseLeave={() => setLatestPreviewActive(false)}
+        onFocus={() => startPreview(setLatestPreviewActive)}
+        onBlur={() => setLatestPreviewActive(false)}
+      >
         <span className="latest-spotlight-art">
-          <img src={latestGame.cover} alt="" decoding="async" />
+          <img
+            src={showLatestPreview ? latestGame.hoverGif : latestGame.cover}
+            alt=""
+            decoding="async"
+            onError={() => setLatestPreviewFailed(true)}
+          />
         </span>
         <span className="spotlight-copy">
           <span className="spotlight-eyebrow">Latest game</span>

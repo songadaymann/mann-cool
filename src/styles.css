@@ -45,7 +45,9 @@ main { display:grid; gap:clamp(52px,6vw,78px); padding:clamp(36px,4.5vw,62px) 0 
 .wamp-spotlight { position:relative; color:#18161c; background:#fff3db; border:3px solid #79ccde; border-radius:0; box-shadow:6px 6px 0 #18161c; }
 .wamp-spotlight-mark { position:relative; display:grid; place-items:center; min-width:0; border-right:3px solid #18161c; background:#fffaf0; overflow:hidden; }
 .wamp-spotlight-mark img { position:relative; z-index:1; width:min(74%,126px); height:auto; image-rendering:pixelated; transition:transform 120ms steps(2,end); }
+.wamp-spotlight-mark img.wamp-preview { width:100%; height:100%; object-fit:cover; }
 .wamp-spotlight:hover .wamp-spotlight-mark img { transform:translateY(-4px) rotate(-2deg); }
+.wamp-spotlight:hover .wamp-spotlight-mark img.wamp-preview { transform:none; }
 .wamp-beta { position:absolute; top:16px; right:10px; z-index:2; padding:5px 7px 4px; border:2px solid #18161c; background:#ed5f4b; color:#fff3db; font:8px/1 'WAMP Early GameBoy',monospace; letter-spacing:.06em; transform:rotate(7deg); box-shadow:3px 3px 0 #18161c; }
 .wamp-color-bar { position:absolute; right:0; bottom:0; left:0; height:12px; border-top:3px solid #18161c; background:linear-gradient(90deg,#277b30 0 25%,#79ccde 25% 50%,#fcea7c 50% 75%,#ed5f4b 75%); }
 .wamp-spotlight .spotlight-copy { padding:clamp(18px,2.4vw,28px); font-family:'WAMP HomeVideo',monospace; }
