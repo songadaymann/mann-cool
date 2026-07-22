@@ -97,7 +97,7 @@ async function verifyTurnstile(request, env, token) {
   }
 }
 
-const COMMUNITY_LEVEL_LIMITS = { walls: 120, rocks: 20, cups: 3, cameras: 20 };
+const COMMUNITY_LEVEL_LIMITS = { walls: 120, rocks: 20, cups: 3, cameras: 20, trees: 30, trashPiles: 30 };
 const FOOTPRINT_KINDS = new Set(["rect", "l", "t", "h", "y", "z", "u"]);
 
 function finiteNumber(value, label, min, max) {
@@ -145,6 +145,15 @@ function normalizeCommunityLevel(value, requestedName) {
     ...camera,
     yaw: finiteNumber(value.cameras[index].yaw, `camera ${index + 1} direction`, -Math.PI * 4, Math.PI * 4),
   }));
+  const trees = Array.isArray(value.trees) ? normalizeList("trees").map((tree, index) => ({
+    ...tree,
+    scale: finiteNumber(value.trees[index].scale, `tree ${index + 1} scale`, 0.4, 1.2),
+    seed: finiteNumber(value.trees[index].seed, `tree ${index + 1} seed`, 0, 4294967295),
+  })) : [];
+  const trashPiles = Array.isArray(value.trashPiles) ? normalizeList("trashPiles").map((pile, index) => ({
+    ...pile,
+    rot: finiteNumber(value.trashPiles[index].rot, `trash pile ${index + 1} rotation`, -Math.PI * 4, Math.PI * 4),
+  })) : [];
   if (!rocks.length || !cameras.length) throw new HttpError(400, "A shared alley needs at least one rock and one camera");
   const name = cleanText(requestedName || value.name, 50);
   if (!name) throw new HttpError(400, "A level name is required");
@@ -159,6 +168,8 @@ function normalizeCommunityLevel(value, requestedName) {
     rocks,
     cups,
     cameras,
+    trees,
+    trashPiles,
   };
   if (value.footprint && typeof value.footprint === "object" && !Array.isArray(value.footprint)) {
     const kind = String(value.footprint.kind || "rect").toLowerCase();
