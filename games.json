@@ -1386,6 +1386,54 @@
         ]
       },
       "status": "published"
+    },
+    {
+      "id": 37,
+      "slug": "jimothy-vs-flock-inc",
+      "title": "JIMOTHY VS FLOCK INC",
+      "description": "Guide Jimothy through watched alleys, smash every Flock Inc camera, recover missed rocks, collect discarded cups, and make it home.",
+      "cover": "/covers/jimothy-vs-flock-inc.webp",
+      "tags": [
+        "funny",
+        "weird",
+        "game a day"
+      ],
+      "catalogOrder": 37,
+      "publishedAt": "2026-07-22",
+      "deviceSupport": {
+        "mobile": true,
+        "tablet": true,
+        "desktop": true
+      },
+      "leaderboard": {
+        "enabled": true,
+        "direction": "asc",
+        "variants": [
+          "campaign"
+        ],
+        "boards": [
+          {
+            "variant": "campaign",
+            "label": "Campaign",
+            "metric": "adjustedTimeMs",
+            "metricLabel": "Full-campaign time minus 10 seconds per red cup",
+            "direction": "asc",
+            "display": "time-ms",
+            "aggregation": "best",
+            "minimumMatches": 1
+          }
+        ]
+      },
+      "delivery": {
+        "mode": "worker-route",
+        "origin": "https://mann-cool-jimothy-vs-flock-inc.novox-robot.workers.dev",
+        "workerName": "mann-cool-jimothy-vs-flock-inc",
+        "routePatterns": [
+          "mann.cool/jimothy-vs-flock-inc",
+          "mann.cool/jimothy-vs-flock-inc/*"
+        ]
+      },
+      "status": "published"
     }
   ]
 }

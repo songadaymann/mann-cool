@@ -2,7 +2,7 @@ import { games, getGame } from "./lib/catalog.js";
 import { handleLegacyApi } from "./legacy-api.js";
 import { handlePlatformApi } from "./platform-api.js";
 
-const PLATFORM_ENDPOINTS = new Set(["plays", "guestbook", "leaderboard"]);
+const PLATFORM_ENDPOINTS = new Set(["plays", "guestbook", "leaderboard", "community-levels"]);
 
 function platformConfig(env) {
   return Response.json({

@@ -16,6 +16,8 @@ const LIMITS = {
   "guestbook:post": { requests: 5, seconds: 600 },
   "leaderboard:get": { requests: 120, seconds: 60 },
   "leaderboard:post": { requests: 20, seconds: 60 },
+  "community-levels:get": { requests: 120, seconds: 60 },
+  "community-levels:post": { requests: 3, seconds: 600 },
 };
 
 function remoteIp(request) {
@@ -73,7 +75,7 @@ async function ensureRegisteredGame(env, slug) {
 
 async function verifyTurnstile(request, env, token) {
   if (!env.TURNSTILE_SECRET_KEY) {
-    throw new HttpError(503, "Guestbook signing is temporarily unavailable");
+    throw new HttpError(503, "Human verification is temporarily unavailable");
   }
   if (!token || String(token).length > 2_048) {
     throw new HttpError(400, "Human verification is required");
@@ -93,6 +95,135 @@ async function verifyTurnstile(request, env, token) {
   if (!response.ok || result.success !== true) {
     throw new HttpError(400, "Human verification failed");
   }
+}
+
+const COMMUNITY_LEVEL_LIMITS = { walls: 120, rocks: 20, cups: 3, cameras: 20 };
+const FOOTPRINT_KINDS = new Set(["rect", "l", "t", "h", "y", "z", "u"]);
+
+function finiteNumber(value, label, min, max) {
+  const number = Number(value);
+  if (!Number.isFinite(number) || number < min || number > max) {
+    throw new HttpError(400, `${label} is out of range`);
+  }
+  return Math.round(number * 1000) / 1000;
+}
+
+function communityEntityId(value, fallback) {
+  const clean = String(value || fallback).replace(/[^a-zA-Z0-9._:-]/g, "").slice(0, 80);
+  return clean || fallback;
+}
+
+function normalizePoint(value, label, index, width, depth) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new HttpError(400, `${label} is invalid`);
+  return {
+    id: communityEntityId(value.id, `${label}-${index}`),
+    x: finiteNumber(value.x, `${label}.x`, -width / 2, width / 2),
+    z: finiteNumber(value.z, `${label}.z`, -depth / 2, depth / 2),
+  };
+}
+
+function normalizeCommunityLevel(value, requestedName) {
+  if (!value || typeof value !== "object" || Array.isArray(value) || Number(value.version) !== 1) {
+    throw new HttpError(400, "This is not a Jimothy level");
+  }
+  const width = finiteNumber(value.width, "level width", 8, 36);
+  const depth = finiteNumber(value.depth, "level depth", 24, 72);
+  const normalizeList = (key) => {
+    if (!Array.isArray(value[key]) || value[key].length > COMMUNITY_LEVEL_LIMITS[key]) {
+      throw new HttpError(400, `${key} must contain at most ${COMMUNITY_LEVEL_LIMITS[key]} items`);
+    }
+    return value[key].map((item, index) => normalizePoint(item, key.slice(0, -1), index + 1, width, depth));
+  };
+  const walls = normalizeList("walls").map((wall, index) => ({
+    ...wall,
+    hw: finiteNumber(value.walls[index].hw, `wall ${index + 1} width`, 0.2, width / 2),
+    hd: finiteNumber(value.walls[index].hd, `wall ${index + 1} depth`, 0.2, depth / 2),
+  }));
+  const rocks = normalizeList("rocks");
+  const cups = Array.isArray(value.cups) ? normalizeList("cups") : [];
+  const cameras = normalizeList("cameras").map((camera, index) => ({
+    ...camera,
+    yaw: finiteNumber(value.cameras[index].yaw, `camera ${index + 1} direction`, -Math.PI * 4, Math.PI * 4),
+  }));
+  if (!rocks.length || !cameras.length) throw new HttpError(400, "A shared alley needs at least one rock and one camera");
+  const name = cleanText(requestedName || value.name, 50);
+  if (!name) throw new HttpError(400, "A level name is required");
+  const level = {
+    version: 1,
+    name,
+    width,
+    depth,
+    start: normalizePoint(value.start, "start", 1, width, depth),
+    home: normalizePoint(value.home, "home", 1, width, depth),
+    walls,
+    rocks,
+    cups,
+    cameras,
+  };
+  if (value.footprint && typeof value.footprint === "object" && !Array.isArray(value.footprint)) {
+    const kind = String(value.footprint.kind || "rect").toLowerCase();
+    if (!FOOTPRINT_KINDS.has(kind)) throw new HttpError(400, "Unknown level footprint");
+    level.footprint = {
+      kind,
+      corridorWidth: finiteNumber(value.footprint.corridorWidth, "corridor width", 5, 11),
+      a: finiteNumber(value.footprint.a, "footprint section A", 4, 72),
+      b: finiteNumber(value.footprint.b, "footprint section B", 4, 72),
+      c: finiteNumber(value.footprint.c, "footprint section C", 4, 72),
+    };
+  }
+  return level;
+}
+
+function communityLevelEntry(row) {
+  return {
+    id: row.id,
+    authorName: row.authorName,
+    levelName: row.levelName,
+    level: JSON.parse(row.levelJson),
+    createdAt: row.createdAt,
+  };
+}
+
+async function handleCommunityLevels(request, env) {
+  const url = new URL(request.url);
+  if (request.method === "GET") {
+    await enforceRateLimit(request, env, "community-levels:get");
+    const requestedSlug = cleanSlug(url.searchParams.get("slug") || url.searchParams.get("game"));
+    if (!requestedSlug) throw new HttpError(400, "A valid slug is required");
+    const game = await ensureRegisteredGame(env, requestedSlug);
+    const limit = Math.min(Math.max(Number(url.searchParams.get("limit")) || 30, 1), 100);
+    const result = await env.DB.prepare(`
+      SELECT id, author_name AS authorName, level_name AS levelName,
+        level_json AS levelJson, created_at AS createdAt
+      FROM community_levels
+      WHERE slug = ? AND moderation_status = 'approved'
+      ORDER BY created_at DESC LIMIT ?
+    `).bind(game.slug, limit).all();
+    return json({ success: true, slug: game.slug, entries: result.results.map(communityLevelEntry) });
+  }
+
+  if (request.method === "POST") {
+    await enforceRateLimit(request, env, "community-levels:post");
+    const body = await readJson(request, 96_000);
+    const requestedSlug = cleanSlug(body.slug || body.game);
+    if (!requestedSlug) throw new HttpError(400, "A valid slug is required");
+    const game = await ensureRegisteredGame(env, requestedSlug);
+    const authorName = cleanText(body.authorName || body.name, 50);
+    if (!authorName) throw new HttpError(400, "Your name is required");
+    const level = normalizeCommunityLevel(body.level, body.levelName);
+    await verifyTurnstile(request, env, body.turnstileToken || body.turnstile_token);
+    const id = crypto.randomUUID();
+    const createdAt = new Date().toISOString();
+    const ipHash = await hashIdentity(remoteIp(request), env.RATE_LIMIT_SALT || "mann.cool-community-levels-v1");
+    await env.DB.prepare(`
+      INSERT INTO community_levels
+        (id, slug, author_name, level_name, level_json, moderation_status, created_at, ip_hash)
+      VALUES (?, ?, ?, ?, ?, 'approved', ?, ?)
+    `).bind(id, game.slug, authorName, level.name, JSON.stringify(level), createdAt, ipHash).run();
+    return json({ success: true, entry: { id, authorName, levelName: level.name, level, createdAt } }, { status: 201 });
+  }
+
+  throw new HttpError(405, "Method not allowed");
 }
 
 async function handlePlays(request, env) {
@@ -395,6 +526,7 @@ export async function handlePlatformApi(request, env, endpoint, requestOptions =
     if (endpoint === "plays") return await handlePlays(request, env);
     if (endpoint === "guestbook") return await handleGuestbook(request, env);
     if (endpoint === "leaderboard") return await handleLeaderboard(request, env, requestOptions.legacy === true);
+    if (endpoint === "community-levels") return await handleCommunityLevels(request, env);
     return json({ error: "API route not found" }, { status: 404 });
   } catch (error) {
     if (error instanceof HttpError) return json({ error: error.message }, { status: error.status });
