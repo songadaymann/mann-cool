@@ -62,6 +62,11 @@ async function handleRequest(request, env) {
   if (url.pathname === "/platform/config.json") return platformConfig(env);
   if (url.pathname.startsWith("/platform/")) return env.ASSETS.fetch(request);
 
+  if (segments[0] === "jimothy-vs-flock-inc") {
+    url.pathname = url.pathname.replace(/^\/jimothy-vs-flock-inc(?=\/|$)/, "/jimothy");
+    return Response.redirect(url, 308);
+  }
+
   const game = getGame(segments[0]);
   if (game) {
     if (segments.length === 1 && !url.pathname.endsWith("/")) {

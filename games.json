@@ -1389,7 +1389,7 @@
     },
     {
       "id": 37,
-      "slug": "jimothy-vs-flock-inc",
+      "slug": "jimothy",
       "title": "JIMOTHY VS FLOCK INC",
       "description": "Guide Jimothy through watched alleys, smash every Flock Inc camera, recover missed rocks, collect discarded cups, and make it home.",
       "cover": "/covers/jimothy-vs-flock-inc.webp",
@@ -1426,11 +1426,11 @@
       },
       "delivery": {
         "mode": "worker-route",
-        "origin": "https://mann-cool-jimothy-vs-flock-inc.novox-robot.workers.dev",
-        "workerName": "mann-cool-jimothy-vs-flock-inc",
+        "origin": "https://mann-cool-jimothy.novox-robot.workers.dev",
+        "workerName": "mann-cool-jimothy",
         "routePatterns": [
-          "mann.cool/jimothy-vs-flock-inc",
-          "mann.cool/jimothy-vs-flock-inc/*"
+          "mann.cool/jimothy",
+          "mann.cool/jimothy/*"
         ]
       },
       "status": "published"
