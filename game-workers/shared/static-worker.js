@@ -1,5 +1,5 @@
 const HTML_LIMIT = 5 * 1024 * 1024;
-const GAME_SHELL_URL = "https://mann.cool/platform/v1/game-shell.js?v=20260723-home-offset1";
+const GAME_SHELL_URL = "https://mann.cool/platform/v1/game-shell.js?v=20260723-comments1";
 
 function responseHeaders(headers) {
   const next = new Headers(headers);

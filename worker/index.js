@@ -2,8 +2,8 @@ import { games, getGame } from "./lib/catalog.js";
 import { handleLegacyApi } from "./legacy-api.js";
 import { handlePlatformApi } from "./platform-api.js";
 
-const PLATFORM_ENDPOINTS = new Set(["plays", "guestbook", "leaderboard", "community-levels"]);
-const GAME_SHELL_VERSION = "20260723-home-offset1";
+const PLATFORM_ENDPOINTS = new Set(["plays", "guestbook", "comments", "leaderboard", "community-levels"]);
+const GAME_SHELL_VERSION = "20260723-comments1";
 
 function platformConfig(env) {
   return Response.json({

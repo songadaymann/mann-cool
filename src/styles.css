@@ -67,8 +67,11 @@ main { display:grid; gap:clamp(52px,6vw,78px); padding:clamp(36px,4.5vw,62px) 0 
 .wamp-spotlight:hover .spotlight-action { filter:brightness(1.08); transform:translate(-1px,-1px); box-shadow:4px 4px 0 #18161c; }
 .latest-spotlight-art { min-width:0; overflow:hidden; background:#dedbd1; }
 .latest-spotlight-art img { width:100%; height:100%; object-fit:cover; transition:transform 220ms ease; }
+.latest-spotlight-copy-link { display:flex; align-items:flex-start; flex:1; flex-direction:column; min-width:0; color:inherit; text-decoration:none; }
+.latest-spotlight-copy-link:focus-visible { outline:3px solid #171714; outline-offset:5px; }
 .latest-spotlight .spotlight-copy strong { max-width:100%; font-size:clamp(20px,1.9vw,24px); overflow-wrap:anywhere; }
 .spotlight-card:hover .latest-spotlight-art img { transform:scale(1.025); }
+.spotlight-community { display:flex; align-items:center; flex-wrap:wrap; gap:7px 12px; margin-top:12px; }
 
 .featured-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:clamp(12px,1.6vw,22px); }
 .games-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:clamp(28px,3.2vw,54px) clamp(14px,2vw,28px); }
@@ -84,6 +87,9 @@ main { display:grid; gap:clamp(52px,6vw,78px); padding:clamp(36px,4.5vw,62px) 0 
 .game-card-copy strong { font-size:clamp(17px,1.5vw,22px); letter-spacing:-.035em; line-height:1.05; }
 .game-card-description { color:#6d6a61; font-size:14px; font-weight:400; line-height:1.42; }
 .game-card-plays { color:#8a877e; font-size:12px; font-weight:700; letter-spacing:.02em; line-height:1.2; }
+.game-card-community { display:flex; align-items:center; flex-wrap:wrap; gap:7px 12px; padding:9px 1px 0; }
+.game-card-community button,.spotlight-community button { border:0; padding:0; color:#68665f; background:transparent; font-size:12px; font-weight:700; line-height:1.2; text-decoration:underline; text-underline-offset:3px; cursor:pointer; }
+.game-card-community button:hover,.game-card-community button:focus-visible,.spotlight-community button:hover,.spotlight-community button:focus-visible { color:#171714; }
 .game-card-featured .game-card-copy { padding-top:12px; }
 .game-card-featured .game-card-copy strong { font-size:clamp(24px,2.6vw,38px); }
 .game-card-featured .game-card-description { max-width:34rem; font-size:15px; }
@@ -110,6 +116,7 @@ main { display:grid; gap:clamp(52px,6vw,78px); padding:clamp(36px,4.5vw,62px) 0 
 .guestbook-panel { width:min(720px,100%); max-height:min(860px,calc(100vh - 28px)); border:1px solid #bdbab0; border-radius:6px; background:#f8f7f2; box-shadow:0 28px 90px rgba(0,0,0,.28); overflow:auto; }
 .guestbook-header { position:sticky; top:0; z-index:2; display:flex; align-items:flex-start; justify-content:space-between; gap:24px; border-bottom:1px solid #d8d6ce; padding:clamp(22px,4vw,36px); background:rgba(248,247,242,.96); backdrop-filter:blur(12px); }
 .guestbook-header h2 { margin:5px 0 7px; font-size:clamp(28px,5vw,46px); letter-spacing:-.06em; line-height:.96; }
+.comments-panel .guestbook-header h2 { overflow-wrap:anywhere; }
 .guestbook-header p { margin:0; color:#6d6a61; font-size:14px; }
 .guestbook-eyebrow { color:#77746b; font-size:11px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; }
 .guestbook-close { flex:0 0 auto; width:42px; height:42px; border:1px solid #c9c6bd; border-radius:50%; padding:0 0 3px; color:#171714; background:#fff; font-size:28px; line-height:1; cursor:pointer; }

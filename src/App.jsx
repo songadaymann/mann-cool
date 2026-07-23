@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import catalog from "../games.json";
 
 const publishedGames = catalog.games.filter((game) => game.status === "published");
@@ -15,6 +15,9 @@ const playCountsUrl = ["localhost", "127.0.0.1"].includes(window.location.hostna
 const guestbookUrl = ["localhost", "127.0.0.1"].includes(window.location.hostname)
   ? "https://mann.cool/api/v1/guestbook"
   : "/api/v1/guestbook";
+const commentsUrl = ["localhost", "127.0.0.1"].includes(window.location.hostname)
+  ? "https://mann.cool/api/v1/comments"
+  : "/api/v1/comments";
 
 function initialTag() {
   const value = new URLSearchParams(window.location.search).get("tag");
@@ -26,7 +29,15 @@ function canAnimatePreview() {
     && !navigator.connection?.saveData;
 }
 
-function GameCard({ game, featured = false, nsfwRevealed, onRevealNsfw, playCount }) {
+function GameCard({
+  game,
+  featured = false,
+  nsfwRevealed,
+  onRevealNsfw,
+  playCount,
+  commentCount,
+  onOpenComments,
+}) {
   const [previewActive, setPreviewActive] = useState(false);
   const [previewFailed, setPreviewFailed] = useState(false);
   const isNsfw = game.tags.includes("NSFW");
@@ -61,13 +72,21 @@ function GameCard({ game, featured = false, nsfwRevealed, onRevealNsfw, playCoun
         <span className="game-card-copy">
           <strong>{game.title}</strong>
           <span className="game-card-description">{game.description}</span>
-          {Number.isFinite(playCount) && (
-            <span className="game-card-plays">
-              {playCount.toLocaleString()} {playCount === 1 ? "play" : "plays"}
-            </span>
-          )}
         </span>
       </a>
+      <div className="game-card-community">
+        {Number.isFinite(playCount) && (
+          <span className="game-card-plays">
+            {playCount.toLocaleString()} {playCount === 1 ? "play" : "plays"}
+          </span>
+        )}
+        {Number.isFinite(commentCount) && (
+          <button type="button" onClick={() => onOpenComments(game)}>
+            {commentCount.toLocaleString()} {commentCount === 1 ? "comment" : "comments"}
+          </button>
+        )}
+        <button type="button" onClick={() => onOpenComments(game)}>Add comment</button>
+      </div>
       {artworkHidden && (
         <button className="nsfw-reveal" type="button" onClick={onRevealNsfw}>
           Reveal artwork
@@ -77,7 +96,7 @@ function GameCard({ game, featured = false, nsfwRevealed, onRevealNsfw, playCoun
   );
 }
 
-function TopSpotlights({ playCount }) {
+function TopSpotlights({ playCount, commentCount, onOpenComments }) {
   const [wampPreviewActive, setWampPreviewActive] = useState(false);
   const [wampPreviewFailed, setWampPreviewFailed] = useState(false);
   const [latestPreviewActive, setLatestPreviewActive] = useState(false);
@@ -120,34 +139,53 @@ function TopSpotlights({ playCount }) {
         </span>
       </a>
 
-      <a
+      <article
         className="spotlight-card latest-spotlight"
-        href={`/${latestGame.slug}/`}
         onMouseEnter={() => startPreview(setLatestPreviewActive)}
         onMouseLeave={() => setLatestPreviewActive(false)}
-        onFocus={() => startPreview(setLatestPreviewActive)}
-        onBlur={() => setLatestPreviewActive(false)}
       >
-        <span className="latest-spotlight-art">
+        <a
+          className="latest-spotlight-art"
+          href={`/${latestGame.slug}/`}
+          onFocus={() => startPreview(setLatestPreviewActive)}
+          onBlur={() => setLatestPreviewActive(false)}
+        >
           <img
             src={showLatestPreview ? latestGame.hoverGif : latestGame.cover}
             alt=""
             decoding="async"
             onError={() => setLatestPreviewFailed(true)}
           />
-        </span>
+        </a>
         <span className="spotlight-copy">
-          <span className="spotlight-eyebrow">Latest game</span>
-          <strong>{latestGame.title}</strong>
-          <span className="spotlight-description">{latestGame.description}</span>
-          {Number.isFinite(playCount) && (
-            <span className="spotlight-plays">
-              {playCount.toLocaleString()} {playCount === 1 ? "play" : "plays"}
-            </span>
-          )}
-          <span className="spotlight-action">Play now <span aria-hidden="true">→</span></span>
+          <a
+            className="latest-spotlight-copy-link"
+            href={`/${latestGame.slug}/`}
+            onFocus={() => startPreview(setLatestPreviewActive)}
+            onBlur={() => setLatestPreviewActive(false)}
+          >
+            <span className="spotlight-eyebrow">Latest game</span>
+            <strong>{latestGame.title}</strong>
+            <span className="spotlight-description">{latestGame.description}</span>
+          </a>
+          <span className="spotlight-community">
+            {Number.isFinite(playCount) && (
+              <span className="spotlight-plays">
+                {playCount.toLocaleString()} {playCount === 1 ? "play" : "plays"}
+              </span>
+            )}
+            {Number.isFinite(commentCount) && (
+              <button type="button" onClick={() => onOpenComments(latestGame)}>
+                {commentCount.toLocaleString()} {commentCount === 1 ? "comment" : "comments"}
+              </button>
+            )}
+            <button type="button" onClick={() => onOpenComments(latestGame)}>Add comment</button>
+          </span>
+          <a className="spotlight-action" href={`/${latestGame.slug}/`}>
+            Play now <span aria-hidden="true">→</span>
+          </a>
         </span>
-      </a>
+      </article>
     </section>
   );
 }
@@ -376,6 +414,195 @@ function GuestbookModal({ isOpen, onClose, turnstileSiteKey }) {
   );
 }
 
+function CommentsModal({ game, onClose, turnstileSiteKey, onCommentAdded }) {
+  const [entries, setEntries] = useState([]);
+  const [name, setName] = useState("");
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [status, setStatus] = useState("");
+  const [error, setError] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const turnstileRef = useRef(null);
+  const turnstileWidgetId = useRef(null);
+  const closeButtonRef = useRef(null);
+
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    closeButtonRef.current?.focus();
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [onClose]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setLoading(true);
+    setError("");
+    fetch(`${commentsUrl}?slug=${encodeURIComponent(game.slug)}&limit=50`, { signal: controller.signal })
+      .then((response) => {
+        if (!response.ok) throw new Error("Could not load comments.");
+        return response.json();
+      })
+      .then((data) => setEntries(data.entries || []))
+      .catch((requestError) => {
+        if (requestError.name !== "AbortError") setError(requestError.message);
+      })
+      .finally(() => setLoading(false));
+    return () => controller.abort();
+  }, [game.slug]);
+
+  useEffect(() => {
+    if (!turnstileSiteKey || !turnstileRef.current) return undefined;
+    let cancelled = false;
+    loadTurnstile()
+      .then((turnstile) => {
+        if (cancelled || !turnstile || !turnstileRef.current) return;
+        turnstileWidgetId.current = turnstile.render(turnstileRef.current, {
+          sitekey: turnstileSiteKey,
+          theme: "light",
+          size: "flexible",
+          callback: (token) => {
+            setTurnstileToken(token);
+            setError("");
+          },
+          "expired-callback": () => setTurnstileToken(""),
+          "error-callback": () => {
+            setTurnstileToken("");
+            setError("Human verification had trouble loading. Please try again.");
+          },
+        });
+      })
+      .catch((turnstileError) => setError(turnstileError.message));
+
+    return () => {
+      cancelled = true;
+      if (turnstileWidgetId.current !== null && window.turnstile) {
+        window.turnstile.remove(turnstileWidgetId.current);
+        turnstileWidgetId.current = null;
+      }
+    };
+  }, [turnstileSiteKey]);
+
+  const submitComment = async (event) => {
+    event.preventDefault();
+    setSubmitting(true);
+    setStatus("");
+    setError("");
+
+    try {
+      const response = await fetch(commentsUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          slug: game.slug,
+          name,
+          message,
+          turnstileToken,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Could not post your comment.");
+      setEntries((currentEntries) => [data.entry, ...currentEntries]);
+      setMessage("");
+      setStatus("Your comment is live.");
+      setTurnstileToken("");
+      onCommentAdded(game.slug);
+      if (turnstileWidgetId.current !== null && window.turnstile) {
+        window.turnstile.reset(turnstileWidgetId.current);
+      }
+    } catch (submitError) {
+      setError(submitError.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const formatDate = (timestamp) => {
+    const date = new Date(timestamp);
+    return Number.isNaN(date.getTime())
+      ? ""
+      : new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", year: "numeric" }).format(date);
+  };
+
+  return (
+    <div className="guestbook-modal comments-modal" role="presentation" onMouseDown={(event) => {
+      if (event.target === event.currentTarget) onClose();
+    }}>
+      <section className="guestbook-panel comments-panel" role="dialog" aria-modal="true" aria-labelledby="comments-title">
+        <header className="guestbook-header">
+          <div>
+            <span className="guestbook-eyebrow">Game comments</span>
+            <h2 id="comments-title">{game.title}</h2>
+            <p>What did you think?</p>
+          </div>
+          <button ref={closeButtonRef} className="guestbook-close" type="button" onClick={onClose} aria-label="Close comments">
+            ×
+          </button>
+        </header>
+
+        <form className="guestbook-form" onSubmit={submitComment}>
+          <label>
+            Your name
+            <input
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              maxLength={50}
+              autoComplete="nickname"
+              placeholder="Anonymous Gamer"
+              required
+            />
+          </label>
+          <label>
+            Comment
+            <textarea
+              value={message}
+              onChange={(event) => setMessage(event.target.value)}
+              maxLength={500}
+              rows={3}
+              placeholder={`Leave a comment about ${game.title}...`}
+              required
+            />
+          </label>
+          <div className="guestbook-form-footer">
+            <span className="guestbook-counter">{message.length}/500</span>
+            <button type="submit" disabled={submitting || !turnstileToken}>
+              {submitting ? "Posting..." : "Post comment"}
+            </button>
+          </div>
+          {turnstileSiteKey
+            ? <div ref={turnstileRef} className="guestbook-turnstile" />
+            : <p className="guestbook-note">Human verification is unavailable right now.</p>}
+          {error && <p className="guestbook-error" role="alert">{error}</p>}
+          {status && <p className="guestbook-success" role="status">{status}</p>}
+        </form>
+
+        <div className="guestbook-entries" aria-live="polite">
+          {loading && <p className="guestbook-empty">Loading comments…</p>}
+          {!loading && entries.length === 0 && !error && (
+            <p className="guestbook-empty">Be the first to comment.</p>
+          )}
+          {!loading && entries.map((entry) => (
+            <article className="guestbook-entry" key={entry.id}>
+              <header>
+                <strong>{entry.name}</strong>
+                <time dateTime={entry.timestamp}>{formatDate(entry.timestamp)}</time>
+              </header>
+              <p>{entry.message}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
+
 function Footer({ tipUrl }) {
   return (
     <footer className="site-footer">
@@ -393,6 +620,8 @@ export default function App() {
   const [turnstileSiteKey, setTurnstileSiteKey] = useState("");
   const [guestbookOpen, setGuestbookOpen] = useState(false);
   const [playCounts, setPlayCounts] = useState({});
+  const [commentCounts, setCommentCounts] = useState(null);
+  const [commentGame, setCommentGame] = useState(null);
   const [nsfwRevealed, setNsfwRevealed] = useState(
     () => window.localStorage.getItem("mann.cool:nsfw-revealed") === "true",
   );
@@ -420,6 +649,18 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    const controller = new AbortController();
+    fetch(commentsUrl, { signal: controller.signal })
+      .then((response) => {
+        if (!response.ok) throw new Error("Could not load comment counts");
+        return response.json();
+      })
+      .then((data) => setCommentCounts(data.counts || {}))
+      .catch(() => {});
+    return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
     const onPopState = () => setActiveTag(initialTag());
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
@@ -442,6 +683,18 @@ export default function App() {
     setNsfwRevealed(true);
   };
 
+  const openComments = useCallback((game) => setCommentGame(game), []);
+  const closeComments = useCallback(() => setCommentGame(null), []);
+  const commentAdded = useCallback((slug) => {
+    setCommentCounts((current) => ({
+      ...(current || {}),
+      [slug]: Number(current?.[slug] || 0) + 1,
+    }));
+  }, []);
+  const commentCountFor = (slug) => (
+    commentCounts === null ? undefined : Number(commentCounts[slug] || 0)
+  );
+
   return (
     <div className="site-shell">
       <header className="site-header">
@@ -458,7 +711,11 @@ export default function App() {
       </header>
 
       <main>
-        <TopSpotlights playCount={playCounts[latestGame.slug]} />
+        <TopSpotlights
+          playCount={playCounts[latestGame.slug]}
+          commentCount={commentCountFor(latestGame.slug)}
+          onOpenComments={openComments}
+        />
 
         <section className="featured-section" aria-labelledby="featured-title">
           <div className="section-heading">
@@ -473,6 +730,8 @@ export default function App() {
                 nsfwRevealed={nsfwRevealed}
                 onRevealNsfw={revealNsfw}
                 playCount={playCounts[game.slug]}
+                commentCount={commentCountFor(game.slug)}
+                onOpenComments={openComments}
               />
             ))}
           </div>
@@ -506,6 +765,8 @@ export default function App() {
                 nsfwRevealed={nsfwRevealed}
                 onRevealNsfw={revealNsfw}
                 playCount={playCounts[game.slug]}
+                commentCount={commentCountFor(game.slug)}
+                onOpenComments={openComments}
               />
             ))}
           </div>
@@ -519,6 +780,15 @@ export default function App() {
         onClose={() => setGuestbookOpen(false)}
         turnstileSiteKey={turnstileSiteKey}
       />
+      {commentGame && (
+        <CommentsModal
+          key={commentGame.slug}
+          game={commentGame}
+          onClose={closeComments}
+          turnstileSiteKey={turnstileSiteKey}
+          onCommentAdded={commentAdded}
+        />
+      )}
     </div>
   );
 }

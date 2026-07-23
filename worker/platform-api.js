@@ -14,6 +14,8 @@ const LIMITS = {
   "plays:post": { requests: 60, seconds: 60 },
   "guestbook:get": { requests: 120, seconds: 60 },
   "guestbook:post": { requests: 5, seconds: 600 },
+  "comments:get": { requests: 120, seconds: 60 },
+  "comments:post": { requests: 5, seconds: 600 },
   "leaderboard:get": { requests: 120, seconds: 60 },
   "leaderboard:post": { requests: 20, seconds: 60 },
   "community-levels:get": { requests: 120, seconds: 60 },
@@ -322,6 +324,58 @@ async function handleGuestbook(request, env) {
   throw new HttpError(405, "Method not allowed");
 }
 
+async function handleComments(request, env) {
+  const url = new URL(request.url);
+  if (request.method === "GET") {
+    await enforceRateLimit(request, env, "comments:get");
+    const requestedSlug = cleanSlug(url.searchParams.get("slug") || url.searchParams.get("game"));
+    if (!requestedSlug) {
+      const result = await env.DB.prepare(`
+        SELECT slug, COUNT(*) AS count
+        FROM guestbook_entries
+        WHERE moderation_status = 'approved' AND slug != 'mann-cool'
+        GROUP BY slug ORDER BY slug
+      `).all();
+      const counts = Object.fromEntries(result.results.map((row) => [row.slug, Number(row.count)]));
+      return json({ success: true, counts });
+    }
+
+    await ensureRegisteredGame(env, requestedSlug);
+    const limit = Math.min(Math.max(Number(url.searchParams.get("limit")) || 50, 1), 100);
+    const result = await env.DB.prepare(`
+      SELECT id, slug, name, message, created_at AS timestamp
+      FROM guestbook_entries
+      WHERE slug = ? AND moderation_status = 'approved'
+      ORDER BY created_at DESC LIMIT ?
+    `).bind(requestedSlug, limit).all();
+    return json({ success: true, slug: requestedSlug, entries: result.results });
+  }
+
+  if (request.method === "POST") {
+    await enforceRateLimit(request, env, "comments:post");
+    const body = await readJson(request, 4_096);
+    const slug = cleanSlug(body.slug || body.game || url.searchParams.get("slug"));
+    if (!slug || slug === "mann-cool") throw new HttpError(400, "A valid game slug is required");
+    await ensureRegisteredGame(env, slug);
+    const name = cleanText(body.name || body.displayName, 50);
+    const message = cleanText(body.message || body.body, 500);
+    if (!name || !message) throw new HttpError(400, "Name and comment are required");
+    await verifyTurnstile(request, env, body.turnstileToken || body.turnstile_token);
+    const id = crypto.randomUUID();
+    const timestamp = new Date().toISOString();
+    const ipHash = await hashIdentity(remoteIp(request), env.RATE_LIMIT_SALT || "mann.cool-comments-v1");
+    await env.DB.prepare(`
+      INSERT INTO guestbook_entries
+        (id, slug, name, message, moderation_status, created_at, ip_hash)
+      VALUES (?, ?, ?, ?, 'approved', ?, ?)
+    `).bind(id, slug, name, message, timestamp, ipHash).run();
+    const entry = { id, slug, name, message, timestamp };
+    return json({ success: true, entry }, { status: 201 });
+  }
+
+  throw new HttpError(405, "Method not allowed");
+}
+
 function parseMetadata(value) {
   if (value === undefined || value === null) return {};
   if (typeof value !== "object" || Array.isArray(value)) throw new HttpError(400, "metadata must be an object");
@@ -536,6 +590,7 @@ export async function handlePlatformApi(request, env, endpoint, requestOptions =
   try {
     if (endpoint === "plays") return await handlePlays(request, env);
     if (endpoint === "guestbook") return await handleGuestbook(request, env);
+    if (endpoint === "comments") return await handleComments(request, env);
     if (endpoint === "leaderboard") return await handleLeaderboard(request, env, requestOptions.legacy === true);
     if (endpoint === "community-levels") return await handleCommunityLevels(request, env);
     return json({ error: "API route not found" }, { status: 404 });

@@ -83,9 +83,6 @@
       super();
       this.attachShadow({ mode: "open" });
       this.config = null;
-      this.turnstileToken = "";
-      this.turnstileWidgetId = null;
-      this.turnstileSetupPromise = null;
       this.leaderboardBoard = leaderboardBoards[0] || null;
     }
 
@@ -100,7 +97,7 @@
         <style>
           :host { ${shellThemeCss}; position:fixed; inset:0; z-index:2147483000; pointer-events:none; font:700 14px/1.2 var(--shell-font); color:var(--ink); }
           *,*::before,*::after { box-sizing:border-box; }
-          button,a,input,textarea { font:inherit; }
+          button,a { font:inherit; }
           button,a,.panel,.backdrop { pointer-events:auto; }
           .home { position:absolute; top:${homeTop}; left:max(12px,env(safe-area-inset-left)); display:inline-flex; align-items:center; gap:8px; min-height:44px; padding:0 13px; border:2px solid var(--ink); border-radius:var(--control-radius); color:var(--ink); background:var(--paper); box-shadow:4px 4px 0 var(--ink); text-decoration:none; text-transform:uppercase; letter-spacing:.045em; }
           .home:hover,.home:focus-visible { outline:3px solid var(--focus); outline-offset:2px; color:var(--paper); background:var(--ink); box-shadow:2px 2px 0 var(--ink); transform:translate(2px,2px); }
@@ -124,19 +121,9 @@
           .close:hover,.close:focus-visible { outline:3px solid var(--focus); outline-offset:2px; color:var(--panel); background:var(--accent); }
           .kicker { margin:0 48px 8px 0; color:var(--accent); font-size:11px; letter-spacing:.1em; text-transform:uppercase; }
           h2 { margin:0 48px 26px 0; font-family:var(--heading-font); font-size:clamp(32px,7vw,54px); line-height:.95; letter-spacing:-.025em; text-transform:uppercase; }
-          form { display:grid; gap:14px; }
-          label { display:grid; gap:7px; color:var(--panel-muted); font-size:12px; letter-spacing:.05em; text-transform:uppercase; }
-          input,textarea { width:100%; border:2px solid var(--panel-muted); border-radius:var(--control-radius); padding:12px; color:var(--panel-ink); background:var(--field); resize:vertical; }
-          input:focus-visible,textarea:focus-visible { outline:3px solid var(--focus); outline-offset:2px; }
-          form button { min-height:46px; border:2px solid var(--panel-ink); border-radius:var(--control-radius); color:var(--ink); background:var(--accent); box-shadow:4px 4px 0 var(--panel-ink); cursor:pointer; text-transform:uppercase; }
-          form button:disabled { color:var(--muted); background:var(--rule); box-shadow:none; cursor:not-allowed; opacity:1; }
           .status { color:var(--panel-muted); line-height:1.5; }
-          .entries,.scores { display:grid; gap:6px; margin:28px 0 0; padding:0; list-style:none; }
-          .entry,.score { padding:13px; border:1px solid var(--rule); border-radius:var(--control-radius); background:var(--field); }
-          .entry header,.score { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:12px; }
-          .entry time { color:var(--panel-muted); font-size:11px; }
-          .entry p { margin:8px 0 0; color:var(--panel-muted); font-weight:400; line-height:1.45; white-space:pre-wrap; }
-          .score { grid-template-columns:36px minmax(0,1fr) auto; align-items:center; }
+          .scores { display:grid; gap:6px; margin:28px 0 0; padding:0; list-style:none; }
+          .score { display:grid; grid-template-columns:36px minmax(0,1fr) auto; align-items:center; gap:12px; padding:13px; border:1px solid var(--rule); border-radius:var(--control-radius); background:var(--field); }
           .rank { color:var(--accent); }
           .leaderboard-tabs { display:flex; flex-wrap:wrap; gap:0; margin:0 0 12px; border:2px solid var(--panel-muted); }
           .leaderboard-tabs[hidden] { display:none; }
@@ -147,7 +134,6 @@
           .leaderboard-tabs.many button { min-width:0; min-height:36px; padding:0 6px; border-right:2px solid var(--panel-muted); border-bottom:2px solid var(--panel-muted); }
           .leaderboard-tabs.many button:first-child { grid-column:span 3; }
           .leaderboard-metric { margin:0; color:var(--panel-muted); font-size:12px; letter-spacing:.04em; text-transform:uppercase; }
-          .turnstile { min-height:65px; }
           @media (max-width:720px) {
             .actions { top:max(10px,env(safe-area-inset-top)); right:max(10px,env(safe-area-inset-right)); bottom:auto; }
             .action { width:54px; min-height:46px; }
@@ -169,7 +155,6 @@
           <button class="action menu-button" type="button" aria-label="Open game menu" aria-expanded="false">☰</button>
           <div class="menu" hidden>
             <p class="menu-title"></p>
-            <button type="button" data-open="guestbook"><span>Guestbook</span><span>↗</span></button>
             ${leaderboardEnabled
               ? (leaderboardUrl
                 ? `<a href="${leaderboardUrl}"><span>Leaderboard</span><span>↗</span></a>`
@@ -177,19 +162,6 @@
               : ""}
             <a data-patreon target="_blank" rel="noopener noreferrer"><span>Patreon</span><span>↗</span></a>
           </div>
-        </div>
-        <div class="backdrop" data-modal="guestbook" hidden>
-          <section class="panel" role="dialog" aria-modal="true" aria-labelledby="mann-cool-guestbook-title">
-            <button class="close" type="button" aria-label="Close">×</button><p class="kicker"></p>
-            <h2 id="mann-cool-guestbook-title">Guestbook</h2>
-            <form>
-              <label>Name<input name="name" maxlength="50" required autocomplete="name"></label>
-              <label>Message<textarea name="message" maxlength="500" rows="3" required></textarea></label>
-              <div class="turnstile"></div><p class="status form-status" hidden></p>
-              <button type="submit" disabled>Sign guestbook</button>
-            </form>
-            <div class="entries"><p class="status">Loading notes…</p></div>
-          </section>
         </div>
         <div class="backdrop" data-modal="leaderboard" hidden>
           <section class="panel" role="dialog" aria-modal="true" aria-labelledby="mann-cool-leaderboard-title">
@@ -242,7 +214,6 @@
         backdrop.addEventListener("click", (event) => { if (event.target === backdrop) this.closeModal(backdrop); });
         backdrop.querySelector(".close").addEventListener("click", () => this.closeModal(backdrop));
       });
-      this.shadowRoot.querySelector("form").addEventListener("submit", (event) => this.submitGuestbook(event));
       this.shadowRoot.querySelector(".leaderboard-tabs").addEventListener("click", (event) => {
         const button = event.target.closest("[data-leaderboard-board]");
         if (!button) return;
@@ -268,36 +239,6 @@
       patreon.href = this.config.patreonUrl || "https://www.patreon.com/jonathanmann";
       const tip = this.shadowRoot.querySelector("[data-tip]");
       if (this.config.tipUrl) { tip.href = this.config.tipUrl; tip.hidden = false; }
-      if (!this.config.turnstileSiteKey) this.setFormStatus("Guestbook signing is temporarily unavailable.");
-    }
-
-    async setupTurnstile() {
-      if (!window.turnstile) {
-        await new Promise((resolve, reject) => {
-          const existing = document.querySelector('script[data-mann-cool-turnstile]');
-          if (existing) { existing.addEventListener("load", resolve, { once:true }); existing.addEventListener("error", reject, { once:true }); return; }
-          const loader = document.createElement("script");
-          loader.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
-          loader.async = true; loader.defer = true; loader.dataset.mannCoolTurnstile = "true";
-          loader.addEventListener("load", resolve, { once:true }); loader.addEventListener("error", reject, { once:true });
-          document.head.append(loader);
-        });
-      }
-      this.turnstileWidgetId = window.turnstile.render(this.shadowRoot.querySelector(".turnstile"), {
-        sitekey: this.config.turnstileSiteKey,
-        theme: "dark",
-        callback: (token) => { this.turnstileToken = token; this.shadowRoot.querySelector("form button[type=submit]").disabled = false; },
-        "expired-callback": () => { this.turnstileToken = ""; this.shadowRoot.querySelector("form button[type=submit]").disabled = true; },
-      });
-    }
-
-    ensureTurnstile() {
-      if (!this.config?.turnstileSiteKey || this.turnstileWidgetId !== null) return;
-      if (!this.turnstileSetupPromise) {
-        this.turnstileSetupPromise = this.setupTurnstile().catch(() => {
-          this.setFormStatus("Guestbook verification could not load. Please try again.", true);
-        }).finally(() => { this.turnstileSetupPromise = null; });
-      }
     }
 
     openModal(name) {
@@ -305,50 +246,10 @@
       if (!modal) return;
       modal.hidden = false;
       modal.querySelector(".close").focus();
-      if (name === "guestbook") { this.loadGuestbook(); this.ensureTurnstile(); }
       if (name === "leaderboard") this.loadLeaderboard();
     }
 
     closeModal(modal) { modal.hidden = true; }
-
-    setFormStatus(message, isError = false) {
-      const status = this.shadowRoot.querySelector(".form-status");
-      status.textContent = message;
-      status.style.color = isError ? "#ff9c9c" : "var(--panel-muted)";
-      status.hidden = !message;
-    }
-
-    async loadGuestbook() {
-      const container = this.shadowRoot.querySelector(".entries");
-      try {
-        const response = await fetch(`/api/v1/guestbook?slug=${encodeURIComponent(slug)}&limit=50`);
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || "Guestbook unavailable");
-        container.replaceChildren();
-        if (!data.entries.length) { const empty = document.createElement("p"); empty.className = "status"; empty.textContent = "Be the first to leave a note."; container.append(empty); return; }
-        data.entries.forEach((entry) => {
-          const item = document.createElement("article"); item.className = "entry";
-          const header = document.createElement("header"); const name = document.createElement("strong"); const time = document.createElement("time");
-          name.textContent = entry.name; time.textContent = new Date(entry.timestamp).toLocaleDateString();
-          const message = document.createElement("p"); message.textContent = entry.message;
-          header.append(name, time); item.append(header, message); container.append(item);
-        });
-      } catch (error) { container.innerHTML = `<p class="status"></p>`; container.firstElementChild.textContent = error.message; }
-    }
-
-    async submitGuestbook(event) {
-      event.preventDefault();
-      const form = event.currentTarget; const button = form.querySelector("button[type=submit]");
-      button.disabled = true; this.setFormStatus("Signing…");
-      try {
-        const fields = new FormData(form);
-        const response = await fetch("/api/v1/guestbook", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ slug, name:fields.get("name"), message:fields.get("message"), turnstileToken:this.turnstileToken }) });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || "Could not sign guestbook");
-        form.reset(); this.setFormStatus("Thanks for signing."); await this.loadGuestbook();
-      } catch (error) { this.setFormStatus(error.message, true); }
-      finally { this.turnstileToken = ""; if (window.turnstile && this.turnstileWidgetId !== null) window.turnstile.reset(this.turnstileWidgetId); }
-    }
 
     async loadLeaderboard() {
       const container = this.shadowRoot.querySelector(".scores");
