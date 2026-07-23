@@ -25,8 +25,9 @@ img { display:block; max-width:100%; }
 .wordmark:focus-visible { outline:3px solid #171714; outline-offset:5px; }
 .site-nav { display:flex; align-items:center; justify-content:flex-end; gap:10px 20px; flex-wrap:wrap; color:#6d6a61; font-size:15px; }
 .site-nav a,.nav-guestbook { text-underline-offset:3px; }
-.nav-guestbook { border:0; padding:0; color:inherit; background:transparent; text-decoration:underline; cursor:pointer; }
-.site-nav a:hover,.site-nav a:focus-visible,.nav-guestbook:hover,.nav-guestbook:focus-visible { color:#171714; }
+.nav-guestbook { border:0; padding:0; color:transparent; background:linear-gradient(90deg,#e53935,#f57c00,#fbc02d,#43a047,#1e88e5,#8e24aa); background-clip:text; -webkit-background-clip:text; font-weight:800; text-decoration:underline; text-decoration-color:#8e24aa; cursor:pointer; }
+.site-nav a:hover,.site-nav a:focus-visible { color:#171714; }
+.nav-guestbook:hover,.nav-guestbook:focus-visible { color:transparent; filter:saturate(1.35) brightness(.9); }
 
 main { display:grid; gap:clamp(52px,6vw,78px); padding:clamp(36px,4.5vw,62px) 0 80px; }
 .section-heading { display:flex; align-items:end; justify-content:space-between; gap:24px; margin-bottom:20px; }
