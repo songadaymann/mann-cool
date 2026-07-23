@@ -1409,7 +1409,28 @@
         "enabled": true,
         "direction": "asc",
         "variants": [
-          "campaign"
+          "campaign",
+          "tutorial",
+          "level-1",
+          "level-2",
+          "level-3",
+          "level-4",
+          "level-5",
+          "level-6",
+          "level-7",
+          "level-8",
+          "level-9",
+          "level-10",
+          "level-11",
+          "level-12",
+          "level-13",
+          "level-14",
+          "level-15",
+          "level-16",
+          "level-17",
+          "level-18",
+          "level-19",
+          "level-20"
         ],
         "boards": [
           {
@@ -1417,6 +1438,216 @@
             "label": "Campaign",
             "metric": "adjustedTimeMs",
             "metricLabel": "Full-campaign time minus 10 seconds per red cup",
+            "direction": "asc",
+            "display": "time-ms",
+            "aggregation": "best",
+            "minimumMatches": 1
+          },
+          {
+            "variant": "tutorial",
+            "label": "T",
+            "metric": "adjustedTimeMs",
+            "metricLabel": "Tutorial time minus 10 seconds per red cup",
+            "direction": "asc",
+            "display": "time-ms",
+            "aggregation": "best",
+            "minimumMatches": 1
+          },
+          {
+            "variant": "level-1",
+            "label": "1",
+            "metric": "adjustedTimeMs",
+            "metricLabel": "Level 1 time minus 10 seconds per red cup",
+            "direction": "asc",
+            "display": "time-ms",
+            "aggregation": "best",
+            "minimumMatches": 1
+          },
+          {
+            "variant": "level-2",
+            "label": "2",
+            "metric": "adjustedTimeMs",
+            "metricLabel": "Level 2 time minus 10 seconds per red cup",
+            "direction": "asc",
+            "display": "time-ms",
+            "aggregation": "best",
+            "minimumMatches": 1
+          },
+          {
+            "variant": "level-3",
+            "label": "3",
+            "metric": "adjustedTimeMs",
+            "metricLabel": "Level 3 time minus 10 seconds per red cup",
+            "direction": "asc",
+            "display": "time-ms",
+            "aggregation": "best",
+            "minimumMatches": 1
+          },
+          {
+            "variant": "level-4",
+            "label": "4",
+            "metric": "adjustedTimeMs",
+            "metricLabel": "Level 4 time minus 10 seconds per red cup",
+            "direction": "asc",
+            "display": "time-ms",
+            "aggregation": "best",
+            "minimumMatches": 1
+          },
+          {
+            "variant": "level-5",
+            "label": "5",
+            "metric": "adjustedTimeMs",
+            "metricLabel": "Level 5 time minus 10 seconds per red cup",
+            "direction": "asc",
+            "display": "time-ms",
+            "aggregation": "best",
+            "minimumMatches": 1
+          },
+          {
+            "variant": "level-6",
+            "label": "6",
+            "metric": "adjustedTimeMs",
+            "metricLabel": "Level 6 time minus 10 seconds per red cup",
+            "direction": "asc",
+            "display": "time-ms",
+            "aggregation": "best",
+            "minimumMatches": 1
+          },
+          {
+            "variant": "level-7",
+            "label": "7",
+            "metric": "adjustedTimeMs",
+            "metricLabel": "Level 7 time minus 10 seconds per red cup",
+            "direction": "asc",
+            "display": "time-ms",
+            "aggregation": "best",
+            "minimumMatches": 1
+          },
+          {
+            "variant": "level-8",
+            "label": "8",
+            "metric": "adjustedTimeMs",
+            "metricLabel": "Level 8 time minus 10 seconds per red cup",
+            "direction": "asc",
+            "display": "time-ms",
+            "aggregation": "best",
+            "minimumMatches": 1
+          },
+          {
+            "variant": "level-9",
+            "label": "9",
+            "metric": "adjustedTimeMs",
+            "metricLabel": "Level 9 time minus 10 seconds per red cup",
+            "direction": "asc",
+            "display": "time-ms",
+            "aggregation": "best",
+            "minimumMatches": 1
+          },
+          {
+            "variant": "level-10",
+            "label": "10",
+            "metric": "adjustedTimeMs",
+            "metricLabel": "Level 10 time minus 10 seconds per red cup",
+            "direction": "asc",
+            "display": "time-ms",
+            "aggregation": "best",
+            "minimumMatches": 1
+          },
+          {
+            "variant": "level-11",
+            "label": "11",
+            "metric": "adjustedTimeMs",
+            "metricLabel": "Level 11 time minus 10 seconds per red cup",
+            "direction": "asc",
+            "display": "time-ms",
+            "aggregation": "best",
+            "minimumMatches": 1
+          },
+          {
+            "variant": "level-12",
+            "label": "12",
+            "metric": "adjustedTimeMs",
+            "metricLabel": "Level 12 time minus 10 seconds per red cup",
+            "direction": "asc",
+            "display": "time-ms",
+            "aggregation": "best",
+            "minimumMatches": 1
+          },
+          {
+            "variant": "level-13",
+            "label": "13",
+            "metric": "adjustedTimeMs",
+            "metricLabel": "Level 13 time minus 10 seconds per red cup",
+            "direction": "asc",
+            "display": "time-ms",
+            "aggregation": "best",
+            "minimumMatches": 1
+          },
+          {
+            "variant": "level-14",
+            "label": "14",
+            "metric": "adjustedTimeMs",
+            "metricLabel": "Level 14 time minus 10 seconds per red cup",
+            "direction": "asc",
+            "display": "time-ms",
+            "aggregation": "best",
+            "minimumMatches": 1
+          },
+          {
+            "variant": "level-15",
+            "label": "15",
+            "metric": "adjustedTimeMs",
+            "metricLabel": "Level 15 time minus 10 seconds per red cup",
+            "direction": "asc",
+            "display": "time-ms",
+            "aggregation": "best",
+            "minimumMatches": 1
+          },
+          {
+            "variant": "level-16",
+            "label": "16",
+            "metric": "adjustedTimeMs",
+            "metricLabel": "Level 16 time minus 10 seconds per red cup",
+            "direction": "asc",
+            "display": "time-ms",
+            "aggregation": "best",
+            "minimumMatches": 1
+          },
+          {
+            "variant": "level-17",
+            "label": "17",
+            "metric": "adjustedTimeMs",
+            "metricLabel": "Level 17 time minus 10 seconds per red cup",
+            "direction": "asc",
+            "display": "time-ms",
+            "aggregation": "best",
+            "minimumMatches": 1
+          },
+          {
+            "variant": "level-18",
+            "label": "18",
+            "metric": "adjustedTimeMs",
+            "metricLabel": "Level 18 time minus 10 seconds per red cup",
+            "direction": "asc",
+            "display": "time-ms",
+            "aggregation": "best",
+            "minimumMatches": 1
+          },
+          {
+            "variant": "level-19",
+            "label": "19",
+            "metric": "adjustedTimeMs",
+            "metricLabel": "Level 19 time minus 10 seconds per red cup",
+            "direction": "asc",
+            "display": "time-ms",
+            "aggregation": "best",
+            "minimumMatches": 1
+          },
+          {
+            "variant": "level-20",
+            "label": "20",
+            "metric": "adjustedTimeMs",
+            "metricLabel": "Level 20 time minus 10 seconds per red cup",
             "direction": "asc",
             "display": "time-ms",
             "aggregation": "best",

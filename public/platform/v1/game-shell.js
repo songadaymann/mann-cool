@@ -140,6 +140,9 @@
           .leaderboard-tabs button { flex:1 1 120px; min-height:42px; padding:0 12px; border:0; border-right:2px solid var(--panel-muted); border-radius:0; color:var(--panel-ink); background:var(--panel); cursor:pointer; }
           .leaderboard-tabs button:last-child { border-right:0; }
           .leaderboard-tabs button[aria-selected="true"] { color:var(--ink); background:var(--accent); }
+          .leaderboard-tabs.many { display:grid; grid-template-columns:repeat(7,minmax(42px,1fr)); max-height:190px; overflow:auto; }
+          .leaderboard-tabs.many button { min-width:0; min-height:36px; padding:0 6px; border-right:2px solid var(--panel-muted); border-bottom:2px solid var(--panel-muted); }
+          .leaderboard-tabs.many button:first-child { grid-column:span 3; }
           .leaderboard-metric { margin:0; color:var(--panel-muted); font-size:12px; letter-spacing:.04em; text-transform:uppercase; }
           .turnstile { min-height:65px; }
           @media (max-width:720px) {
@@ -148,6 +151,8 @@
             .menu { top:54px; right:0; bottom:auto; width:min(260px,calc(100vw - 20px)); }
             .backdrop { align-items:end; padding:10px; }
             .panel { max-height:calc(100dvh - 20px); border-radius:22px; }
+            .leaderboard-tabs.many { grid-template-columns:repeat(5,minmax(42px,1fr)); max-height:200px; }
+            .leaderboard-tabs.many button:first-child { grid-column:span 2; }
           }
           @media (max-height:520px) and (orientation:landscape) {
             .actions { top:max(10px,env(safe-area-inset-top)); right:max(10px,env(safe-area-inset-right)); bottom:auto; display:flex; }
@@ -202,6 +207,7 @@
       const metric = this.shadowRoot.querySelector(".leaderboard-metric");
       tabs.replaceChildren();
       tabs.hidden = leaderboardBoards.length <= 1;
+      tabs.classList.toggle("many", leaderboardBoards.length > 8);
       leaderboardBoards.forEach((board) => {
         const button = document.createElement("button");
         button.type = "button";
