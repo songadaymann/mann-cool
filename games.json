@@ -17,6 +17,7 @@
       "title": "Coldplay Canoodle",
       "description": "My first viral game. You're the kiss cam operator. Find the cheating CEO at the Coldplay Concert.",
       "cover": "/covers/coldplay-canoodle.webp",
+      "hoverGif": "/game-gifs/coldplay-canoodle.gif",
       "tags": [
         "funny",
         "weird"
@@ -53,6 +54,7 @@
       "title": "Crypto Tax Nightmare",
       "description": "The first video game I ever made. Relive the trauma of selling your life's work for $3 million then losing it all to bad decisions and taxes.",
       "cover": "/covers/crypto-tax-nightmare.webp",
+      "hoverGif": "/game-gifs/ctn.gif",
       "tags": [
         "funny",
         "weird"
