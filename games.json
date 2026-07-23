@@ -1393,6 +1393,7 @@
       "title": "JIMOTHY VS FLOCK INC",
       "description": "Guide Jimothy through watched alleys, smash every Flock Inc camera, recover missed rocks, collect discarded cups, and make it home.",
       "cover": "/covers/jimothy-vs-flock-inc.webp",
+      "hoverGif": "/game-gifs/jimothy.gif",
       "tags": [
         "funny",
         "weird",
