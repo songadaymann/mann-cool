@@ -88,6 +88,7 @@
       "title": "Windows Didn't Load Correctly",
       "description": "A game based on the song I wrote Based on the time CrowdStrike took all Windows computers offline. You play as Steve Ballmer.",
       "cover": "/covers/windows-didn't-load.webp",
+      "hoverGif": "/game-gifs/windows.gif",
       "tags": [
         "funny",
         "weird"
