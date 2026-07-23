@@ -5,6 +5,9 @@
   const leaderboardEnabled = script?.dataset.leaderboard === "true";
   const leaderboardUrl = script?.dataset.leaderboardUrl || "";
   const leaderboardVariant = script?.dataset.leaderboardVariant || "default";
+  const homeTop = slug === "windows"
+    ? "max(68px,calc(env(safe-area-inset-top) + 68px))"
+    : "max(12px,env(safe-area-inset-top))";
   const defaultShellTheme = {
     paper: "#f8f7f2",
     ink: "#171714",
@@ -99,7 +102,7 @@
           *,*::before,*::after { box-sizing:border-box; }
           button,a,input,textarea { font:inherit; }
           button,a,.panel,.backdrop { pointer-events:auto; }
-          .home { position:absolute; top:max(12px,env(safe-area-inset-top)); left:max(12px,env(safe-area-inset-left)); display:inline-flex; align-items:center; gap:8px; min-height:44px; padding:0 13px; border:2px solid var(--ink); border-radius:var(--control-radius); color:var(--ink); background:var(--paper); box-shadow:4px 4px 0 var(--ink); text-decoration:none; text-transform:uppercase; letter-spacing:.045em; }
+          .home { position:absolute; top:${homeTop}; left:max(12px,env(safe-area-inset-left)); display:inline-flex; align-items:center; gap:8px; min-height:44px; padding:0 13px; border:2px solid var(--ink); border-radius:var(--control-radius); color:var(--ink); background:var(--paper); box-shadow:4px 4px 0 var(--ink); text-decoration:none; text-transform:uppercase; letter-spacing:.045em; }
           .home:hover,.home:focus-visible { outline:3px solid var(--focus); outline-offset:2px; color:var(--paper); background:var(--ink); box-shadow:2px 2px 0 var(--ink); transform:translate(2px,2px); }
           .home b { font-size:16px; }
           .actions { position:absolute; top:max(12px,env(safe-area-inset-top)); right:max(12px,env(safe-area-inset-right)); display:flex; gap:8px; }
