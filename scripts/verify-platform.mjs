@@ -28,19 +28,26 @@ const config = await check("/platform/config.json", 200);
 if (config.json?.version !== 1 || !config.json?.homeUrl || !config.json?.patreonUrl) {
   throw new Error("Platform config is incomplete");
 }
-const shell = await check("/platform/v1/game-shell.js", 200);
-if (!shell.body.includes("api/v1/plays") || !shell.body.includes("api/v1/guestbook") || !shell.body.includes("leaderboardBoards") || !shell.body.includes("data-leaderboard-board")) {
-  throw new Error("Shared shell does not reference the v1 APIs and toggleable leaderboard boards");
+const shell = await check("/platform/v1/game-shell.js", 200, { redirect: "follow" });
+if (!shell.body.includes("api/v1/plays") || !shell.body.includes("leaderboardBoards") || !shell.body.includes("data-leaderboard-board")) {
+  throw new Error("Shared shell does not reference the play API and toggleable leaderboard boards");
+}
+if (shell.body.includes("api/v1/guestbook") || shell.body.includes("Guestbook")) {
+  throw new Error("Shared shell still contains the retired per-game guestbook");
 }
 
 for (const prefix of ["/api/v1", "/api"]) {
   const plays = await check(`${prefix}/plays?slug=fuckice`, 200);
   if (plays.json?.slug !== "fuckice" || !Number.isFinite(plays.json?.count)) throw new Error(`${prefix}/plays shape is invalid`);
   await check(`${prefix}/plays?slug=not-a-registered-game`, 404);
-  const guestbook = await check(`${prefix}/guestbook?slug=fuckice&limit=2`, 200);
-  if (guestbook.json?.slug !== "fuckice" || !Array.isArray(guestbook.json?.entries)) throw new Error(`${prefix}/guestbook shape is invalid`);
-  const isolatedGuestbook = await check(`${prefix}/guestbook?slug=hell&limit=2`, 200);
-  if (isolatedGuestbook.json?.slug !== "hell" || isolatedGuestbook.json.entries.some((entry) => entry.slug !== "hell")) throw new Error(`${prefix}/guestbook is not isolated by slug`);
+  const guestbook = await check(`${prefix}/guestbook?slug=mann-cool&limit=2`, 200);
+  if (guestbook.json?.slug !== "mann-cool" || !Array.isArray(guestbook.json?.entries)) throw new Error(`${prefix}/guestbook shape is invalid`);
+  const commentCounts = await check(`${prefix}/comments`, 200);
+  if (!commentCounts.json?.counts || Array.isArray(commentCounts.json.counts)) throw new Error(`${prefix}/comments count shape is invalid`);
+  const comments = await check(`${prefix}/comments?slug=hell&limit=2`, 200);
+  if (comments.json?.slug !== "hell" || !Array.isArray(comments.json?.entries) || comments.json.entries.some((entry) => entry.slug !== "hell")) {
+    throw new Error(`${prefix}/comments shape or slug isolation is invalid`);
+  }
   await check(`${prefix}/leaderboard?slug=sledding&variant=not-real`, 400);
   await check(`${prefix}/leaderboard?slug=fuckice&variant=default`, 404);
   const ascending = await check(`${prefix}/leaderboard?slug=sledding&variant=default&limit=100`, 200);
@@ -49,7 +56,7 @@ for (const prefix of ["/api/v1", "/api"]) {
   if (descending.json?.direction !== "desc") throw new Error("Descending leaderboard configuration is missing");
 }
 
-await check("/api/v1/guestbook", [400, 503], {
+await check("/api/v1/comments", [400, 503], {
   method: "POST",
   headers: { "content-type": "application/json" },
   body: JSON.stringify({ slug: "fuckice", name: "Platform audit", message: "Turnstile is required" }),
@@ -65,7 +72,7 @@ await check("/api/v1/plays", 413, {
   headers: { "content-type": "application/json" },
   body: JSON.stringify({ slug: "fuckice", source: "verification", padding: "x".repeat(2_100) }),
 });
-const preflight = await check("/api/v1/guestbook", 204, { method: "OPTIONS" });
+const preflight = await check("/api/v1/comments", 204, { method: "OPTIONS" });
 if (preflight.response.headers.get("access-control-allow-origin") !== "*") throw new Error("CORS preflight headers are missing");
 
 if (allowWrites) {
