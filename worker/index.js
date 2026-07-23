@@ -3,6 +3,7 @@ import { handleLegacyApi } from "./legacy-api.js";
 import { handlePlatformApi } from "./platform-api.js";
 
 const PLATFORM_ENDPOINTS = new Set(["plays", "guestbook", "leaderboard", "community-levels"]);
+const GAME_SHELL_VERSION = "20260723-home-offset1";
 
 function platformConfig(env) {
   return Response.json({
@@ -60,6 +61,10 @@ async function handleRequest(request, env) {
   }
 
   if (url.pathname === "/platform/config.json") return platformConfig(env);
+  if (url.pathname === "/platform/v1/game-shell.js" && url.searchParams.get("v") !== GAME_SHELL_VERSION) {
+    url.searchParams.set("v", GAME_SHELL_VERSION);
+    return Response.redirect(url, 307);
+  }
   if (url.pathname.startsWith("/platform/")) return env.ASSETS.fetch(request);
 
   if (segments[0] === "jimothy-vs-flock-inc") {
