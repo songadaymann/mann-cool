@@ -155,10 +155,10 @@ function TopSpotlights({ playCount }) {
 function SupportLinks({ tipUrl }) {
   return (
     <>
-      <a href="https://www.patreon.com/jonathanmann" target="_blank" rel="noreferrer">Patreon</a>
-      {tipUrl && <a href={tipUrl} target="_blank" rel="noreferrer">Tip Jar</a>}
-      <a href="https://x.com/songadaymann" target="_blank" rel="noreferrer">X</a>
-      <a href="https://instagram.com/jonathanmann" target="_blank" rel="noreferrer">Instagram</a>
+      <a className="support-patreon" href="https://www.patreon.com/jonathanmann" target="_blank" rel="noreferrer">Patreon</a>
+      {tipUrl && <a className="support-tip" href={tipUrl} target="_blank" rel="noreferrer">Tip Jar</a>}
+      <a className="support-x" href="https://x.com/songadaymann" target="_blank" rel="noreferrer">X</a>
+      <a className="support-instagram" href="https://instagram.com/jonathanmann" target="_blank" rel="noreferrer">Instagram</a>
       <a href="mailto:jonathan@jonathanmann.net">Contact</a>
     </>
   );
