@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import catalog from "../games.json";
 
 const publishedGames = catalog.games.filter((game) => game.status === "published");
@@ -12,6 +12,9 @@ const latestGame = publishedGames
 const playCountsUrl = ["localhost", "127.0.0.1"].includes(window.location.hostname)
   ? "https://mann.cool/api/v1/plays"
   : "/api/v1/plays";
+const guestbookUrl = ["localhost", "127.0.0.1"].includes(window.location.hostname)
+  ? "https://mann.cool/api/v1/guestbook"
+  : "/api/v1/guestbook";
 
 function initialTag() {
   const value = new URLSearchParams(window.location.search).get("tag");
@@ -161,6 +164,218 @@ function SupportLinks({ tipUrl }) {
   );
 }
 
+function loadTurnstile() {
+  if (window.turnstile) return Promise.resolve(window.turnstile);
+
+  return new Promise((resolve, reject) => {
+    let script = document.querySelector("#mann-cool-turnstile-script");
+    if (!script) {
+      script = document.createElement("script");
+      script.id = "mann-cool-turnstile-script";
+      script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+      script.async = true;
+      script.defer = true;
+      document.head.append(script);
+    }
+
+    script.addEventListener("load", () => resolve(window.turnstile), { once: true });
+    script.addEventListener("error", () => reject(new Error("Human verification could not load.")), { once: true });
+  });
+}
+
+function GuestbookModal({ isOpen, onClose, turnstileSiteKey }) {
+  const [entries, setEntries] = useState([]);
+  const [name, setName] = useState("");
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [status, setStatus] = useState("");
+  const [error, setError] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const turnstileRef = useRef(null);
+  const turnstileWidgetId = useRef(null);
+  const closeButtonRef = useRef(null);
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    closeButtonRef.current?.focus();
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [isOpen, onClose]);
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    const controller = new AbortController();
+    setLoading(true);
+    setError("");
+    fetch(`${guestbookUrl}?slug=mann-cool&limit=50`, { signal: controller.signal })
+      .then((response) => {
+        if (!response.ok) throw new Error("Could not load the guestbook.");
+        return response.json();
+      })
+      .then((data) => setEntries(data.entries || []))
+      .catch((requestError) => {
+        if (requestError.name !== "AbortError") setError(requestError.message);
+      })
+      .finally(() => setLoading(false));
+    return () => controller.abort();
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen || !turnstileSiteKey || !turnstileRef.current) return undefined;
+    let cancelled = false;
+    loadTurnstile()
+      .then((turnstile) => {
+        if (cancelled || !turnstile || !turnstileRef.current) return;
+        turnstileWidgetId.current = turnstile.render(turnstileRef.current, {
+          sitekey: turnstileSiteKey,
+          theme: "light",
+          size: "flexible",
+          callback: (token) => {
+            setTurnstileToken(token);
+            setError("");
+          },
+          "expired-callback": () => setTurnstileToken(""),
+          "error-callback": () => {
+            setTurnstileToken("");
+            setError("Human verification had trouble loading. Please try again.");
+          },
+        });
+      })
+      .catch((turnstileError) => setError(turnstileError.message));
+
+    return () => {
+      cancelled = true;
+      if (turnstileWidgetId.current !== null && window.turnstile) {
+        window.turnstile.remove(turnstileWidgetId.current);
+        turnstileWidgetId.current = null;
+      }
+      setTurnstileToken("");
+    };
+  }, [isOpen, turnstileSiteKey]);
+
+  const submitEntry = async (event) => {
+    event.preventDefault();
+    setSubmitting(true);
+    setStatus("");
+    setError("");
+
+    try {
+      const response = await fetch(`${guestbookUrl}?slug=mann-cool`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          slug: "mann-cool",
+          name,
+          message,
+          turnstileToken,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Could not sign the guestbook.");
+      setEntries((currentEntries) => [data.entry, ...currentEntries]);
+      setMessage("");
+      setStatus("Thanks for signing the guestbook!");
+      setTurnstileToken("");
+      if (turnstileWidgetId.current !== null && window.turnstile) {
+        window.turnstile.reset(turnstileWidgetId.current);
+      }
+    } catch (submitError) {
+      setError(submitError.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const formatDate = (timestamp) => {
+    const date = new Date(timestamp);
+    return Number.isNaN(date.getTime())
+      ? ""
+      : new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", year: "numeric" }).format(date);
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="guestbook-modal" role="presentation" onMouseDown={(event) => {
+      if (event.target === event.currentTarget) onClose();
+    }}>
+      <section className="guestbook-panel" role="dialog" aria-modal="true" aria-labelledby="guestbook-title">
+        <header className="guestbook-header">
+          <div>
+            <span className="guestbook-eyebrow">You were here</span>
+            <h2 id="guestbook-title">mann.cool guestbook</h2>
+            <p>Sign the guestbook, just like the old days.</p>
+          </div>
+          <button ref={closeButtonRef} className="guestbook-close" type="button" onClick={onClose} aria-label="Close guestbook">
+            ×
+          </button>
+        </header>
+
+        <form className="guestbook-form" onSubmit={submitEntry}>
+          <label>
+            Your name
+            <input
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              maxLength={50}
+              autoComplete="nickname"
+              placeholder="Anonymous Gamer"
+              required
+            />
+          </label>
+          <label>
+            Message
+            <textarea
+              value={message}
+              onChange={(event) => setMessage(event.target.value)}
+              maxLength={500}
+              rows={3}
+              placeholder="Leave a message..."
+              required
+            />
+          </label>
+          <div className="guestbook-form-footer">
+            <span className="guestbook-counter">{message.length}/500</span>
+            <button type="submit" disabled={submitting || !turnstileToken}>
+              {submitting ? "Signing..." : "Sign guestbook"}
+            </button>
+          </div>
+          {turnstileSiteKey
+            ? <div ref={turnstileRef} className="guestbook-turnstile" />
+            : <p className="guestbook-note">Human verification is unavailable right now.</p>}
+          {error && <p className="guestbook-error" role="alert">{error}</p>}
+          {status && <p className="guestbook-success" role="status">{status}</p>}
+        </form>
+
+        <div className="guestbook-entries" aria-live="polite">
+          {loading && <p className="guestbook-empty">Loading signatures…</p>}
+          {!loading && entries.length === 0 && !error && (
+            <p className="guestbook-empty">Be the first to sign.</p>
+          )}
+          {!loading && entries.map((entry) => (
+            <article className="guestbook-entry" key={entry.id}>
+              <header>
+                <strong>{entry.name}</strong>
+                <time dateTime={entry.timestamp}>{formatDate(entry.timestamp)}</time>
+              </header>
+              <p>{entry.message}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
+
 function Footer({ tipUrl }) {
   return (
     <footer className="site-footer">
@@ -175,6 +390,8 @@ function Footer({ tipUrl }) {
 export default function App() {
   const [activeTag, setActiveTag] = useState(initialTag);
   const [tipUrl, setTipUrl] = useState("");
+  const [turnstileSiteKey, setTurnstileSiteKey] = useState("");
+  const [guestbookOpen, setGuestbookOpen] = useState(false);
   const [playCounts, setPlayCounts] = useState({});
   const [nsfwRevealed, setNsfwRevealed] = useState(
     () => window.localStorage.getItem("mann.cool:nsfw-revealed") === "true",
@@ -183,7 +400,10 @@ export default function App() {
   useEffect(() => {
     fetch("/platform/config.json")
       .then((response) => response.json())
-      .then((config) => setTipUrl(config.tipUrl || ""))
+      .then((config) => {
+        setTipUrl(config.tipUrl || "");
+        setTurnstileSiteKey(config.turnstileSiteKey || "");
+      })
       .catch(() => {});
   }, []);
 
@@ -230,6 +450,9 @@ export default function App() {
           <p>games by Jonathan Mann, maker of Song A Day</p>
         </div>
         <nav className="site-nav" aria-label="Support and contact">
+          <button className="nav-guestbook" type="button" onClick={() => setGuestbookOpen(true)}>
+            Guestbook
+          </button>
           <SupportLinks tipUrl={tipUrl} />
         </nav>
       </header>
@@ -291,6 +514,11 @@ export default function App() {
       </main>
 
       <Footer tipUrl={tipUrl} />
+      <GuestbookModal
+        isOpen={guestbookOpen}
+        onClose={() => setGuestbookOpen(false)}
+        turnstileSiteKey={turnstileSiteKey}
+      />
     </div>
   );
 }
