@@ -83,19 +83,48 @@ async function verifyTurnstile(request, env, token) {
     throw new HttpError(400, "Human verification is required");
   }
 
-  const response = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      secret: env.TURNSTILE_SECRET_KEY,
-      response: String(token),
-      remoteip: remoteIp(request),
-      idempotency_key: crypto.randomUUID(),
-    }),
-  });
-  const result = await response.json();
+  let response;
+  let result;
+  try {
+    response = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        secret: env.TURNSTILE_SECRET_KEY,
+        response: String(token),
+        remoteip: remoteIp(request),
+        idempotency_key: crypto.randomUUID(),
+      }),
+    });
+    result = await response.json();
+  } catch (error) {
+    console.warn(JSON.stringify({
+      message: "Turnstile verification request failed",
+      error: error instanceof Error ? error.message : String(error),
+    }));
+    throw new HttpError(503, "Human verification had a temporary problem. Please try again.");
+  }
+
   if (!response.ok || result.success !== true) {
-    throw new HttpError(400, "Human verification failed");
+    const errorCodes = Array.isArray(result?.["error-codes"])
+      ? result["error-codes"].filter((code) => typeof code === "string")
+      : [];
+    console.warn(JSON.stringify({
+      message: "Turnstile verification rejected",
+      status: response.status,
+      errorCodes,
+    }));
+
+    if (errorCodes.includes("missing-input-secret") || errorCodes.includes("invalid-input-secret")) {
+      throw new HttpError(503, "Human verification is temporarily unavailable.");
+    }
+    if (!response.ok || errorCodes.includes("internal-error")) {
+      throw new HttpError(503, "Human verification had a temporary problem. Please try again.");
+    }
+    if (errorCodes.includes("timeout-or-duplicate")) {
+      throw new HttpError(400, "Human check expired or was already used. Please complete it again.");
+    }
+    throw new HttpError(400, "Human check could not be verified. Please complete it again.");
   }
 }
 
