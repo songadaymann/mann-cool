@@ -232,13 +232,14 @@ function create() {
     // Add win sound effect
     const winSound = this.sound.add('winsound', { volume: 0.8 });
     
-    // Add music toggle button at top right (initially hidden)
+    // Add music toggle button at top right. Music starts off so browsers do not
+    // block autoplay now that the game opens directly into gameplay.
     let musicPlaying = false;
     const musicToggle = this.add.text(this.cameras.main.width - 16, 16, '♪ OFF', {
         fontSize: '24px',
         color: '#ffffff',
         fontFamily: 'Arial',
-    }).setOrigin(1, 0).setDepth(100).setInteractive({ cursor: 'pointer' }).setVisible(false);
+    }).setOrigin(1, 0).setDepth(100).setInteractive({ cursor: 'pointer' }).setVisible(MUSIC_ENABLED);
     
     musicToggle.on('pointerdown', () => {
         musicPlaying = !musicPlaying;
@@ -251,102 +252,6 @@ function create() {
         }
     });
     
-    // Create intro screen with the working CSS font approach
-    const createIntroScreen = () => {
-        const introScreen = this.add.container(this.cameras.main.width / 2, this.cameras.main.height / 2);
-        introScreen.setDepth(200);
-        
-        // Modal background - wider and taller for sponsor logo
-        const modalWidth = 850;
-        const modalHeight = 520;
-        const introBg = this.add.rectangle(0, 0, modalWidth, modalHeight, 0x000000, 0.9);
-        introBg.setStrokeStyle(4, 0xffffff);
-        introScreen.add(introBg);
-        
-        // Title text (moved up a bit)
-        const titleText = this.add.text(0, -90, 'FIND THE COLDPLAY\nCANOODLERS!', {
-            fontSize: '48px',
-            color: '#ffffff',
-            fontFamily: '"Press Start 2P", monospace',
-            align: 'center',
-            lineSpacing: 16
-        }).setOrigin(0.5);
-        introScreen.add(titleText);
-        
-        // Instructions with NFT context
-        let instructionText;
-        if (NFT_MODE && isInIframe) {
-            instructionText = this.add.text(0, 5, 'Interactive NFT Game\nMove your mouse to search the crowd\nHold the target for 1 second to win!', {
-                fontSize: '20px',
-                color: '#ffffff',
-                fontFamily: '"Press Start 2P", monospace',
-                align: 'center',
-                lineSpacing: 12
-            }).setOrigin(0.5);
-        } else {
-            instructionText = this.add.text(0, 5, 'Move your mouse to search the crowd\nHold the target for 1 second to win!', {
-                fontSize: '22px',
-                color: '#ffffff',
-                fontFamily: '"Press Start 2P", monospace',
-                align: 'center',
-                lineSpacing: 12
-            }).setOrigin(0.5);
-        }
-        introScreen.add(instructionText);
-        
-        // Updated NFT info blurb
-        if (NFT_MODE) {
-            const nftInfoLines = [
-                'by gamejew aka songadaymann',
-                'aka jonathan mann',
-                'This NFT commemorates the fact',
-                'this went INSANELY VIRAL',
-                'in the summer of 2025'
-            ];
-            const nftInfo = this.add.text(0, 110, nftInfoLines.join('\n'), {
-                fontSize: '14px',
-                color: '#00ff88',
-                fontFamily: '"Press Start 2P", monospace',
-                align: 'center',
-                lineSpacing: 6
-            }).setOrigin(0.5);
-            introScreen.add(nftInfo);
-        }
-        
-        
-        // Close function
-        const closeIntro = () => {
-            introScreen.destroy();
-            musicToggle.setVisible(true);
-            if (MUSIC_ENABLED) {
-                bgMusic.play();
-                musicPlaying = true;
-                musicToggle.setText('♪ ON');
-            }
-        };
-        
-        // X button (top right)
-        const xButton = this.add.text(modalWidth / 2 - 30, -modalHeight / 2 + 30, 'X', {
-            fontSize: '28px',
-            color: '#ffffff',
-            fontFamily: '"Press Start 2P", monospace',
-        }).setOrigin(0.5).setInteractive({ cursor: 'pointer' });
-        xButton.on('pointerdown', closeIntro);
-        introScreen.add(xButton);
-        
-        // Red CLOSE button at bottom
-        const closeButton = this.add.text(0, modalHeight / 2 - 65, 'CLOSE', {
-            fontSize: '28px',
-            color: '#ff0000',
-            fontFamily: '"Press Start 2P", monospace',
-        }).setOrigin(0.5).setInteractive({ cursor: 'pointer' });
-        closeButton.on('pointerdown', closeIntro);
-        introScreen.add(closeButton);
-    };
-    
-    // Use the working timeout approach that worked before
-    setTimeout(createIntroScreen, 500);
-
     const scene = this; // preserve reference for nested callbacks
 
     // Probability helper (ramps from 5% to 50% over 30 seconds)
@@ -909,4 +814,4 @@ function initGame() {
 }
 
 // Initialize the game
-const game = initGame(); 
+const game = initGame();
