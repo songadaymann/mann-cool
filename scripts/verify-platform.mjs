@@ -29,8 +29,8 @@ if (config.json?.version !== 1 || !config.json?.homeUrl || !config.json?.patreon
   throw new Error("Platform config is incomplete");
 }
 const shell = await check("/platform/v1/game-shell.js", 200, { redirect: "follow" });
-if (!shell.body.includes("api/v1/plays") || !shell.body.includes("leaderboardBoards") || !shell.body.includes("data-leaderboard-board")) {
-  throw new Error("Shared shell does not reference the play API and toggleable leaderboard boards");
+if (!shell.body.includes("api/v1/plays") || !shell.body.includes("/tip?from=") || !shell.body.includes("leaderboardBoards") || !shell.body.includes("data-leaderboard-board")) {
+  throw new Error("Shared shell does not reference play tracking, tip attribution, and toggleable leaderboard boards");
 }
 if (shell.body.includes("api/v1/guestbook") || shell.body.includes("Guestbook")) {
   throw new Error("Shared shell still contains the retired per-game guestbook");
@@ -40,6 +40,9 @@ for (const prefix of ["/api/v1", "/api"]) {
   const plays = await check(`${prefix}/plays?slug=fuckice`, 200);
   if (plays.json?.slug !== "fuckice" || !Number.isFinite(plays.json?.count)) throw new Error(`${prefix}/plays shape is invalid`);
   await check(`${prefix}/plays?slug=not-a-registered-game`, 404);
+  const tipClicks = await check(`${prefix}/tip-clicks?slug=fuckice`, 200);
+  if (tipClicks.json?.slug !== "fuckice" || !Number.isFinite(tipClicks.json?.count)) throw new Error(`${prefix}/tip-clicks shape is invalid`);
+  await check(`${prefix}/tip-clicks?slug=not-a-registered-game`, 404);
   const guestbook = await check(`${prefix}/guestbook?slug=mann-cool&limit=2`, 200);
   if (guestbook.json?.slug !== "mann-cool" || !Array.isArray(guestbook.json?.entries)) throw new Error(`${prefix}/guestbook shape is invalid`);
   const commentCounts = await check(`${prefix}/comments`, 200);
@@ -76,6 +79,13 @@ const preflight = await check("/api/v1/comments", 204, { method: "OPTIONS" });
 if (preflight.response.headers.get("access-control-allow-origin") !== "*") throw new Error("CORS preflight headers are missing");
 
 if (allowWrites) {
+  const tipClicksBefore = await check("/api/v1/tip-clicks?slug=fuckice", 200);
+  const tipRedirect = await check("/tip?from=fuckice", 302);
+  if (tipRedirect.response.headers.get("location") !== config.json.tipUrl) throw new Error("Tip redirect destination is incorrect");
+  if (tipRedirect.response.headers.get("cache-control") !== "no-store") throw new Error("Tip redirect must not be cached");
+  const tipClicksAfter = await check("/api/v1/tip-clicks?slug=fuckice", 200);
+  if (tipClicksAfter.json.count !== tipClicksBefore.json.count + 1) throw new Error("Tip click total did not increment exactly once");
+
   const before = await check("/api/v1/plays?slug=fuckice", 200);
   await check("/api/v1/plays", 200, {
     method: "POST",

@@ -238,7 +238,10 @@
       const patreon = this.shadowRoot.querySelector("[data-patreon]");
       patreon.href = this.config.patreonUrl || "https://www.patreon.com/jonathanmann";
       const tip = this.shadowRoot.querySelector("[data-tip]");
-      if (this.config.tipUrl) { tip.href = this.config.tipUrl; tip.hidden = false; }
+      if (this.config.tipUrl) {
+        tip.href = `https://mann.cool/tip?from=${encodeURIComponent(slug)}`;
+        tip.hidden = false;
+      }
     }
 
     openModal(name) {
