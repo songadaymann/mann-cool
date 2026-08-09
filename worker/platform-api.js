@@ -12,6 +12,7 @@ import {
 
 const LIMITS = {
   "plays:post": { requests: 60, seconds: 60 },
+  "tip-clicks:post": { requests: 30, seconds: 60 },
   "guestbook:get": { requests: 120, seconds: 60 },
   "guestbook:post": { requests: 5, seconds: 600 },
   "comments:get": { requests: 120, seconds: 60 },
@@ -306,6 +307,56 @@ async function handlePlays(request, env) {
       RETURNING play_count
     `).bind(slug, source).first();
     return json({ success: true, slug, source, count: Number(row?.play_count || 1) });
+  }
+
+  throw new HttpError(405, "Method not allowed");
+}
+
+export async function recordTipClick(request, env, requestedSlug) {
+  await enforceRateLimit(request, env, "tip-clicks:post");
+  const slug = cleanSlug(requestedSlug || "mann-cool");
+  if (!slug) throw new HttpError(400, "A valid source slug is required");
+  const game = await ensureRegisteredGame(env, slug);
+  const id = crypto.randomUUID();
+  const timestamp = new Date().toISOString();
+  await env.DB.prepare(`
+    INSERT INTO tip_clicks (id, source_slug, created_at)
+    VALUES (?, ?, ?)
+  `).bind(id, game.slug, timestamp).run();
+  return { id, slug: game.slug, timestamp };
+}
+
+async function handleTipClicks(request, env) {
+  const url = new URL(request.url);
+  if (request.method === "GET") {
+    const requestedSlug = cleanSlug(url.searchParams.get("slug"));
+    if (url.searchParams.has("slug") && !requestedSlug) throw new HttpError(400, "Invalid source slug");
+
+    if (requestedSlug) {
+      const game = await ensureRegisteredGame(env, requestedSlug);
+      const row = await env.DB.prepare(
+        "SELECT COUNT(*) AS count FROM tip_clicks WHERE source_slug = ?",
+      ).bind(game.slug).first();
+      return json({ slug: game.slug, count: Number(row?.count || 0) });
+    }
+
+    const result = await env.DB.prepare(`
+      SELECT source_slug AS slug, COUNT(*) AS count, MAX(created_at) AS lastClickedAt
+      FROM tip_clicks GROUP BY source_slug ORDER BY count DESC, source_slug
+    `).all();
+    return json({
+      sources: result.results.map((row) => ({
+        slug: row.slug,
+        count: Number(row.count),
+        lastClickedAt: row.lastClickedAt,
+      })),
+    });
+  }
+
+  if (request.method === "POST") {
+    const body = await readJson(request, 2_048);
+    const entry = await recordTipClick(request, env, body.slug || body.source);
+    return json({ success: true, entry }, { status: 201 });
   }
 
   throw new HttpError(405, "Method not allowed");
@@ -618,6 +669,7 @@ export async function handlePlatformApi(request, env, endpoint, requestOptions =
   if (request.method === "OPTIONS") return corsOptions();
   try {
     if (endpoint === "plays") return await handlePlays(request, env);
+    if (endpoint === "tip-clicks") return await handleTipClicks(request, env);
     if (endpoint === "guestbook") return await handleGuestbook(request, env);
     if (endpoint === "comments") return await handleComments(request, env);
     if (endpoint === "leaderboard") return await handleLeaderboard(request, env, requestOptions.legacy === true);

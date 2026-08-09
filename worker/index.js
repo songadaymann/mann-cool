@@ -1,9 +1,9 @@
 import { games, getGame } from "./lib/catalog.js";
 import { handleLegacyApi } from "./legacy-api.js";
-import { handlePlatformApi } from "./platform-api.js";
+import { handlePlatformApi, recordTipClick } from "./platform-api.js";
 
-const PLATFORM_ENDPOINTS = new Set(["plays", "guestbook", "comments", "leaderboard", "community-levels"]);
-const GAME_SHELL_VERSION = "20260723-comments1";
+const PLATFORM_ENDPOINTS = new Set(["plays", "tip-clicks", "guestbook", "comments", "leaderboard", "community-levels"]);
+const GAME_SHELL_VERSION = "20260809-tip-attribution1";
 
 function platformConfig(env) {
   return Response.json({
@@ -44,6 +44,27 @@ function isCrawler(request) {
     .test(request.headers.get("user-agent") || "");
 }
 
+async function handleTipRedirect(request, env, requestedSlug) {
+  if (request.method !== "GET") {
+    return new Response("Method not allowed", { status: 405, headers: { allow: "GET" } });
+  }
+  if (!env.TIP_URL) return new Response("Tip jar unavailable", { status: 404 });
+
+  try {
+    await recordTipClick(request, env, requestedSlug);
+  } catch (error) {
+    console.warn(JSON.stringify({
+      message: "tip click attribution failed",
+      source: requestedSlug || "mann-cool",
+      error: error instanceof Error ? error.message : String(error),
+    }));
+  }
+  return new Response(null, {
+    status: 302,
+    headers: { location: env.TIP_URL, "cache-control": "no-store" },
+  });
+}
+
 async function handleRequest(request, env) {
   const url = new URL(request.url);
   if (url.hostname === "www.mann.cool") {
@@ -52,6 +73,10 @@ async function handleRequest(request, env) {
   }
 
   const segments = url.pathname.split("/").filter(Boolean);
+
+  if (url.pathname === "/tip") {
+    return handleTipRedirect(request, env, url.searchParams.get("from") || "mann-cool");
+  }
 
   if (segments[0] === "api") {
     const isVersioned = segments[1] === "v1";
