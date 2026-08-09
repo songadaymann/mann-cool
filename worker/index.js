@@ -39,6 +39,26 @@ function gameOpenGraph(request, game) {
   });
 }
 
+function botBlastOpenGraph(request) {
+  const url = new URL(request.url);
+  const canonical = `${url.origin}/botblast`;
+  const title = "Bot Blast — Clean up your timeline";
+  const description = "Turn suspicious X replies into a fast three-wave arcade fight, then hide the selected handle locally.";
+  const image = `${url.origin}/botblast/hero.png`;
+  const html = `<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title>
+<meta name="description" content="${description}"><link rel="canonical" href="${canonical}">
+<meta property="og:type" content="website"><meta property="og:url" content="${canonical}">
+<meta property="og:title" content="${title}"><meta property="og:description" content="${description}">
+<meta property="og:image" content="${image}"><meta property="og:image:width" content="1400">
+<meta property="og:image:height" content="560"><meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="${title}"><meta name="twitter:description" content="${description}">
+<meta name="twitter:image" content="${image}"></head><body><a href="${canonical}">${title}</a></body></html>`;
+  return new Response(html, {
+    headers: { "content-type": "text/html; charset=utf-8", "cache-control": "public, max-age=900" },
+  });
+}
+
 function isCrawler(request) {
   return /facebookexternalhit|facebot|twitterbot|linkedinbot|pinterest|slackbot|telegrambot|whatsapp|discordbot/i
     .test(request.headers.get("user-agent") || "");
@@ -66,6 +86,10 @@ async function handleRequest(request, env) {
     return Response.redirect(url, 307);
   }
   if (url.pathname.startsWith("/platform/")) return env.ASSETS.fetch(request);
+
+  if (segments.length === 1 && segments[0] === "botblast" && isCrawler(request)) {
+    return botBlastOpenGraph(request);
+  }
 
   if (segments[0] === "jimothy-vs-flock-inc") {
     url.pathname = url.pathname.replace(/^\/jimothy-vs-flock-inc(?=\/|$)/, "/jimothy");
