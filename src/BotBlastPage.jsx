@@ -1,8 +1,8 @@
 import { useEffect } from "react";
 import "./botblast.css";
 
-// Replace this with the public Chrome Web Store item URL after Google creates it.
-const CHROME_STORE_URL = "";
+const CHROME_STORE_URL =
+  "https://chromewebstore.google.com/detail/bot-blast/bkfmmmpoidhhdbgeacfjcbmgjlcckjjj";
 const PRIVACY_URL = "https://twitter-bot-destroyer-registry.novox-robot.workers.dev/privacy";
 const SUPPORT_URL = "https://twitter-bot-destroyer-registry.novox-robot.workers.dev/support";
 
@@ -149,4 +149,3 @@ export default function BotBlastPage() {
     </div>
   );
 }
-
