@@ -9,7 +9,7 @@ function platformConfig(env) {
   return Response.json({
     version: 1,
     homeUrl: "https://mann.cool/",
-    patreonUrl: env.PATREON_URL || "https://www.patreon.com/jonathanmann",
+    patreonUrl: env.PATREON_URL || "http://songaday.studios",
     tipUrl: env.TIP_URL || null,
     turnstileSiteKey: env.TURNSTILE_SITE_KEY || null,
   }, {
