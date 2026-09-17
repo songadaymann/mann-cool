@@ -1669,6 +1669,54 @@
         ]
       },
       "status": "published"
+    },
+    {
+      "id": 38,
+      "slug": "mack",
+      "title": "Super Macklemore 64",
+      "description": "Find the solidarity crew, dodge the giant, and rally at the stones in a surreal 3D Macklemore adventure.",
+      "cover": "/covers/mack.png",
+      "tags": [
+        "funny",
+        "weird",
+        "game a day"
+      ],
+      "catalogOrder": 38,
+      "publishedAt": "2026-09-17",
+      "deviceSupport": {
+        "mobile": true,
+        "tablet": true,
+        "desktop": true
+      },
+      "leaderboard": {
+        "enabled": true,
+        "direction": "desc",
+        "variants": [
+          "solo"
+        ],
+        "boards": [
+          {
+            "variant": "solo",
+            "label": "High Scores",
+            "metric": "totalScore",
+            "metricLabel": "Speed + Kraft stomps - hits",
+            "direction": "desc",
+            "display": "integer",
+            "aggregation": "best",
+            "minimumMatches": 1
+          }
+        ]
+      },
+      "delivery": {
+        "mode": "worker-route",
+        "origin": "https://mann-cool-mack.novox-robot.workers.dev",
+        "workerName": "mann-cool-mack",
+        "routePatterns": [
+          "mann.cool/mack",
+          "mann.cool/mack/*"
+        ]
+      },
+      "status": "published"
     }
   ]
 }
