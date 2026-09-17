@@ -233,10 +233,10 @@
         const response = await fetch("/platform/config.json");
         this.config = await response.json();
       } catch {
-        this.config = { patreonUrl: "http://songaday.studios" };
+        this.config = { patreonUrl: "http://songaday.studio" };
       }
       const patreon = this.shadowRoot.querySelector("[data-patreon]");
-      patreon.href = this.config.patreonUrl || "http://songaday.studios";
+      patreon.href = this.config.patreonUrl || "http://songaday.studio";
       const tip = this.shadowRoot.querySelector("[data-tip]");
       if (this.config.tipUrl) {
         tip.href = `https://mann.cool/tip?from=${encodeURIComponent(slug)}`;

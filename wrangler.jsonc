@@ -23,7 +23,7 @@
   ],
   "vars": {
     "PLATFORM_READ_SOURCE": "d1",
-    "PATREON_URL": "http://songaday.studios",
+    "PATREON_URL": "http://songaday.studio",
     "TIP_URL": "https://buy.stripe.com/eVqdR91p20Ra8No1Cs48000"
   },
   "observability": {

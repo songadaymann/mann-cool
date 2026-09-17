@@ -5,7 +5,7 @@ interface __BaseEnv_Env {
 	DB: D1Database;
 	ASSETS: Fetcher;
 	PLATFORM_READ_SOURCE: "d1";
-	PATREON_URL: "https://www.patreon.com/jonathanmann";
+	PATREON_URL: "http://songaday.studio";
 	TIP_URL: "https://buy.stripe.com/eVqdR91p20Ra8No1Cs48000";
 }
 declare namespace Cloudflare {
