@@ -1,5 +1,4 @@
 import { games, getGame } from "./lib/catalog.js";
-import { handleLegacyApi } from "./legacy-api.js";
 import { handlePlatformApi, recordTipClick } from "./platform-api.js";
 
 const PLATFORM_ENDPOINTS = new Set(["plays", "tip-clicks", "guestbook", "comments", "leaderboard", "community-levels"]);
@@ -102,7 +101,7 @@ async function handleRequest(request, env) {
     const isVersioned = segments[1] === "v1";
     const endpoint = isVersioned ? segments[2] : segments[1];
     if (PLATFORM_ENDPOINTS.has(endpoint)) return handlePlatformApi(request, env, endpoint, { legacy: !isVersioned });
-    return handleLegacyApi(request, env, endpoint);
+    return Response.json({ error: "API route not found" }, { status: 404 });
   }
 
   if (url.pathname === "/platform/config.json") return platformConfig(env);
@@ -149,8 +148,6 @@ export default {
   },
 
   async scheduled(_event, env, ctx) {
-    const request = new Request("https://mann.cool/api/clickstr-v2?dashboard=true&range=24h");
-    ctx.waitUntil(handleLegacyApi(request, env, "clickstr-v2"));
     const staleWindow = Math.floor(Date.now() / 1000) - 86_400;
     ctx.waitUntil(env.DB.prepare("DELETE FROM rate_limits WHERE window_start < ?").bind(staleWindow).run());
   },
