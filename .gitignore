@@ -15,3 +15,5 @@ game-workers/*/.stage-r2.json
 CLICKSTR_V1_ARCHITECTURE.md
 public/nes-game-images-originals/
 public/nes-game-images/perilouspenguins.png
+.dev.vars
+.dev.vars.*

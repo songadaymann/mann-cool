@@ -32,6 +32,15 @@ const shell = await check("/platform/v1/game-shell.js", 200, { redirect: "follow
 if (!shell.body.includes("api/v1/plays") || !shell.body.includes("/tip?from=") || !shell.body.includes("leaderboardBoards") || !shell.body.includes("data-leaderboard-board")) {
   throw new Error("Shared shell does not reference play tracking, tip attribution, and toggleable leaderboard boards");
 }
+if (!shell.body.includes("api/v1/player/") || !shell.body.includes("eip6963:requestProvider") || !shell.body.includes("wallet-standard:app-ready")) {
+  throw new Error("Shared shell does not offer player identity and wallet detection");
+}
+const wallets = await check("/api/v1/wallets?days=7", 200);
+if (typeof wallets.json?.reports !== "number" || !Array.isArray(wallets.json?.wallets)) throw new Error("Wallet stats are malformed");
+const session = await check("/api/v1/player/session", 400, {
+  method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ secret: "nope" }),
+});
+if (session.json?.error !== "A valid player secret is required") throw new Error("Player session does not validate secrets");
 if (shell.body.includes("api/v1/guestbook") || shell.body.includes("Guestbook")) {
   throw new Error("Shared shell still contains the retired per-game guestbook");
 }

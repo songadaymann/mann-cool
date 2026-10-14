@@ -1,8 +1,9 @@
 import { games, getGame } from "./lib/catalog.js";
 import { handlePlatformApi, recordTipClick } from "./platform-api.js";
+import { handlePlayerApi, handleWalletsApi } from "./player-identity.js";
 
 const PLATFORM_ENDPOINTS = new Set(["plays", "tip-clicks", "guestbook", "comments", "leaderboard", "community-levels"]);
-const GAME_SHELL_VERSION = "20260809-tip-attribution1";
+const GAME_SHELL_VERSION = "20261014-player-wallets1";
 
 function platformConfig(env) {
   return Response.json({
@@ -100,6 +101,8 @@ async function handleRequest(request, env) {
   if (segments[0] === "api") {
     const isVersioned = segments[1] === "v1";
     const endpoint = isVersioned ? segments[2] : segments[1];
+    if (isVersioned && endpoint === "player") return handlePlayerApi(request, env, segments.slice(3).join("/"));
+    if (isVersioned && endpoint === "wallets" && segments.length === 3) return handleWalletsApi(request, env);
     if (PLATFORM_ENDPOINTS.has(endpoint)) return handlePlatformApi(request, env, endpoint, { legacy: !isVersioned });
     return Response.json({ error: "API route not found" }, { status: 404 });
   }
@@ -150,6 +153,7 @@ export default {
   async scheduled(_event, env, ctx) {
     const staleWindow = Math.floor(Date.now() / 1000) - 86_400;
     ctx.waitUntil(env.DB.prepare("DELETE FROM rate_limits WHERE window_start < ?").bind(staleWindow).run());
+    ctx.waitUntil(env.DB.prepare("DELETE FROM player_email_codes WHERE expires_at < ?").bind(staleWindow).run());
   },
 };
 

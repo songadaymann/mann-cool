@@ -21,19 +21,29 @@ const LIMITS = {
   "leaderboard:post": { requests: 20, seconds: 60 },
   "community-levels:get": { requests: 120, seconds: 60 },
   "community-levels:post": { requests: 3, seconds: 600 },
+  "player-email:start": { requests: 5, seconds: 600 },
+  "player-email:verify": { requests: 30, seconds: 600 },
+  "player:session": { requests: 60, seconds: 60 },
+  "wallets:get": { requests: 60, seconds: 60 },
+  "wallets:post": { requests: 30, seconds: 600 },
 };
 
-function remoteIp(request) {
+export function remoteIp(request) {
   return request.headers.get("cf-connecting-ip")
     || request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
     || "local";
 }
 
-async function enforceRateLimit(request, env, endpoint) {
+export async function enforceRateLimit(request, env, endpoint) {
   const rule = LIMITS[endpoint];
   if (!rule) return;
 
   const identity = await hashIdentity(remoteIp(request), env.RATE_LIMIT_SALT || "mann.cool-rate-limit-v1");
+  await consumeRateLimit(env, endpoint, identity, rule);
+}
+
+// The same fixed-window counter, keyed by any already-hashed identity (an email hash, say).
+export async function consumeRateLimit(env, endpoint, identity, rule) {
   const now = Math.floor(Date.now() / 1000);
   const windowStart = Math.floor(now / rule.seconds) * rule.seconds;
   const result = await env.DB.prepare(`
@@ -49,7 +59,7 @@ async function enforceRateLimit(request, env, endpoint) {
   }
 }
 
-async function ensureRegisteredGame(env, slug) {
+export async function ensureRegisteredGame(env, slug) {
   const game = slug === "mann-cool"
     ? { slug: "mann-cool", title: "mann.cool", status: "hidden", leaderboard: { enabled: false, direction: "desc" } }
     : getGame(slug) || getGameByApiSlug(slug);
