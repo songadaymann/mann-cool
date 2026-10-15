@@ -25,7 +25,8 @@ function initialTag() {
 }
 
 function canAnimatePreview() {
-  return !window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  return !window.matchMedia("(pointer: coarse)").matches
+    && !window.matchMedia("(prefers-reduced-motion: reduce)").matches
     && !navigator.connection?.saveData;
 }
 
