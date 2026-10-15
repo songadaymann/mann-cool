@@ -101,6 +101,9 @@ async function handleRequest(request, env) {
   if (segments[0] === "api") {
     const isVersioned = segments[1] === "v1";
     const endpoint = isVersioned ? segments[2] : segments[1];
+    if (isVersioned && endpoint === "pdoom" && segments[3] === "runs" && segments.length === 4) {
+      return handlePlatformApi(request, env, "pdoom-runs");
+    }
     if (isVersioned && endpoint === "player") return handlePlayerApi(request, env, segments.slice(3).join("/"));
     if (isVersioned && endpoint === "wallets" && segments.length === 3) return handleWalletsApi(request, env);
     if (PLATFORM_ENDPOINTS.has(endpoint)) return handlePlatformApi(request, env, endpoint, { legacy: !isVersioned });
@@ -154,6 +157,7 @@ export default {
     const staleWindow = Math.floor(Date.now() / 1000) - 86_400;
     ctx.waitUntil(env.DB.prepare("DELETE FROM rate_limits WHERE window_start < ?").bind(staleWindow).run());
     ctx.waitUntil(env.DB.prepare("DELETE FROM player_email_codes WHERE expires_at < ?").bind(staleWindow).run());
+    ctx.waitUntil(env.DB.prepare("DELETE FROM pdoom_ranked_runs WHERE expires_at < ? AND completed_at IS NULL").bind(Date.now()).run());
   },
 };
 

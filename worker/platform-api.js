@@ -1,4 +1,5 @@
 import { getGame, getGameByApiSlug, getGameStatus, getLeaderboardConfig } from "./lib/catalog.js";
+import { issuePdoomTicket, validatePdoomSubmission } from "./pdoom-scores.js";
 import {
   HttpError,
   cleanSlug,
@@ -19,6 +20,7 @@ const LIMITS = {
   "comments:post": { requests: 5, seconds: 600 },
   "leaderboard:get": { requests: 120, seconds: 60 },
   "leaderboard:post": { requests: 20, seconds: 60 },
+  "pdoom-runs:post": { requests: 60, seconds: 60 },
   "community-levels:get": { requests: 120, seconds: 60 },
   "community-levels:post": { requests: 3, seconds: 600 },
   "player-email:start": { requests: 5, seconds: 600 },
@@ -476,7 +478,7 @@ function parseMetadata(value) {
 
 const LEADERBOARD_RESERVED_FIELDS = new Set([
   "slug", "game", "variant", "name", "playerName", "score", "metadata",
-  "playerId", "address", "submissionId",
+  "playerId", "address", "submissionId", "runTicket",
 ]);
 
 function leaderboardMetadata(body) {
@@ -606,7 +608,7 @@ async function handleLeaderboard(request, env, legacy = false) {
     }
     const name = cleanText(body.name || body.playerName, 30);
     if (!name) throw new HttpError(400, "Player name is required");
-    const metadata = leaderboardMetadata(body);
+    let metadata = leaderboardMetadata(body);
     const playerId = (body.playerId || body.address) ? cleanText(body.playerId || body.address, 100) : null;
     let score;
     if (board?.aggregation === "win-loss-rate") {
@@ -625,6 +627,11 @@ async function handleLeaderboard(request, env, legacy = false) {
       100,
     );
     if (!/^[a-zA-Z0-9._:-]{8,100}$/.test(submissionId)) throw new HttpError(400, "Invalid submission ID");
+    if (slug === "pdoom") {
+      const validated = await validatePdoomSubmission(env, { body, variant, submissionId, name, playerId, metadata });
+      score = validated.score;
+      metadata = validated.metadata;
+    }
     const timestamp = new Date().toISOString();
     const ipHash = await hashIdentity(remoteIp(request), env.RATE_LIMIT_SALT || "mann.cool-leaderboard-v1");
     await env.DB.prepare(`
@@ -683,6 +690,14 @@ export async function handlePlatformApi(request, env, endpoint, requestOptions =
     if (endpoint === "guestbook") return await handleGuestbook(request, env);
     if (endpoint === "comments") return await handleComments(request, env);
     if (endpoint === "leaderboard") return await handleLeaderboard(request, env, requestOptions.legacy === true);
+    if (endpoint === "pdoom-runs") {
+      if (request.method !== "POST") throw new HttpError(405, "Method not allowed");
+      await enforceRateLimit(request, env, "pdoom-runs:post");
+      const body = await readJson(request, 2_048);
+      const game = await ensureRegisteredGame(env, "pdoom");
+      if (!getLeaderboardConfig(game).enabled) throw new HttpError(404, "Leaderboard is not enabled for this game");
+      return json(await issuePdoomTicket(env, body), { status: 201 });
+    }
     if (endpoint === "community-levels") return await handleCommunityLevels(request, env);
     return json({ error: "API route not found" }, { status: 404 });
   } catch (error) {
