@@ -54,7 +54,7 @@ test('server formula handles both maps, carried CEOs and exact native-clock boun
 });
 test('raw score forgeries fail on versioned and legacy API routes',async t=>{
   const f=fixture(t);
-  for(const endpoint of ['/api/v1/leaderboard','/api/leaderboard'])for(const variant of ['five-prisons-rescue-v3','five-prisons-perfect-v3','hal-station-clean-sweep-v3']){
+  for(const endpoint of ['/api/v1/leaderboard','/api/leaderboard'])for(const variant of ['five-prisons-rescue-v3','hal-station-rescue-v3']){
     assert.equal((await f.api(endpoint,{slug:'pdoom',variant,name:'Fake',score:variant.includes('rescue')?1e12:-1})).status,401);
   }
   assert.equal(f.db.prepare('SELECT COUNT(*) AS n FROM leaderboard_entries').get().n,0);
@@ -68,28 +68,25 @@ test('tickets retry idempotently without exposing a recoverable secret',async t=
   assert.equal((await f.api('/api/v1/pdoom/runs',{...run,runId:[run.runId]})).status,400);
   assert.equal((await f.api('/api/v1/pdoom/runs')).status,405);
 });
-test('all six official boards use recalculated scores and preserve identical retries',async t=>{
+test('both total-score boards use recalculated scores and preserve identical retries',async t=>{
   const f=fixture(t);
   for(const level of ['five-prisons','hal-station']){
     const run=await f.start(level);
-    for(const category of ['rescue','perfect','clean-sweep']){
+    for(const category of ['rescue']){
       const body=f.body(run,category),response=await f.api('/api/v1/leaderboard',body);
-      assert.equal(response.status,201,JSON.stringify(response));assert.equal(response.entry.score,category==='rescue'?55200:600000);
+      assert.equal(response.status,201,JSON.stringify(response));assert.equal(response.entry.score,55200);
       assert.equal(response.entry.metadata.validation,'server-rules-v1');assert.equal(response.entry.metadata.breakdown.rescue,50000);
       assert.equal((await f.api('/api/leaderboard',{...body,score:-999})).entry.score,response.entry.score);
       assert.ok(!JSON.stringify(response).includes(run.nonce));assert.ok(!JSON.stringify(response).includes(run.runTicket.id));
     }
   }
-  assert.equal(f.db.prepare('SELECT COUNT(*) AS n FROM leaderboard_entries').get().n,6);
+  assert.equal(f.db.prepare('SELECT COUNT(*) AS n FROM leaderboard_entries').get().n,2);
 });
-test('inconsistent, practice, old-map and nonqualifying results cannot consume a ticket',async t=>{
+test('inconsistent, practice and old-map results cannot consume a ticket',async t=>{
   const f=fixture(t),run=await f.start();
   for(const change of [{saved:7},{savedFigures:6},{saved:5},{total:5},{ceoState:'downed'},{camerasTotal:8},{camerasDestroyed:10},{camerasDestroyed:-1},{activeTics:0},{activeTics:1.1},{activeMs:-1},{pDoomAtCoverOpen:0},{pDoomFinal:1},{skill:2},{entry:'hub'},{entry:'replay'},{retreat:true},{practice:true},{outcome:'lost'},{levelVersion:'five-prisons-v2'}]){
     const response=await f.api('/api/v1/leaderboard',f.body(run,'rescue',{metadata:metadata(run.levelId,change)}));assert.equal(response.status,400,JSON.stringify(change));
   }
-  const partial=metadata(run.levelId,{savedFigures:4,saved:5});
-  assert.equal((await f.api('/api/v1/leaderboard',f.body(run,'perfect',{metadata:partial}))).status,400);
-  assert.equal((await f.api('/api/v1/leaderboard',f.body(run,'clean-sweep',{metadata:metadata(run.levelId,{camerasDestroyed:8})}))).status,400);
   assert.equal(f.db.prepare('SELECT completion_hash FROM pdoom_ranked_runs').get().completion_hash,null);
   assert.equal((await f.api('/api/v1/leaderboard',f.body(run))).status,201);
 });
@@ -112,7 +109,7 @@ test('long-paused/offline attempts and accepted-ticket retries retain a generous
   f.db.prepare('UPDATE pdoom_ranked_runs SET issued_at = ? WHERE id = ?').run(Date.now()-80*86400000,run.runTicket.id);
   assert.equal((await f.api('/api/v1/leaderboard',f.body(run))).status,201);
   f.db.prepare('UPDATE pdoom_ranked_runs SET expires_at = 1 WHERE id = ?').run(run.runTicket.id);
-  assert.equal((await f.api('/api/v1/leaderboard',f.body(run,'perfect'))).status,201);
+  assert.equal((await f.api('/api/v1/leaderboard',f.body(run,'rescue'))).status,201);
   const unused=await f.start();f.db.prepare('UPDATE pdoom_ranked_runs SET expires_at = 1 WHERE id = ?').run(unused.runTicket.id);
   assert.equal((await f.api('/api/v1/leaderboard',f.body(unused))).status,410);
 });
@@ -128,4 +125,23 @@ test('chunked bodies stop at the byte limit and preserve split UTF-8 text',async
   const small=new ReadableStream({pull(controller){if(at===bytes.length)controller.close();else controller.enqueue(bytes.slice(at,++at));}});
   assert.deepEqual(await readJson(new Request('https://example.test',{method:'POST',headers:{'content-type':'application/json'},body:small,duplex:'half'}),100),{name:'é'});
   for(const value of ['null','[]','7'])await assert.rejects(readJson(new Request('https://example.test',{method:'POST',headers:{'content-type':'application/json'},body:value})),error=>error.status===400);
+});
+
+test('retired time boards reject reads and writes without deleting their stored records',async t=>{
+  const f=fixture(t),run=await f.start();
+  for(const level of ['five-prisons','hal-station'])for(const category of ['perfect','clean-sweep']){
+    const variant=`${level}-${category}-v3`;
+    f.db.prepare('INSERT INTO leaderboard_entries (submission_id,slug,variant,player_name,score) VALUES (?, ?, ?, ?, ?)').run('archive:'+variant,'pdoom',variant,'Previous run',600000);
+    for(const endpoint of ['/api/v1/leaderboard','/api/leaderboard']){
+      assert.equal((await f.api(`${endpoint}?slug=pdoom&variant=${variant}`)).status,400);
+      assert.equal((await f.api(endpoint,f.body({...run,levelId:level},category))).status,400);
+    }
+  }
+  assert.equal(f.db.prepare('SELECT COUNT(*) AS n FROM leaderboard_entries').get().n,4);
+  assert.equal(f.db.prepare('SELECT completion_hash FROM pdoom_ranked_runs').get().completion_hash,null);
+  for(const level of ['five-prisons','hal-station']){
+    const body=f.body(await f.start(level)),response=await f.api('/api/v1/leaderboard',body);assert.equal(response.status,201);
+    const higher=f.body(await f.start(level),'rescue',{metadata:metadata(level,{pDoomAtCoverOpen:1})});assert.equal((await f.api('/api/v1/leaderboard',higher)).status,201);
+    const data=await f.api('/api/v1/leaderboard?slug=pdoom&variant='+body.variant);assert.deepEqual(data.entries.map(entry=>entry.score),[55240,55200]);assert.equal(data.board.label,level==='five-prisons'?'Level 1':'Level 2');assert.equal(data.direction,'desc');
+  }
 });
