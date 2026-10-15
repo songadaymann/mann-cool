@@ -86,6 +86,7 @@ function GameCard({
           </button>
         )}
         <button type="button" onClick={() => onOpenComments(game)}>Add comment</button>
+        {game.sourceUrl && <a href={game.sourceUrl} target="_blank" rel="noopener noreferrer">Source</a>}
       </div>
       {artworkHidden && (
         <button className="nsfw-reveal" type="button" onClick={onRevealNsfw}>
@@ -618,7 +619,7 @@ export default function App() {
   const [activeTag, setActiveTag] = useState(initialTag);
   const [tipUrl, setTipUrl] = useState("");
   const [turnstileSiteKey, setTurnstileSiteKey] = useState("");
-  const [guestbookOpen, setGuestbookOpen] = useState(false);
+  const [guestbookOpen, setGuestbookOpen] = useState(() => new URLSearchParams(window.location.search).get("guestbook") === "1");
   const [playCounts, setPlayCounts] = useState({});
   const [commentCounts, setCommentCounts] = useState(null);
   const [commentGame, setCommentGame] = useState(null);

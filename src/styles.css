@@ -177,3 +177,5 @@ main { display:grid; gap:clamp(52px,6vw,78px); padding:clamp(36px,4.5vw,62px) 0 
   html { scroll-behavior:auto; }
   .game-card-art img { transition:none; }
 }
+
+.game-card-community > a { color: inherit; font: inherit; text-decoration: underline; text-underline-offset: 3px; }
