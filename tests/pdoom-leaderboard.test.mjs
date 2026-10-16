@@ -30,9 +30,11 @@ function fixture(t){
     const response=await worker.fetch(new Request('https://example.test'+url,{...(body===undefined?{}:{method:'POST',body:JSON.stringify(body)}),headers:{'content-type':'application/json','cf-connecting-ip':`192.0.2.${++requests}`,...headers}}),env);
     return {status:response.status,...await response.json()};
   };
-  const start=async(levelId='five-prisons',runId=randomUUID(),nonce=randomBytes(32).toString('hex'))=>{
+  // Tickets are issued when play begins, so a finished run's ticket is at least as old as its active time.
+  const start=async(levelId='five-prisons',runId=randomUUID(),nonce=randomBytes(32).toString('hex'),playedMs=3600000)=>{
     const details={runId,nonce,levelId,levelVersion:levelId+'-v3',scoreVersion:'rescue-v2',boardVersion:'v3'};
     const result=await api('/api/v1/pdoom/runs',details);assert.equal(result.status,201,JSON.stringify(result));
+    db.prepare('UPDATE pdoom_ranked_runs SET issued_at = issued_at - ? WHERE id = ?').run(playedMs,result.ticketId);
     return {...details,runTicket:{id:result.ticketId,token:nonce}};
   };
   const body=(run,category='rescue',overrides={})=>({slug:'pdoom',variant:`${run.levelId}-${category}-v3`,name:'Genuine fixture',playerId:'fixture-player',submissionId:`${run.runId}:${run.levelId}-${category}-v3`,score:1e12,runTicket:run.runTicket,metadata:metadata(run.levelId),...overrides});
@@ -144,4 +146,24 @@ test('retired time boards reject reads and writes without deleting their stored 
     const higher=f.body(await f.start(level),'rescue',{metadata:metadata(level,{pDoomAtCoverOpen:1})});assert.equal((await f.api('/api/v1/leaderboard',higher)).status,201);
     const data=await f.api('/api/v1/leaderboard?slug=pdoom&variant='+body.variant);assert.deepEqual(data.entries.map(entry=>entry.score),[55240,55200]);assert.equal(data.board.label,level==='five-prisons'?'Level 1':'Level 2');assert.equal(data.direction,'desc');
   }
+});
+
+test('implausibly fast runs are stored for review instead of rejected or ranked',async t=>{
+  const f=fixture(t),board=async variant=>(await f.api('/api/v1/leaderboard?slug=pdoom&variant='+variant)).entries;
+  const blink=await f.start(),blinkBody=f.body(blink,'rescue',{metadata:metadata(blink.levelId,{activeTics:1,activeMs:29})});
+  const held=await f.api('/api/v1/leaderboard',blinkBody);
+  assert.equal(held.status,201,JSON.stringify(held));assert.equal(held.held,true);assert.equal(held.rank,null);
+  assert.deepEqual(held.entry.metadata.review,['below-time-floor']);
+  const retry=await f.api('/api/v1/leaderboard',blinkBody);assert.equal(retry.held,true);assert.equal(retry.entry.score,held.entry.score);
+  // Ten active minutes claimed one real minute after the ticket was issued.
+  const early=await f.start('hal-station',randomUUID(),randomBytes(32).toString('hex'),60000);
+  const rushed=await f.api('/api/v1/leaderboard',f.body(early));
+  assert.equal(rushed.held,true);assert.deepEqual(rushed.entry.metadata.review,['faster-than-real-time']);
+  const normal=await f.api('/api/v1/leaderboard',f.body(await f.start()));
+  assert.equal(normal.held,undefined);assert.equal(normal.rank,1);assert.equal(normal.entry.metadata.review,undefined);
+  assert.deepEqual((await board('five-prisons-rescue-v3')).map(entry=>entry.score),[55200]);
+  assert.deepEqual(await board('hal-station-rescue-v3'),[]);
+  assert.deepEqual(f.db.prepare("SELECT moderation_status AS status, COUNT(*) AS n FROM leaderboard_entries GROUP BY status ORDER BY status").all().map(r=>[r.status,r.n]),[['approved',1],['pending',2]]);
+  f.db.prepare("UPDATE leaderboard_entries SET moderation_status = 'approved' WHERE submission_id = ?").run(blinkBody.submissionId);
+  assert.deepEqual((await board('five-prisons-rescue-v3')).map(entry=>entry.score),[56200,55200]);
 });

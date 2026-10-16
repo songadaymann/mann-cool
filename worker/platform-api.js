@@ -627,10 +627,15 @@ async function handleLeaderboard(request, env, legacy = false) {
       100,
     );
     if (!/^[a-zA-Z0-9._:-]{8,100}$/.test(submissionId)) throw new HttpError(400, "Invalid submission ID");
+    let moderationStatus = "approved";
     if (slug === "pdoom") {
       const validated = await validatePdoomSubmission(env, { body, variant, submissionId, name, playerId, metadata });
       score = validated.score;
       metadata = validated.metadata;
+      if (validated.review.length) {
+        moderationStatus = "pending";
+        metadata = { ...metadata, review: validated.review };
+      }
     }
     const timestamp = new Date().toISOString();
     const ipHash = await hashIdentity(remoteIp(request), env.RATE_LIMIT_SALT || "mann.cool-leaderboard-v1");
@@ -638,7 +643,7 @@ async function handleLeaderboard(request, env, legacy = false) {
       INSERT INTO leaderboard_entries
         (submission_id, slug, variant, player_name, player_id, score, metadata,
          moderation_status, created_at, ip_hash)
-      VALUES (?, ?, ?, ?, ?, ?, ?, 'approved', ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(submission_id) DO NOTHING
     `).bind(
       submissionId,
@@ -648,16 +653,24 @@ async function handleLeaderboard(request, env, legacy = false) {
       playerId,
       score,
       JSON.stringify(metadata),
+      moderationStatus,
       timestamp,
       ipHash,
     ).run();
-    const row = await env.DB.prepare(`
+    const { status, ...row } = await env.DB.prepare(`
       SELECT submission_id AS submissionId, player_name AS name, player_id AS playerId,
-        score, metadata, created_at AS timestamp
+        score, metadata, created_at AS timestamp, moderation_status AS status
       FROM leaderboard_entries WHERE submission_id = ? AND slug = ? AND variant = ?
-    `).bind(submissionId, slug, variant).first();
-    if (!row) throw new HttpError(409, "Submission ID already belongs to another score");
+    `).bind(submissionId, slug, variant).first() || {};
+    if (!row.submissionId) throw new HttpError(409, "Submission ID already belongs to another score");
     const entry = leaderboardEntry(row, config);
+    // A retry reports the stored status, so a held run stays held until moderated.
+    if (status !== "approved") {
+      return json(
+        { success: true, game: slug, slug, variant, entry, rank: null, held: true },
+        { status: legacy ? 200 : 201 },
+      );
+    }
     if (board?.aggregation === "win-loss-rate") {
       const records = await readWinLossLeaderboard(env, slug, variant, board, 100);
       const record = records.find((candidate) => candidate.playerId === playerId);

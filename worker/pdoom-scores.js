@@ -10,6 +10,13 @@ const RUN_ID = /^[a-zA-Z0-9._-]{8,64}$/;
 const NONCE = /^[a-f0-9]{64}$/;
 const TICKET_ID = /^[a-f0-9-]{36}$/;
 const TICKET_LIFETIME = 90 * 24 * 60 * 60 * 1000;
+// Faster claims are stored but held for review, never rejected. These floors are
+// conservative estimates, not measured records; tighten them as real runs arrive.
+const REVIEW_BELOW_MS = Object.freeze({
+  "five-prisons": 90_000,
+  "hal-station": 90_000,
+});
+const CLOCK_SLACK_MS = 10_000;
 const integer = (n, min, max) => Number.isSafeInteger(n) && n >= min && n <= max;
 
 function requireLevel(value) {
@@ -106,6 +113,15 @@ export function calculatePdoomScore(variant, input) {
   return { score: category === 0 ? Object.values(breakdown).reduce((a, b) => a + b, 0) : activeMs, metadata };
 }
 
+// Pausing only adds real time, so active time beyond the ticket's age means the
+// run was not played in real time (or its ticket arrived late, e.g. offline at start).
+export function pdoomReviewReasons(metadata, issuedAt, now = Date.now()) {
+  const reasons = [];
+  if (metadata.activeMs < REVIEW_BELOW_MS[metadata.levelId]) reasons.push("below-time-floor");
+  if (now - issuedAt + CLOCK_SLACK_MS < metadata.activeMs) reasons.push("faster-than-real-time");
+  return reasons;
+}
+
 export async function validatePdoomSubmission(env, { body, variant, submissionId, name, playerId, metadata }, now = Date.now()) {
   const ticket = body.runTicket;
   if (!ticket || typeof ticket.id !== "string" || !TICKET_ID.test(ticket.id)
@@ -113,7 +129,7 @@ export async function validatePdoomSubmission(env, { body, variant, submissionId
     throw new HttpError(401, "Leaderboard validation was updated. Reload before starting a new ranked run.");
   }
   const row = await env.DB.prepare(`
-    SELECT id, run_id, nonce_hash, level_id, level_version, expires_at, completed_at
+    SELECT id, run_id, nonce_hash, level_id, level_version, issued_at, expires_at, completed_at
     FROM pdoom_ranked_runs WHERE id = ?
   `).bind(ticket.id).first();
   const nonceHash = await hashIdentity(ticket.token, "pdoom-run-v1");
@@ -134,5 +150,6 @@ export async function validatePdoomSubmission(env, { body, variant, submissionId
     RETURNING completion_hash
   `).bind(completionHash, now, row.id, nonceHash, completionHash).first();
   if (!bound) throw new HttpError(409, "This run ticket is already bound to a different result. Retry the original result.");
-  return result;
+  // Not part of the completion hash: a retry keeps the first stored moderation status.
+  return { ...result, review: pdoomReviewReasons(result.metadata, row.issued_at, now) };
 }
