@@ -18,7 +18,8 @@
     "deploy:sledding": "wrangler deploy --config game-workers/sledding/wrangler.jsonc",
     "deploy:redirect-batch": "wrangler deploy --config game-workers/pong/wrangler.jsonc && wrangler deploy --config game-workers/protectgreenland/wrangler.jsonc && wrangler deploy --config game-workers/penisvagina/wrangler.jsonc && wrangler deploy --config game-workers/punkfling/wrangler.jsonc",
     "test:pdoom": "node --test tests/pdoom-leaderboard.test.mjs",
-    "leaderboard:moderate": "node scripts/moderate-leaderboard.mjs"
+    "leaderboard:moderate": "node scripts/moderate-leaderboard.mjs",
+    "test:external-plays": "node --test tests/external-plays.test.mjs"
   },
   "dependencies": {
     "@upstash/redis": "^1.36.0",

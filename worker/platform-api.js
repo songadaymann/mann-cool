@@ -1,4 +1,5 @@
 import { getGame, getGameByApiSlug, getGameStatus, getLeaderboardConfig } from "./lib/catalog.js";
+import { getExternalPlayGame } from "./lib/externalPlayGames.js";
 import { issuePdoomTicket, validatePdoomSubmission } from "./pdoom-scores.js";
 import {
   HttpError,
@@ -61,10 +62,10 @@ export async function consumeRateLimit(env, endpoint, identity, rule) {
   }
 }
 
-export async function ensureRegisteredGame(env, slug) {
+export async function ensureRegisteredGame(env, slug, { externalPlay = false } = {}) {
   const game = slug === "mann-cool"
     ? { slug: "mann-cool", title: "mann.cool", status: "hidden", leaderboard: { enabled: false, direction: "desc" } }
-    : getGame(slug) || getGameByApiSlug(slug);
+    : getGame(slug) || getGameByApiSlug(slug) || (externalPlay ? getExternalPlayGame(slug) : null);
   if (!game) throw new HttpError(404, "Unknown game slug");
 
   const leaderboard = getLeaderboardConfig(game);
@@ -288,7 +289,7 @@ async function handlePlays(request, env) {
     if (url.searchParams.has("slug") && !requestedSlug) throw new HttpError(400, "Invalid slug");
 
     if (requestedSlug) {
-      await ensureRegisteredGame(env, requestedSlug);
+      await ensureRegisteredGame(env, requestedSlug, { externalPlay: true });
       const row = await env.DB.prepare(
         "SELECT COALESCE(SUM(play_count), 0) AS count FROM play_totals WHERE slug = ?",
       ).bind(requestedSlug).first();
@@ -308,7 +309,7 @@ async function handlePlays(request, env) {
     const body = await readJson(request, 2_048);
     const slug = cleanSlug(body.slug);
     if (!slug) throw new HttpError(400, "A valid slug is required");
-    await ensureRegisteredGame(env, slug);
+    await ensureRegisteredGame(env, slug, { externalPlay: true });
     const source = cleanSource(body.source);
     const row = await env.DB.prepare(`
       INSERT INTO play_totals (slug, source, play_count, updated_at)
