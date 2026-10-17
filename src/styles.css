@@ -51,6 +51,7 @@ main { display:grid; gap:clamp(52px,6vw,78px); padding:clamp(36px,4.5vw,62px) 0 
 .spotlight-description { color:#656259; font-size:14px; line-height:1.4; }
 .spotlight-action { margin-top:18px; font-size:13px; font-weight:800; text-decoration:underline; text-underline-offset:4px; }
 .spotlight-plays { margin-top:10px; color:#858178; font-size:12px; font-weight:700; }
+.wamp-plays { color:#2c5071; }
 .wamp-spotlight { position:relative; color:#18161c; background:#fff3db; border:3px solid #79ccde; border-radius:0; box-shadow:6px 6px 0 #18161c; }
 .wamp-spotlight-mark { position:relative; display:grid; place-items:center; min-width:0; border-right:3px solid #18161c; background:#fffaf0; overflow:hidden; }
 .wamp-spotlight-mark img { position:relative; z-index:1; width:min(74%,126px); height:auto; image-rendering:pixelated; transition:transform 120ms steps(2,end); }

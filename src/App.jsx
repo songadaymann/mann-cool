@@ -98,7 +98,7 @@ function GameCard({
   );
 }
 
-function TopSpotlights({ playCount, commentCount, onOpenComments }) {
+function TopSpotlights({ wampPlayCount, playCount, commentCount, onOpenComments }) {
   const [wampPreviewActive, setWampPreviewActive] = useState(false);
   const [wampPreviewFailed, setWampPreviewFailed] = useState(false);
   const [latestPreviewActive, setLatestPreviewActive] = useState(false);
@@ -137,6 +137,11 @@ function TopSpotlights({ playCount, commentCount, onOpenComments }) {
           <span className="spotlight-eyebrow">Welcome to WAMP!</span>
           <strong>We All Make A Platformer</strong>
           <span className="spotlight-description">It's like if r/place and Mario Maker had a baby.</span>
+          {Number.isFinite(wampPlayCount) && (
+            <span className="spotlight-plays wamp-plays">
+              {wampPlayCount.toLocaleString()} {wampPlayCount === 1 ? "play" : "plays"}
+            </span>
+          )}
           <span className="spotlight-action">Enter WAMP <span aria-hidden="true">↗</span></span>
         </span>
       </a>
@@ -714,6 +719,7 @@ export default function App() {
 
       <main>
         <TopSpotlights
+          wampPlayCount={playCounts.wamp}
           playCount={playCounts[latestGame.slug]}
           commentCount={commentCountFor(latestGame.slug)}
           onOpenComments={openComments}

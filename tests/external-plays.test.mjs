@@ -34,3 +34,25 @@ test('registration is play-only and unknown games still fail',async t=>{
  assert.equal((await f.api('/api/v1/plays?slug=../wamp')).status,400);
  assert.equal((await f.api('/api/v1/plays',{slug:'wamp',source:'https://private.invalid/user'})).source,'direct');
 });
+test('historical WAMP import preserves live plays and remains idempotent',async t=>{
+ const f=fixture(t);
+ await f.api('/api/v1/plays',{slug:'wamp',source:'direct'});
+ await f.api('/api/v1/plays',{slug:'pong',source:'direct'});
+ const migration=await fs.readFile('migrations/0011_wamp_historical_plays.sql','utf8');
+ f.db.exec(migration);f.db.exec(migration);
+ assert.equal((await f.api('/api/v1/plays?slug=wamp')).count,66586);
+ assert.equal((await f.api('/api/v1/plays',{slug:'wamp',source:'mann.cool'})).count,1);
+ assert.equal((await f.api('/api/plays?slug=wamp')).count,66587);
+ const all=await f.api('/api/v1/plays');
+ assert.equal(all.counts.wamp,66587);assert.equal(all.counts.pong,1);
+ assert.equal(f.db.prepare("SELECT play_count FROM play_totals WHERE slug='wamp' AND source='history-before-2026-10-17'").get().play_count,66585);
+ f.db.exec(migration);
+ assert.equal((await f.api('/api/v1/plays?slug=wamp')).count,66587);
+});
+test('historical import also works before WAMP is first registered',async t=>{
+ const f=fixture(t);
+ f.db.exec(await fs.readFile('migrations/0011_wamp_historical_plays.sql','utf8'));
+ assert.equal((await f.api('/api/v1/plays?slug=wamp')).count,66585);
+ assert.equal((await f.api('/api/v1/plays',{slug:'wamp',source:'direct'})).count,1);
+ assert.equal((await f.api('/api/v1/plays')).counts.wamp,66586);
+});
