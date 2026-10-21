@@ -18,6 +18,24 @@ const today = new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" })
 const todaysSong = Math.round((Date.parse(today) - Date.parse("2009-01-01")) / 86_400_000) + 1;
 const songVideos = catalog.songVideos || {};
 const usedSongs = new Set();
+// Public repos the cards don't link as "Source" (checked 2026-10-21): some hold only a build, and
+// some carry other people's NFT art or media.
+const unlinkedSources = {
+  tallgrass: "the repo holds only a Godot web export",
+  bubble: "the repo holds only a Unity WebGL build",
+  doge: "the repo holds only a Unity WebGL build",
+  punkmatch: "the repo carries CryptoPunks images",
+  punksinspace: "the repo carries CryptoPunks images",
+  towerofpunks: "the repo carries CryptoPunks images",
+  armfulofpunks: "the repo carries CryptoPunks images",
+  punkfling: "the repo carries CryptoPunks images",
+  meelode: "the repo carries Meebits art",
+  meebitsmountain: "the repo carries Meebits art",
+  rcs: "the repo carries XCOPY art and scraped images",
+  kevin: "the repo carries the Pixelmon Kevin and CryptoPunks",
+  beepleblox: "the repo carries Beeple art",
+  chonksisyphus: "the repo carries Chonks NFT art",
+};
 
 if (catalog.version !== 1) errors.push("catalog version must be 1");
 if (JSON.stringify([...tags]) !== JSON.stringify(expectedTags)) errors.push("tag vocabulary changed without approval");
@@ -61,6 +79,7 @@ for (const game of catalog.games || []) {
   if (game.sourceUrl !== undefined && game.sourceUrl !== null && !/^https:\/\/github\.com\/[A-Za-z0-9-]+\/[A-Za-z0-9._-]+$/.test(game.sourceUrl)) {
     errors.push(`${game.slug}: sourceUrl must be null or a public GitHub repo URL`);
   }
+  if (game.sourceUrl && unlinkedSources[game.slug]) errors.push(`${game.slug}: sourceUrl must stay null: ${unlinkedSources[game.slug]}`);
   if (game.songs !== undefined) {
     if (!Array.isArray(game.songs) || !game.songs.length) errors.push(`${game.slug}: songs must be a non-empty array`);
     for (const song of Array.isArray(game.songs) ? game.songs : []) {

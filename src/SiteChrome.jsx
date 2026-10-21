@@ -1,4 +1,38 @@
+import { useEffect, useState } from "react";
 import catalog from "../games.json";
+import { visibleLabGames } from "./lib/lab.js";
+import { applyWalletGate } from "./lib/wallet-gate.js";
+
+const UNIVERSE_BAR_SRC = "https://songaday.studio/bar/v1/bar.js";
+
+// The Song A Day universe bar from songaday.studio, on the homepage and the lab only (never over a
+// game). The placeholder holds its 36px so nothing moves when the bar draws into it. The script is
+// added once the placeholder is on the page, so the bar fills it in rather than adding its own.
+export function UniverseBar() {
+  useEffect(() => {
+    if (document.querySelector(`script[src="${UNIVERSE_BAR_SRC}"]`)) return;
+    const script = document.createElement("script");
+    script.type = "module";
+    script.src = UNIVERSE_BAR_SRC;
+    script.dataset.here = "play";
+    document.head.append(script);
+  }, []);
+  return <songaday-bar data-here="play" />;
+}
+
+// The lab games this visitor can see. Until the wallet gate answers, that's only the ones open to
+// everyone, and waiting is true.
+export function useLabGames() {
+  const [hasWallet, setHasWallet] = useState(null);
+  useEffect(() => {
+    let live = true;
+    applyWalletGate()
+      .then((result) => { if (live) setHasWallet(result.hasWallet); })
+      .catch(() => { if (live) setHasWallet(false); });
+    return () => { live = false; };
+  }, []);
+  return { games: visibleLabGames(catalog.games, hasWallet), waiting: hasWallet === null };
+}
 
 // Linked Song A Day songs open on YouTube; songaday.world's song pages lead with bids and sales.
 function songLinks(game) {
@@ -50,10 +84,14 @@ export function SiteHeader({ tipUrl, onOpenGuestbook }) {
   );
 }
 
-export function SiteFooter({ tipUrl }) {
+// The lab link shows only when this visitor can see something there.
+export function SiteFooter({ tipUrl, showLab }) {
   return (
     <footer className="site-footer">
-      <p>Games by Jonathan Mann, maker of Song A Day. B-sides and experiments live in <a href="/lab">the lab</a>.</p>
+      <p>
+        Games by Jonathan Mann, maker of Song A Day.
+        {showLab && <> B-sides and experiments live in <a href="/lab">the lab</a>.</>}
+      </p>
       <nav aria-label="Support and contact">
         <SupportLinks tipUrl={tipUrl} />
       </nav>

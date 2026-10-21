@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import catalog from "../games.json";
-import { GameLinks, SiteFooter, SiteHeader } from "./SiteChrome.jsx";
+import { GameLinks, SiteFooter, SiteHeader, UniverseBar, useLabGames } from "./SiteChrome.jsx";
 
 const publishedGames = catalog.games.filter((game) => game.status === "published");
 const featuredGames = publishedGames
@@ -610,6 +610,8 @@ export default function App() {
   const [nsfwRevealed, setNsfwRevealed] = useState(
     () => window.localStorage.getItem("mann.cool:nsfw-revealed") === "true",
   );
+  // The lab teaser and footer link show only when this visitor can see a lab game there.
+  const showLab = useLabGames().games.length > 0;
 
   useEffect(() => {
     fetch("/platform/config.json")
@@ -681,97 +683,102 @@ export default function App() {
   );
 
   return (
-    <div className="site-shell">
-      <SiteHeader tipUrl={tipUrl} onOpenGuestbook={() => setGuestbookOpen(true)} />
+    <>
+      <UniverseBar />
+      <div className="site-shell">
+        <SiteHeader tipUrl={tipUrl} onOpenGuestbook={() => setGuestbookOpen(true)} />
 
-      <main>
-        <TopSpotlights
-          wampPlayCount={playCounts.wamp}
-          playCount={playCounts[latestGame.slug]}
-          commentCount={commentCountFor(latestGame.slug)}
-          onOpenComments={openComments}
-        />
+        <main>
+          <TopSpotlights
+            wampPlayCount={playCounts.wamp}
+            playCount={playCounts[latestGame.slug]}
+            commentCount={commentCountFor(latestGame.slug)}
+            onOpenComments={openComments}
+          />
 
-        <section className="featured-section" aria-labelledby="featured-title">
-          <div className="section-heading">
-            <h1 id="featured-title">Featured games</h1>
-          </div>
-          <div className="featured-grid">
-            {featuredGames.map((game) => (
-              <GameCard
-                key={game.slug}
-                game={game}
-                featured
-                nsfwRevealed={nsfwRevealed}
-                onRevealNsfw={revealNsfw}
-                playCount={playCounts[game.slug]}
-                commentCount={commentCountFor(game.slug)}
-                onOpenComments={openComments}
-              />
-            ))}
-          </div>
-        </section>
-
-        <section className="catalog-section" aria-labelledby="all-games-title">
-          <div className="section-heading catalog-heading">
-            <div>
-              <h2 id="all-games-title">All games</h2>
-              <p>{games.length} {games.length === 1 ? "game" : "games"}</p>
+          <section className="featured-section" aria-labelledby="featured-title">
+            <div className="section-heading">
+              <h1 id="featured-title">Featured games</h1>
             </div>
-            <div className="tag-filter" aria-label="Filter games by tag">
-              {["All", ...catalog.tagVocabulary].map((tag) => (
-                <button
-                  key={tag}
-                  type="button"
-                  className={activeTag === tag ? "active" : ""}
-                  aria-pressed={activeTag === tag}
-                  onClick={() => chooseTag(tag)}
-                >
-                  {tag}
-                </button>
+            <div className="featured-grid">
+              {featuredGames.map((game) => (
+                <GameCard
+                  key={game.slug}
+                  game={game}
+                  featured
+                  nsfwRevealed={nsfwRevealed}
+                  onRevealNsfw={revealNsfw}
+                  playCount={playCounts[game.slug]}
+                  commentCount={commentCountFor(game.slug)}
+                  onOpenComments={openComments}
+                />
               ))}
             </div>
-          </div>
-          <div className="games-grid">
-            {games.map((game) => (
-              <GameCard
-                key={game.slug}
-                game={game}
-                nsfwRevealed={nsfwRevealed}
-                onRevealNsfw={revealNsfw}
-                playCount={playCounts[game.slug]}
-                commentCount={commentCountFor(game.slug)}
-                onOpenComments={openComments}
-              />
-            ))}
-          </div>
-          {!games.length && <p className="empty-state">No published games use this tag yet.</p>}
-        </section>
+          </section>
 
-        <section className="lab-teaser" aria-labelledby="lab-teaser-title">
-          <div>
-            <h2 id="lab-teaser-title">The lab</h2>
-            <p>B-sides, experiments and games that didn't quite work out.</p>
-          </div>
-          <a href="/lab">Visit the lab <span aria-hidden="true">→</span></a>
-        </section>
-      </main>
+          <section className="catalog-section" aria-labelledby="all-games-title">
+            <div className="section-heading catalog-heading">
+              <div>
+                <h2 id="all-games-title">All games</h2>
+                <p>{games.length} {games.length === 1 ? "game" : "games"}</p>
+              </div>
+              <div className="tag-filter" aria-label="Filter games by tag">
+                {["All", ...catalog.tagVocabulary].map((tag) => (
+                  <button
+                    key={tag}
+                    type="button"
+                    className={activeTag === tag ? "active" : ""}
+                    aria-pressed={activeTag === tag}
+                    onClick={() => chooseTag(tag)}
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="games-grid">
+              {games.map((game) => (
+                <GameCard
+                  key={game.slug}
+                  game={game}
+                  nsfwRevealed={nsfwRevealed}
+                  onRevealNsfw={revealNsfw}
+                  playCount={playCounts[game.slug]}
+                  commentCount={commentCountFor(game.slug)}
+                  onOpenComments={openComments}
+                />
+              ))}
+            </div>
+            {!games.length && <p className="empty-state">No published games use this tag yet.</p>}
+          </section>
 
-      <SiteFooter tipUrl={tipUrl} />
-      <GuestbookModal
-        isOpen={guestbookOpen}
-        onClose={() => setGuestbookOpen(false)}
-        turnstileSiteKey={turnstileSiteKey}
-      />
-      {commentGame && (
-        <CommentsModal
-          key={commentGame.slug}
-          game={commentGame}
-          onClose={closeComments}
+          {showLab && (
+            <section className="lab-teaser" aria-labelledby="lab-teaser-title">
+              <div>
+                <h2 id="lab-teaser-title">The lab</h2>
+                <p>B-sides, experiments and games that didn't quite work out.</p>
+              </div>
+              <a href="/lab">Visit the lab <span aria-hidden="true">→</span></a>
+            </section>
+          )}
+        </main>
+
+        <SiteFooter tipUrl={tipUrl} showLab={showLab} />
+        <GuestbookModal
+          isOpen={guestbookOpen}
+          onClose={() => setGuestbookOpen(false)}
           turnstileSiteKey={turnstileSiteKey}
-          onCommentAdded={commentAdded}
         />
-      )}
-    </div>
+        {commentGame && (
+          <CommentsModal
+            key={commentGame.slug}
+            game={commentGame}
+            onClose={closeComments}
+            turnstileSiteKey={turnstileSiteKey}
+            onCommentAdded={commentAdded}
+          />
+        )}
+      </div>
+    </>
   );
 }

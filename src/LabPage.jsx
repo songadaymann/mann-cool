@@ -1,11 +1,5 @@
 import { useEffect, useState } from "react";
-import catalog from "../games.json";
-import { GameLinks, SiteFooter, SiteHeader } from "./SiteChrome.jsx";
-import { applyWalletGate } from "./lib/wallet-gate.js";
-
-const labGames = catalog.games
-  .filter((game) => game.status === "lab")
-  .sort((a, b) => b.catalogOrder - a.catalogOrder);
+import { GameLinks, SiteFooter, SiteHeader, UniverseBar, useLabGames } from "./SiteChrome.jsx";
 
 function LabCard({ game }) {
   // Lab games usually stay on their own host; the card says where it goes.
@@ -39,7 +33,8 @@ function LabCard({ game }) {
 
 export default function LabPage() {
   const [tipUrl, setTipUrl] = useState("");
-  const [hasWallet, setHasWallet] = useState(false);
+  // Crypto-only experiments show only in browsers that have a wallet installed.
+  const { games, waiting } = useLabGames();
 
   useEffect(() => {
     document.title = "The lab | mann.cool";
@@ -52,36 +47,34 @@ export default function LabPage() {
       .catch(() => {});
   }, []);
 
-  // Crypto-only experiments show only in browsers that have a wallet installed.
-  useEffect(() => {
-    applyWalletGate()
-      .then((result) => setHasWallet(result.hasWallet))
-      .catch(() => {});
-  }, []);
-
-  const games = labGames.filter((game) => !game.crypto || hasWallet);
-
+  // Nothing links here unless this visitor can see a lab game. Anyone who comes straight here
+  // when there's nothing for them gets one line, once the wallet gate has answered.
   return (
-    <div className="site-shell">
-      <SiteHeader tipUrl={tipUrl} />
+    <>
+      <UniverseBar />
+      <div className="site-shell">
+        <SiteHeader tipUrl={tipUrl} />
 
-      <main>
-        <section aria-labelledby="lab-title">
-          <div className="section-heading">
-            <div>
-              <h1 id="lab-title">The lab</h1>
-              <p className="lab-intro">B-sides, experiments and games that didn't quite work out. Play at your own risk.</p>
-            </div>
-            <a className="lab-back" href="/">All games <span aria-hidden="true">→</span></a>
-          </div>
-          <div className="lab-grid">
-            {games.map((game) => <LabCard key={game.slug} game={game} />)}
-          </div>
-          {!games.length && <p className="empty-state">Nothing in the lab right now.</p>}
-        </section>
-      </main>
+        <main aria-busy={waiting && !games.length ? true : undefined}>
+          {games.length > 0 && (
+            <section aria-labelledby="lab-title">
+              <div className="section-heading">
+                <div>
+                  <h1 id="lab-title">The lab</h1>
+                  <p className="lab-intro">B-sides, experiments and games that didn't quite work out. Play at your own risk.</p>
+                </div>
+                <a className="lab-back" href="/">All games <span aria-hidden="true">→</span></a>
+              </div>
+              <div className="lab-grid">
+                {games.map((game) => <LabCard key={game.slug} game={game} />)}
+              </div>
+            </section>
+          )}
+          {!games.length && !waiting && <p className="empty-state">Nothing here yet.</p>}
+        </main>
 
-      <SiteFooter tipUrl={tipUrl} />
-    </div>
+        <SiteFooter tipUrl={tipUrl} showLab={games.length > 0} />
+      </div>
+    </>
   );
 }

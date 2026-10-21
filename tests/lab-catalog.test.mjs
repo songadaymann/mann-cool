@@ -5,6 +5,7 @@ import {build} from 'esbuild';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import {labGames,visibleLabGames} from '../src/lib/lab.js';
 const catalog=JSON.parse(await fs.readFile('games.json','utf8'));
 const temp=await fs.mkdtemp(path.join(os.tmpdir(),'lab-catalog-test-'));
 await build({entryPoints:['worker/index.js'],bundle:true,platform:'node',format:'esm',outfile:path.join(temp,'worker.mjs'),logLevel:'silent'});
@@ -22,6 +23,21 @@ const lab=catalog.games.filter(game=>game.status==='lab');
 test('lab games stay off the homepage list and link out over https',()=>{
  assert.ok(lab.length>0);
  for(const game of lab){assert.equal(game.featuredRank,undefined);assert.match(game.url,/^https:\/\//);}
+});
+test('lab games with tokens, points or payouts on their page are wallet-only',()=>{
+ for(const slug of ['blue-or-red','clickstr','tttttttt'])assert.equal(lab.find(game=>game.slug===slug).crypto,true,slug);
+ assert.deepEqual(visibleLabGames(catalog.games,false).filter(game=>game.crypto),[]);
+ assert.deepEqual(visibleLabGames(catalog.games,null).filter(game=>game.crypto),[]);
+});
+test('crypto lab games come last, so cards already shown stay put when a wallet adds them',()=>{
+ const games=[{slug:'a',status:'lab',catalogOrder:1},{slug:'b',status:'lab',crypto:true,catalogOrder:3},{slug:'c',status:'lab',catalogOrder:2},{slug:'d',status:'published',catalogOrder:4}];
+ const slugs=list=>list.map(game=>game.slug);
+ assert.deepEqual(slugs(labGames(games)),['c','a','b']);
+ assert.deepEqual(slugs(visibleLabGames(games,null)),['c','a']);
+ assert.deepEqual(slugs(visibleLabGames(games,false)),['c','a']);
+ assert.deepEqual(slugs(visibleLabGames(games,true)),['c','a','b']);
+ const all=labGames(catalog.games),firstCrypto=all.findIndex(game=>game.crypto);
+ assert.ok(firstCrypto===-1||all.slice(firstCrypto).every(game=>game.crypto));
 });
 test('mann.cool/<lab slug> points at the game\'s own host, and /lab is the app',async t=>{
  const f=fixture(t);

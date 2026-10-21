@@ -17,6 +17,8 @@ button,a { font:inherit; }
 a { color:inherit; }
 img { display:block; max-width:100%; }
 
+/* The Song A Day universe bar draws into this placeholder; holding its 36px keeps the page still. */
+songaday-bar { display:block; height:36px; background:#000; }
 .site-shell { width:min(100%,1180px); margin:0 auto; padding:0 clamp(18px,3.2vw,44px); }
 .site-header { display:flex; align-items:center; justify-content:space-between; gap:24px; min-height:84px; border-bottom:1px solid #d8d6ce; padding:28px 0 20px; }
 .site-identity { display:flex; align-items:baseline; gap:10px 18px; flex-wrap:wrap; min-width:0; }

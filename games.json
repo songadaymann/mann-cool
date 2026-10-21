@@ -185,7 +185,7 @@
         ]
       },
       "status": "published",
-      "sourceUrl": "https://github.com/songadaymann/tallGrass"
+      "sourceUrl": null
     },
     {
       "id": 5,
@@ -223,7 +223,7 @@
         ]
       },
       "status": "published",
-      "sourceUrl": "https://github.com/songadaymann/chonksisyphus",
+      "sourceUrl": null,
       "songs": [
         6211
       ]
@@ -385,7 +385,7 @@
         ]
       },
       "status": "published",
-      "sourceUrl": "https://github.com/songadaymann/RCS",
+      "sourceUrl": null,
       "songs": [
         4131
       ]
@@ -426,7 +426,7 @@
         ]
       },
       "status": "published",
-      "sourceUrl": "https://github.com/songadaymann/kevin-runner",
+      "sourceUrl": null,
       "songs": [
         6216
       ]
@@ -510,7 +510,7 @@
         ]
       },
       "status": "published",
-      "sourceUrl": "https://github.com/songadaymann/bubble-shader-game"
+      "sourceUrl": null
     },
     {
       "id": 13,
@@ -589,7 +589,7 @@
         ]
       },
       "status": "published",
-      "sourceUrl": "https://github.com/songadaymann/punkmatch"
+      "sourceUrl": null
     },
     {
       "id": 15,
@@ -631,7 +631,7 @@
         ]
       },
       "status": "published",
-      "sourceUrl": "https://github.com/songadaymann/beeple-blox"
+      "sourceUrl": null
     },
     {
       "id": 16,
@@ -669,7 +669,7 @@
         ]
       },
       "status": "published",
-      "sourceUrl": "https://github.com/songadaymann/doge",
+      "sourceUrl": null,
       "songs": [
         5623
       ]
@@ -870,7 +870,7 @@
         ]
       },
       "status": "published",
-      "sourceUrl": "https://github.com/songadaymann/meelode"
+      "sourceUrl": null
     },
     {
       "id": 22,
@@ -1031,7 +1031,7 @@
         ]
       },
       "status": "published",
-      "sourceUrl": "https://github.com/songadaymann/punksinspace"
+      "sourceUrl": null
     },
     {
       "id": 26,
@@ -1069,7 +1069,7 @@
         ]
       },
       "status": "published",
-      "sourceUrl": "https://github.com/songadaymann/towerofpunks"
+      "sourceUrl": null
     },
     {
       "id": 27,
@@ -1107,7 +1107,7 @@
         ]
       },
       "status": "published",
-      "sourceUrl": "https://github.com/songadaymann/armfulofpunks"
+      "sourceUrl": null
     },
     {
       "id": 28,
@@ -1148,7 +1148,7 @@
         ]
       },
       "status": "published",
-      "sourceUrl": "https://github.com/songadaymann/punk-fling"
+      "sourceUrl": null
     },
     {
       "id": 29,
@@ -1299,7 +1299,7 @@
         ]
       },
       "status": "published",
-      "sourceUrl": "https://github.com/songadaymann/meebitsmountain"
+      "sourceUrl": null
     },
     {
       "id": 33,
@@ -1942,6 +1942,7 @@
         "desktop": true
       },
       "url": "https://redvblue.pages.dev/",
+      "crypto": true,
       "status": "lab",
       "sourceUrl": null
     },
