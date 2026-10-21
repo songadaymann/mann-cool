@@ -25,7 +25,7 @@ async function check(path, expected, init = {}) {
 }
 
 const config = await check("/platform/config.json", 200);
-if (config.json?.version !== 1 || !config.json?.homeUrl || !config.json?.patreonUrl) {
+if (config.json?.version !== 1 || !config.json?.homeUrl || !config.json?.supportUrl) {
   throw new Error("Platform config is incomplete");
 }
 const shell = await check("/platform/v1/game-shell.js", 200, { redirect: "follow" });
@@ -43,6 +43,9 @@ const session = await check("/api/v1/player/session", 400, {
 if (session.json?.error !== "A valid player secret is required") throw new Error("Player session does not validate secrets");
 if (shell.body.includes("api/v1/guestbook") || shell.body.includes("Guestbook")) {
   throw new Error("Shared shell still contains the retired per-game guestbook");
+}
+if (shell.body.includes("Patreon") || !shell.body.includes("data-support")) {
+  throw new Error("Shared shell still links Patreon instead of songaday.studio support");
 }
 
 for (const prefix of ["/api/v1", "/api"]) {
