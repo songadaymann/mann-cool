@@ -380,7 +380,7 @@
       } catch {
         this.config = {};
       }
-      // songaday.studio credits the game a supporter came from, like the tip jar does.
+      // Tag the donate link with the game it came from, so songaday.studio's request logs can tell.
       const support = new URL(this.config.supportUrl || "https://songaday.studio/#donate");
       support.searchParams.set("from", slug || "mann-cool");
       this.shadowRoot.querySelector("[data-support]").href = support.href;
