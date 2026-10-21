@@ -1,17 +1,20 @@
-import { games, getGame } from "./lib/catalog.js";
+import { games, getGame, getSongLinks } from "./lib/catalog.js";
 import { handlePlatformApi, recordTipClick } from "./platform-api.js";
 import { handlePlayerApi, handleWalletsApi } from "./player-identity.js";
 
 const PLATFORM_ENDPOINTS = new Set(["plays", "tip-clicks", "guestbook", "comments", "leaderboard", "community-levels"]);
-const GAME_SHELL_VERSION = "20261021-support-link1";
+const GAME_SHELL_VERSION = "20261021-lab-sources1";
 
-function platformConfig(env) {
+function platformConfig(request, env) {
+  // A game's shell passes ?slug= to get that game's song and source links.
+  const game = getGame(new URL(request.url).searchParams.get("slug"));
   return Response.json({
     version: 1,
     homeUrl: "https://mann.cool/",
     supportUrl: env.SUPPORT_URL || "https://songaday.studio/#donate",
     tipUrl: env.TIP_URL || null,
     turnstileSiteKey: env.TURNSTILE_SITE_KEY || null,
+    ...(game && { game: { songs: getSongLinks(game), sourceUrl: game.sourceUrl || null } }),
   }, {
     headers: {
       "cache-control": "public, max-age=300",
@@ -110,7 +113,7 @@ async function handleRequest(request, env) {
     return Response.json({ error: "API route not found" }, { status: 404 });
   }
 
-  if (url.pathname === "/platform/config.json") return platformConfig(env);
+  if (url.pathname === "/platform/config.json") return platformConfig(request, env);
   if (url.pathname === "/platform/v1/game-shell.js" && url.searchParams.get("v") !== GAME_SHELL_VERSION) {
     url.searchParams.set("v", GAME_SHELL_VERSION);
     return Response.redirect(url, 307);
@@ -127,6 +130,8 @@ async function handleRequest(request, env) {
   }
 
   const game = getGame(segments[0]);
+  // Lab games can stay on their own hosts; mann.cool/<slug> just points there.
+  if (game?.status === "lab" && game.url) return Response.redirect(game.url, 302);
   if (game) {
     if (segments.length === 1 && !url.pathname.endsWith("/")) {
       url.pathname = `${url.pathname}/`;

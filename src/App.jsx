@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import catalog from "../games.json";
+import { GameLinks, SiteFooter, SiteHeader } from "./SiteChrome.jsx";
 
 const publishedGames = catalog.games.filter((game) => game.status === "published");
 const featuredGames = publishedGames
@@ -87,7 +88,7 @@ function GameCard({
           </button>
         )}
         <button type="button" onClick={() => onOpenComments(game)}>Add comment</button>
-        {game.sourceUrl && <a href={game.sourceUrl} target="_blank" rel="noopener noreferrer">Source</a>}
+        <GameLinks game={game} />
       </div>
       {artworkHidden && (
         <button className="nsfw-reveal" type="button" onClick={onRevealNsfw}>
@@ -194,18 +195,6 @@ function TopSpotlights({ wampPlayCount, playCount, commentCount, onOpenComments 
         </span>
       </article>
     </section>
-  );
-}
-
-function SupportLinks({ tipUrl }) {
-  return (
-    <>
-      <a className="support-donate" href="https://songaday.studio/?from=mann-cool#donate" target="_blank" rel="noreferrer">Support</a>
-      {tipUrl && <a className="support-tip" href="/tip?from=mann-cool" target="_blank" rel="noreferrer">Tip Jar</a>}
-      <a className="support-x" href="https://x.com/songadaymann" target="_blank" rel="noreferrer">X</a>
-      <a className="support-instagram" href="https://instagram.com/jonathanmann" target="_blank" rel="noreferrer">Instagram</a>
-      <a href="mailto:jonathan@jonathanmann.net">Contact</a>
-    </>
   );
 }
 
@@ -610,17 +599,6 @@ function CommentsModal({ game, onClose, turnstileSiteKey, onCommentAdded }) {
   );
 }
 
-function Footer({ tipUrl }) {
-  return (
-    <footer className="site-footer">
-      <p>Games by Jonathan Mann, maker of Song A Day.</p>
-      <nav aria-label="Support and contact">
-        <SupportLinks tipUrl={tipUrl} />
-      </nav>
-    </footer>
-  );
-}
-
 export default function App() {
   const [activeTag, setActiveTag] = useState(initialTag);
   const [tipUrl, setTipUrl] = useState("");
@@ -704,18 +682,7 @@ export default function App() {
 
   return (
     <div className="site-shell">
-      <header className="site-header">
-        <div className="site-identity">
-          <a className="wordmark" href="/">mann.cool</a>
-          <p>games by Jonathan Mann, maker of Song A Day</p>
-        </div>
-        <nav className="site-nav" aria-label="Support and contact">
-          <button className="nav-guestbook" type="button" onClick={() => setGuestbookOpen(true)}>
-            Guestbook
-          </button>
-          <SupportLinks tipUrl={tipUrl} />
-        </nav>
-      </header>
+      <SiteHeader tipUrl={tipUrl} onOpenGuestbook={() => setGuestbookOpen(true)} />
 
       <main>
         <TopSpotlights
@@ -780,9 +747,17 @@ export default function App() {
           </div>
           {!games.length && <p className="empty-state">No published games use this tag yet.</p>}
         </section>
+
+        <section className="lab-teaser" aria-labelledby="lab-teaser-title">
+          <div>
+            <h2 id="lab-teaser-title">The lab</h2>
+            <p>B-sides, experiments and games that didn't quite work out.</p>
+          </div>
+          <a href="/lab">Visit the lab <span aria-hidden="true">→</span></a>
+        </section>
       </main>
 
-      <Footer tipUrl={tipUrl} />
+      <SiteFooter tipUrl={tipUrl} />
       <GuestbookModal
         isOpen={guestbookOpen}
         onClose={() => setGuestbookOpen(false)}
