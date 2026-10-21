@@ -16,10 +16,13 @@ const {default:worker}=await import(path.join(temp,'worker.mjs'));
 after(()=>fs.rm(temp,{recursive:true,force:true}));
 const schema=await fs.readFile(new URL('../migrations/0001_platform.sql',import.meta.url),'utf8')
   +await fs.readFile(new URL('../migrations/0010_pdoom_ranked_runs.sql',import.meta.url),'utf8');
+// Level 3 (MEG3N's Toy Factory) has its own v1 board and counts her 20 screens as its cameras.
+const BOARD={'five-prisons':'v3','hal-station':'v3','meg3n-factory':'v1'},CAMERAS=levelId=>levelId==='meg3n-factory'?20:9;
+const version=levelId=>`${levelId}-${BOARD[levelId]||'v3'}`;
 const metadata=(levelId='five-prisons',overrides={})=>({
-  levelId,levelVersion:levelId+'-v3',scoreVersion:'rescue-v2',boardVersion:'v3',
+  levelId,levelVersion:version(levelId),scoreVersion:'rescue-v2',boardVersion:BOARD[levelId]||'v3',
   outcome:'escaped',practice:false,savedFigures:5,ceoState:'conscious',skill:3,entry:'cold',retreat:false,
-  saved:6,total:6,camerasDestroyed:9,camerasTotal:9,activeTics:21000,activeMs:600000,
+  saved:6,total:6,camerasDestroyed:CAMERAS(levelId),camerasTotal:CAMERAS(levelId),activeTics:21000,activeMs:600000,
   pDoomAtCoverOpen:5,pDoomFinal:0,breakdown:{rescue:9e12},routes:[],ceo:'amodei',...overrides,
 });
 function fixture(t){
@@ -32,12 +35,12 @@ function fixture(t){
   };
   // Tickets are issued when play begins, so a finished run's ticket is at least as old as its active time.
   const start=async(levelId='five-prisons',runId=randomUUID(),nonce=randomBytes(32).toString('hex'),playedMs=3600000)=>{
-    const details={runId,nonce,levelId,levelVersion:levelId+'-v3',scoreVersion:'rescue-v2',boardVersion:'v3'};
+    const details={runId,nonce,levelId,levelVersion:version(levelId),scoreVersion:'rescue-v2',boardVersion:BOARD[levelId]||'v3'};
     const result=await api('/api/v1/pdoom/runs',details);assert.equal(result.status,201,JSON.stringify(result));
     db.prepare('UPDATE pdoom_ranked_runs SET issued_at = issued_at - ? WHERE id = ?').run(playedMs,result.ticketId);
     return {...details,runTicket:{id:result.ticketId,token:nonce}};
   };
-  const body=(run,category='rescue',overrides={})=>({slug:'pdoom',variant:`${run.levelId}-${category}-v3`,name:'Genuine fixture',playerId:'fixture-player',submissionId:`${run.runId}:${run.levelId}-${category}-v3`,score:1e12,runTicket:run.runTicket,metadata:metadata(run.levelId),...overrides});
+  const body=(run,category='rescue',overrides={})=>({slug:'pdoom',variant:`${run.levelId}-${category}-${BOARD[run.levelId]||'v3'}`,name:'Genuine fixture',playerId:'fixture-player',submissionId:`${run.runId}:${run.levelId}-${category}-${BOARD[run.levelId]||'v3'}`,score:1e12,runTicket:run.runTicket,metadata:metadata(run.levelId),...overrides});
   return {db,api,start,body};
 }
 
@@ -166,4 +169,24 @@ test('implausibly fast runs are stored for review instead of rejected or ranked'
   assert.deepEqual(f.db.prepare("SELECT moderation_status AS status, COUNT(*) AS n FROM leaderboard_entries GROUP BY status ORDER BY status").all().map(r=>[r.status,r.n]),[['approved',1],['pending',2]]);
   f.db.prepare("UPDATE leaderboard_entries SET moderation_status = 'approved' WHERE submission_id = ?").run(blinkBody.submissionId);
   assert.deepEqual((await board('five-prisons-rescue-v3')).map(entry=>entry.score),[56200,55200]);
+});
+
+test('level 3 ranks MEG3N\'s factory on its own v1 board with her 20 screens',async t=>{
+  const run=metadata('meg3n-factory');
+  const result=calculatePdoomScore('meg3n-factory-rescue-v1',run);
+  assert.equal(result.score,50000+1000+20*250+1000+950);assert.equal(result.metadata.camerasTotal,20);assert.equal(result.metadata.boardVersion,'v1');
+  assert.throws(()=>calculatePdoomScore('meg3n-factory-rescue-v3',run),/board does not belong/);
+  for(const change of [{camerasTotal:9,camerasDestroyed:9},{camerasDestroyed:21},{boardVersion:'v3'},{levelVersion:'meg3n-factory-v3'}])
+    assert.throws(()=>calculatePdoomScore('meg3n-factory-rescue-v1',{...run,...change}),JSON.stringify(change));
+  // Levels 1-2 keep nine cameras.
+  assert.throws(()=>calculatePdoomScore('five-prisons-rescue-v3',metadata('five-prisons',{camerasTotal:20,camerasDestroyed:20})));
+  const f=fixture(t),ranked=await f.start('meg3n-factory');
+  const response=await f.api('/api/v1/leaderboard',f.body(ranked));
+  assert.equal(response.status,201,JSON.stringify(response));assert.equal(response.entry.score,57950);
+  const board=await f.api('/api/v1/leaderboard?slug=pdoom&variant=meg3n-factory-rescue-v1');
+  assert.equal(board.status,200);assert.equal(board.entries.length,1);assert.equal(board.entries[0].score,57950);
+  // A fast claim is stored but held for review, like levels 1-2 (its floor is 3 minutes).
+  const quick=await f.start('meg3n-factory');
+  const held=await f.api('/api/v1/leaderboard',f.body(quick,'rescue',{metadata:metadata('meg3n-factory',{activeTics:35*120,activeMs:120000})}));
+  assert.equal(held.status,201);assert.equal(held.held,true,JSON.stringify(held));
 });

@@ -2,9 +2,11 @@ import { timingSafeEqual } from "node:crypto";
 import { HttpError, hashIdentity } from "./lib/http.js";
 
 // These are the locked competitive maps. A map/rules change needs a new board key.
+// cameras: the side bonus's total (level 3 counts MEG3N's live-feed screens instead).
 const LEVELS = Object.freeze({
-  "five-prisons": "five-prisons-v3",
-  "hal-station": "hal-station-v3",
+  "five-prisons": Object.freeze({ version: "five-prisons-v3", board: "v3", cameras: 9 }),
+  "hal-station": Object.freeze({ version: "hal-station-v3", board: "v3", cameras: 9 }),
+  "meg3n-factory": Object.freeze({ version: "meg3n-factory-v1", board: "v1", cameras: 20 }),
 });
 const RUN_ID = /^[a-zA-Z0-9._-]{8,64}$/;
 const NONCE = /^[a-f0-9]{64}$/;
@@ -15,16 +17,18 @@ const TICKET_LIFETIME = 90 * 24 * 60 * 60 * 1000;
 const REVIEW_BELOW_MS = Object.freeze({
   "five-prisons": 90_000,
   "hal-station": 90_000,
+  "meg3n-factory": 180_000,
 });
 const CLOCK_SLACK_MS = 10_000;
 const integer = (n, min, max) => Number.isSafeInteger(n) && n >= min && n <= max;
 
 function requireLevel(value) {
   if (!value || typeof value.levelId !== "string" || !Object.hasOwn(LEVELS, value.levelId)
-    || value.levelVersion !== LEVELS[value.levelId]
-    || value.scoreVersion !== "rescue-v2" || value.boardVersion !== "v3") {
+    || value.levelVersion !== LEVELS[value.levelId].version
+    || value.scoreVersion !== "rescue-v2" || value.boardVersion !== LEVELS[value.levelId].board) {
     throw new HttpError(400, "This leaderboard needs the current level and scoring version.");
   }
+  return LEVELS[value.levelId];
 }
 
 function equalHash(a, b) {
@@ -63,8 +67,8 @@ export async function issuePdoomTicket(env, body, now = Date.now()) {
 // Plausibility checks, not proof of gameplay. All inputs from the browser remain
 // untrusted; only replay/server simulation can establish that the run happened.
 export function calculatePdoomScore(variant, input) {
-  requireLevel(input);
-  const variants = ["rescue", "perfect", "clean-sweep"].map(kind => `${input.levelId}-${kind}-v3`);
+  const level = requireLevel(input);
+  const variants = ["rescue", "perfect", "clean-sweep"].map(kind => `${input.levelId}-${kind}-${level.board}`);
   const category = variants.indexOf(variant);
   if (category < 0) throw new HttpError(400, "The board does not belong to this run's level.");
   if (input.outcome !== "escaped" || input.practice !== false || input.skill !== 3
@@ -74,7 +78,7 @@ export function calculatePdoomScore(variant, input) {
   if (!integer(input.savedFigures, 0, 5) || !["conscious", "carried"].includes(input.ceoState)
     || input.total !== 6 || !integer(input.saved, 1, 6)
     || input.saved !== input.savedFigures + (input.ceoState === "conscious" ? 1 : 0)
-    || input.camerasTotal !== 9 || !integer(input.camerasDestroyed, 0, 9)
+    || input.camerasTotal !== level.cameras || !integer(input.camerasDestroyed, 0, level.cameras)
     || !integer(input.activeTics, 1, 2_147_483_647)
     || !integer(input.pDoomAtCoverOpen, 1, 99) || input.pDoomFinal !== 0) {
     throw new HttpError(400, "The rescue counts, active time or escape result are inconsistent.");
@@ -82,7 +86,7 @@ export function calculatePdoomScore(variant, input) {
   const activeMs = Math.round(input.activeTics * 1000 / 35);
   if (input.activeMs !== activeMs) throw new HttpError(400, "Active time does not match the native game clock.");
   if (category > 0 && (input.savedFigures !== 5 || input.ceoState !== "conscious")
-    || category === 2 && input.camerasDestroyed !== 9) {
+    || category === 2 && input.camerasDestroyed !== level.cameras) {
     throw new HttpError(400, "This rescue does not qualify for that board.");
   }
   const routes = input.routes ?? [];
@@ -102,9 +106,9 @@ export function calculatePdoomScore(variant, input) {
   };
   const metadata = {
     levelId: input.levelId, levelVersion: input.levelVersion,
-    scoreVersion: "rescue-v2", boardVersion: "v3", outcome: "escaped", practice: false,
+    scoreVersion: "rescue-v2", boardVersion: level.board, outcome: "escaped", practice: false,
     savedFigures: input.savedFigures, ceoState: input.ceoState, skill: 3, entry: "cold", retreat: false,
-    saved: input.saved, total: 6, camerasDestroyed: input.camerasDestroyed, camerasTotal: 9,
+    saved: input.saved, total: 6, camerasDestroyed: input.camerasDestroyed, camerasTotal: level.cameras,
     activeMs, activeTics: input.activeTics, pDoomAtCoverOpen: input.pDoomAtCoverOpen,
     pDoomFinal: 0, breakdown, routes,
     ...(input.ceo === undefined ? {} : { ceo: input.ceo }),
