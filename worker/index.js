@@ -3,13 +3,13 @@ import { handlePlatformApi, recordTipClick } from "./platform-api.js";
 import { handlePlayerApi, handleWalletsApi } from "./player-identity.js";
 
 const PLATFORM_ENDPOINTS = new Set(["plays", "tip-clicks", "guestbook", "comments", "leaderboard", "community-levels"]);
-const GAME_SHELL_VERSION = "20261014-player-wallets1";
+const GAME_SHELL_VERSION = "20261021-support-link1";
 
 function platformConfig(env) {
   return Response.json({
     version: 1,
     homeUrl: "https://mann.cool/",
-    patreonUrl: env.PATREON_URL || "http://songaday.studio",
+    supportUrl: env.SUPPORT_URL || "https://songaday.studio/#donate",
     tipUrl: env.TIP_URL || null,
     turnstileSiteKey: env.TURNSTILE_SITE_KEY || null,
   }, {

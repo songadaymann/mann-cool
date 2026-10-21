@@ -23,7 +23,7 @@
   ],
   "vars": {
     "PLATFORM_READ_SOURCE": "d1",
-    "PATREON_URL": "http://songaday.studio",
+    "SUPPORT_URL": "https://songaday.studio/#donate",
     "TIP_URL": "https://buy.stripe.com/eVqdR91p20Ra8No1Cs48000",
     "PLAYER_EMAIL_FROM": "mann.cool <play@mann.cool>",
     "PLAYER_EMAIL_REPLY_TO": "jonathan@jonathanmann.net"

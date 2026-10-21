@@ -5,7 +5,7 @@ interface __BaseEnv_Env {
 	DB: D1Database;
 	ASSETS: Fetcher;
 	PLATFORM_READ_SOURCE: "d1";
-	PATREON_URL: "http://songaday.studio";
+	SUPPORT_URL: "https://songaday.studio/#donate";
 	TIP_URL: "https://buy.stripe.com/eVqdR91p20Ra8No1Cs48000";
 }
 declare namespace Cloudflare {
@@ -19,7 +19,7 @@ type StringifyValues<EnvType extends Record<string, unknown>> = {
 	[Binding in keyof EnvType]: EnvType[Binding] extends string ? EnvType[Binding] : string;
 };
 declare namespace NodeJS {
-	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "PLATFORM_READ_SOURCE" | "PATREON_URL" | "TIP_URL">> {}
+	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "PLATFORM_READ_SOURCE" | "SUPPORT_URL" | "TIP_URL">> {}
 }
 
 // Begin runtime types

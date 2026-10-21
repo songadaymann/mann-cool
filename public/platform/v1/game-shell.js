@@ -275,7 +275,7 @@
                 : '<button type="button" data-open="leaderboard"><span>Leaderboard</span><span>↗</span></button>')
               : ""}
             ${playerIdentityEnabled ? '<button type="button" data-open="player"><span data-player-menu>Save your scores</span><span>↗</span></button>' : ""}
-            <a data-patreon target="_blank" rel="noopener noreferrer"><span>Patreon</span><span>↗</span></a>
+            <a data-support target="_blank" rel="noopener noreferrer"><span>Support</span><span>↗</span></a>
           </div>
         </div>
         <div class="backdrop" data-modal="leaderboard" hidden>
@@ -378,10 +378,12 @@
         const response = await fetch("/platform/config.json");
         this.config = await response.json();
       } catch {
-        this.config = { patreonUrl: "http://songaday.studio" };
+        this.config = {};
       }
-      const patreon = this.shadowRoot.querySelector("[data-patreon]");
-      patreon.href = this.config.patreonUrl || "http://songaday.studio";
+      // Tag the donate link with the game it came from, so songaday.studio's request logs can tell.
+      const support = new URL(this.config.supportUrl || "https://songaday.studio/#donate");
+      support.searchParams.set("from", slug || "mann-cool");
+      this.shadowRoot.querySelector("[data-support]").href = support.href;
       const tip = this.shadowRoot.querySelector("[data-tip]");
       if (this.config.tipUrl) {
         tip.href = `https://mann.cool/tip?from=${encodeURIComponent(slug)}`;
