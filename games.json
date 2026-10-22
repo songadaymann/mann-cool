@@ -67,7 +67,7 @@
         ]
       },
       "status": "published",
-      "sourceUrl": "https://github.com/songadaymann/coldplay-canoodle"
+      "sourceUrl": null
     },
     {
       "id": 2,
@@ -468,7 +468,7 @@
         ]
       },
       "status": "published",
-      "sourceUrl": "https://github.com/songadaymann/fuckice",
+      "sourceUrl": null,
       "songs": [
         6217
       ]
@@ -709,7 +709,7 @@
         ]
       },
       "status": "published",
-      "sourceUrl": "https://github.com/songadaymann/girlscouts",
+      "sourceUrl": null,
       "songs": [
         6224
       ]
@@ -787,7 +787,7 @@
         ]
       },
       "status": "published",
-      "sourceUrl": "https://github.com/songadaymann/kombatice",
+      "sourceUrl": null,
       "songs": [
         6225
       ]
@@ -1337,7 +1337,7 @@
         ]
       },
       "status": "published",
-      "sourceUrl": "https://github.com/songadaymann/100goombas"
+      "sourceUrl": null
     },
     {
       "id": 34,

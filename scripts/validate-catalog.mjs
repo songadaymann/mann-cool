@@ -35,6 +35,11 @@ const unlinkedSources = {
   kevin: "the repo carries the Pixelmon Kevin and CryptoPunks",
   beepleblox: "the repo carries Beeple art",
   chonksisyphus: "the repo carries Chonks NFT art",
+  fuckice: "the repo carries Unity Asset Store packages and Super Mario Bros. 2 sprites",
+  kombatice: "the repo has a committed .env.local to check, plus Mortal Kombat art",
+  "coldplay-canoodle": "the repo carries kiss-cam photos of real people",
+  "100goombas": "the repo carries Super Mario sprites",
+  girlscouts: "the repo carries photos of cookie boxes",
 };
 
 if (catalog.version !== 1) errors.push("catalog version must be 1");

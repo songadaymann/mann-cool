@@ -55,7 +55,8 @@ export default function LabPage() {
       <div className="site-shell">
         <SiteHeader tipUrl={tipUrl} />
 
-        <main aria-busy={waiting && !games.length ? true : undefined}>
+        {/* A fixed floor, so the footer doesn't jump when the wallet check answers. */}
+        <main aria-busy={waiting && !games.length ? true : undefined} style={{ minHeight: "60vh" }}>
           {games.length > 0 && (
             <section aria-labelledby="lab-title">
               <div className="section-heading">
