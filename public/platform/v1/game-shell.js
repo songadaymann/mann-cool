@@ -216,6 +216,7 @@
           .menu-title { margin:0; padding:13px; overflow:hidden; color:var(--muted); font-size:11px; letter-spacing:.08em; text-overflow:ellipsis; text-transform:uppercase; white-space:nowrap; }
           .menu button,.menu a { display:flex; align-items:center; justify-content:space-between; width:100%; min-height:46px; padding:0 13px; border:0; border-top:2px solid var(--rule); border-radius:0; color:var(--ink); background:var(--paper); text-align:left; text-decoration:none; text-transform:uppercase; letter-spacing:.04em; cursor:pointer; }
           .menu button:hover,.menu button:focus-visible,.menu a:hover,.menu a:focus-visible { outline:3px solid var(--focus); outline-offset:-3px; color:var(--paper); background:var(--ink); }
+          .menu a[data-game-link] { gap:12px; padding-top:11px; padding-bottom:11px; line-height:1.25; }
           .backdrop { position:fixed; inset:0; display:grid; place-items:center; padding:20px; background:rgba(0,0,0,.66); backdrop-filter:blur(8px); }
           .backdrop[hidden] { display:none; }
           .panel { position:relative; width:min(620px,100%); max-height:min(720px,calc(100dvh - 40px)); padding:clamp(24px,5vw,42px); border:3px solid var(--accent); border-radius:var(--panel-radius); color:var(--panel-ink); background:var(--panel); box-shadow:10px 10px 0 var(--ink),0 30px 100px rgba(0,0,0,.58); overflow:auto; }
@@ -375,7 +376,7 @@
 
     async loadConfig() {
       try {
-        const response = await fetch("/platform/config.json");
+        const response = await fetch(`/platform/config.json?slug=${encodeURIComponent(slug)}`);
         this.config = await response.json();
       } catch {
         this.config = {};
@@ -388,6 +389,31 @@
       if (this.config.tipUrl) {
         tip.href = `https://mann.cool/tip?from=${encodeURIComponent(slug)}`;
         tip.hidden = false;
+      }
+      this.renderGameLinks(this.config.game);
+    }
+
+    // The Song A Day song a game came from, and its public source code, sit above Support.
+    renderGameLinks(game) {
+      const support = this.shadowRoot.querySelector("[data-support]");
+      const songs = Array.isArray(game?.songs) ? game.songs : [];
+      const links = [
+        ...songs.map((song) => [`Hear the song: Song A Day #${song.number}`, song.url]),
+        ...(game?.sourceUrl ? [["Source", game.sourceUrl]] : []),
+      ];
+      for (const [label, href] of links) {
+        if (!/^https:\/\//.test(String(href))) continue;
+        const link = document.createElement("a");
+        link.dataset.gameLink = "";
+        link.href = href;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        const text = document.createElement("span");
+        text.textContent = label;
+        const arrow = document.createElement("span");
+        arrow.textContent = "↗";
+        link.append(text, arrow);
+        support.before(link);
       }
     }
 

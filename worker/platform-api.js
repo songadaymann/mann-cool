@@ -69,6 +69,8 @@ export async function ensureRegisteredGame(env, slug, { externalPlay = false } =
   if (!game) throw new HttpError(404, "Unknown game slug");
 
   const leaderboard = getLeaderboardConfig(game);
+  // D1's games.status check predates the lab, so lab games are stored as hidden.
+  const status = getGameStatus(game) === "lab" ? "hidden" : getGameStatus(game);
   await env.DB.prepare(`
     INSERT INTO games (slug, title, status, leaderboard_enabled, leaderboard_direction, updated_at)
     VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
@@ -81,7 +83,7 @@ export async function ensureRegisteredGame(env, slug, { externalPlay = false } =
   `).bind(
     game.slug,
     game.title,
-    getGameStatus(game),
+    status,
     leaderboard.enabled ? 1 : 0,
     leaderboard.direction,
   ).run();

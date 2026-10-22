@@ -10,6 +10,26 @@
     "game a day",
     "NSFW"
   ],
+  "songVideos": {
+    "1819": "7VJ4vCEcTJk",
+    "4131": "GNnQ8huVANM",
+    "5307": "BdUR7TNScDg",
+    "5623": "7hnIcTIPq3o",
+    "5679": "XHFsSh5D68Y",
+    "6000": "WjEB7W1NSTg",
+    "6196": "pLtbVtytbjs",
+    "6211": "41zsN0blL7g",
+    "6216": "wYls-aW-ZYs",
+    "6217": "dyhMvOWVuso",
+    "6224": "qnvowNrF290",
+    "6225": "xkBvxVM5Khw",
+    "6229": "PRgdFJ6tuAI",
+    "6231": "PkdixrojCyE",
+    "6403": "Ae4_LoWgHGY",
+    "6406": "hVdKRnZR5xQ",
+    "6412": "Xvtff62SU9I",
+    "6497": "RGfxVlO-DrE"
+  },
   "games": [
     {
       "id": 1,
@@ -46,7 +66,8 @@
           "mann.cool/coldplay-canoodle/*"
         ]
       },
-      "status": "published"
+      "status": "published",
+      "sourceUrl": null
     },
     {
       "id": 2,
@@ -82,7 +103,11 @@
           "mann.cool/ctn/*"
         ]
       },
-      "status": "published"
+      "status": "published",
+      "sourceUrl": null,
+      "songs": [
+        6000
+      ]
     },
     {
       "id": 3,
@@ -118,7 +143,11 @@
           "mann.cool/windows/*"
         ]
       },
-      "status": "published"
+      "status": "published",
+      "sourceUrl": null,
+      "songs": [
+        5679
+      ]
     },
     {
       "id": 4,
@@ -155,7 +184,8 @@
           "mann.cool/tallgrass/*"
         ]
       },
-      "status": "published"
+      "status": "published",
+      "sourceUrl": null
     },
     {
       "id": 5,
@@ -192,7 +222,11 @@
           "mann.cool/chonksisyphus/*"
         ]
       },
-      "status": "published"
+      "status": "published",
+      "sourceUrl": null,
+      "songs": [
+        6211
+      ]
     },
     {
       "id": 6,
@@ -230,7 +264,11 @@
           "mann.cool/oil/*"
         ]
       },
-      "status": "published"
+      "status": "published",
+      "sourceUrl": null,
+      "songs": [
+        6196
+      ]
     },
     {
       "id": 7,
@@ -267,7 +305,11 @@
           "mann.cool/loki/*"
         ]
       },
-      "status": "published"
+      "status": "published",
+      "sourceUrl": "https://github.com/songadaymann/loki",
+      "songs": [
+        5307
+      ]
     },
     {
       "id": 8,
@@ -304,7 +346,8 @@
           "mann.cool/pong/*"
         ]
       },
-      "status": "published"
+      "status": "published",
+      "sourceUrl": null
     },
     {
       "id": 9,
@@ -341,7 +384,11 @@
           "mann.cool/rcs/*"
         ]
       },
-      "status": "published"
+      "status": "published",
+      "sourceUrl": null,
+      "songs": [
+        4131
+      ]
     },
     {
       "id": 10,
@@ -378,7 +425,11 @@
           "mann.cool/kevin/*"
         ]
       },
-      "status": "published"
+      "status": "published",
+      "sourceUrl": null,
+      "songs": [
+        6216
+      ]
     },
     {
       "id": 11,
@@ -416,7 +467,11 @@
           "mann.cool/fuckice/*"
         ]
       },
-      "status": "published"
+      "status": "published",
+      "sourceUrl": null,
+      "songs": [
+        6217
+      ]
     },
     {
       "id": 12,
@@ -454,7 +509,8 @@
           "mann.cool/bubble/*"
         ]
       },
-      "status": "published"
+      "status": "published",
+      "sourceUrl": null
     },
     {
       "id": 13,
@@ -492,7 +548,8 @@
           "mann.cool/cyber/*"
         ]
       },
-      "status": "published"
+      "status": "published",
+      "sourceUrl": "https://github.com/songadaymann/cyber"
     },
     {
       "id": 14,
@@ -531,7 +588,8 @@
           "mann.cool/punkmatch/*"
         ]
       },
-      "status": "published"
+      "status": "published",
+      "sourceUrl": null
     },
     {
       "id": 15,
@@ -572,7 +630,8 @@
           "mann.cool/beepleblox/*"
         ]
       },
-      "status": "published"
+      "status": "published",
+      "sourceUrl": null
     },
     {
       "id": 16,
@@ -609,7 +668,11 @@
           "mann.cool/doge/*"
         ]
       },
-      "status": "published"
+      "status": "published",
+      "sourceUrl": null,
+      "songs": [
+        5623
+      ]
     },
     {
       "id": 17,
@@ -645,7 +708,11 @@
           "mann.cool/girlscouts/*"
         ]
       },
-      "status": "published"
+      "status": "published",
+      "sourceUrl": null,
+      "songs": [
+        6224
+      ]
     },
     {
       "id": 18,
@@ -682,7 +749,8 @@
           "mann.cool/dream/*"
         ]
       },
-      "status": "published"
+      "status": "published",
+      "sourceUrl": "https://github.com/songadaymann/dream"
     },
     {
       "id": 19,
@@ -718,7 +786,11 @@
           "mann.cool/kombatice/*"
         ]
       },
-      "status": "published"
+      "status": "published",
+      "sourceUrl": null,
+      "songs": [
+        6225
+      ]
     },
     {
       "id": 20,
@@ -755,7 +827,8 @@
           "mann.cool/lidstaysclosed/*"
         ]
       },
-      "status": "published"
+      "status": "published",
+      "sourceUrl": "https://github.com/songadaymann/catlid"
     },
     {
       "id": 21,
@@ -796,7 +869,8 @@
           "mann.cool/meelode/*"
         ]
       },
-      "status": "published"
+      "status": "published",
+      "sourceUrl": null
     },
     {
       "id": 22,
@@ -833,7 +907,8 @@
           "mann.cool/synthsnow/*"
         ]
       },
-      "status": "published"
+      "status": "published",
+      "sourceUrl": "https://github.com/songadaymann/synthsnow"
     },
     {
       "id": 23,
@@ -870,7 +945,11 @@
           "mann.cool/protectgreenland/*"
         ]
       },
-      "status": "published"
+      "status": "published",
+      "sourceUrl": "https://github.com/songadaymann/protectgreenland",
+      "songs": [
+        6229
+      ]
     },
     {
       "id": 24,
@@ -909,7 +988,11 @@
           "mann.cool/penisvagina/*"
         ]
       },
-      "status": "published"
+      "status": "published",
+      "sourceUrl": "https://github.com/songadaymann/penisvagina",
+      "songs": [
+        6231
+      ]
     },
     {
       "id": 25,
@@ -947,7 +1030,8 @@
           "mann.cool/punksinspace/*"
         ]
       },
-      "status": "published"
+      "status": "published",
+      "sourceUrl": null
     },
     {
       "id": 26,
@@ -984,7 +1068,8 @@
           "mann.cool/towerofpunks/*"
         ]
       },
-      "status": "published"
+      "status": "published",
+      "sourceUrl": null
     },
     {
       "id": 27,
@@ -1021,7 +1106,8 @@
           "mann.cool/armfulofpunks/*"
         ]
       },
-      "status": "published"
+      "status": "published",
+      "sourceUrl": null
     },
     {
       "id": 28,
@@ -1061,7 +1147,8 @@
           "mann.cool/punkfling/*"
         ]
       },
-      "status": "published"
+      "status": "published",
+      "sourceUrl": null
     },
     {
       "id": 29,
@@ -1098,7 +1185,8 @@
           "mann.cool/dontscroll/*"
         ]
       },
-      "status": "published"
+      "status": "published",
+      "sourceUrl": "https://github.com/songadaymann/dontscroll"
     },
     {
       "id": 30,
@@ -1134,7 +1222,8 @@
           "mann.cool/perilouspenguin/*"
         ]
       },
-      "status": "published"
+      "status": "published",
+      "sourceUrl": "https://github.com/songadaymann/perilouspenguin"
     },
     {
       "id": 31,
@@ -1172,7 +1261,8 @@
           "mann.cool/flighttosfo/*"
         ]
       },
-      "status": "published"
+      "status": "published",
+      "sourceUrl": "https://github.com/songadaymann/flighttosfo"
     },
     {
       "id": 32,
@@ -1208,7 +1298,8 @@
           "mann.cool/meebitsmountain/*"
         ]
       },
-      "status": "published"
+      "status": "published",
+      "sourceUrl": null
     },
     {
       "id": 33,
@@ -1245,7 +1336,8 @@
           "mann.cool/100goombas/*"
         ]
       },
-      "status": "published"
+      "status": "published",
+      "sourceUrl": null
     },
     {
       "id": 34,
@@ -1287,7 +1379,11 @@
           "mann.cool/sledding/*"
         ]
       },
-      "status": "published"
+      "status": "published",
+      "sourceUrl": "https://github.com/songadaymann/sledding",
+      "songs": [
+        1819
+      ]
     },
     {
       "id": 35,
@@ -1327,7 +1423,11 @@
           "mann.cool/hell/*"
         ]
       },
-      "status": "published"
+      "status": "published",
+      "sourceUrl": null,
+      "songs": [
+        6403
+      ]
     },
     {
       "id": 36,
@@ -1388,7 +1488,11 @@
           "mann.cool/poop/*"
         ]
       },
-      "status": "published"
+      "status": "published",
+      "sourceUrl": null,
+      "songs": [
+        6406
+      ]
     },
     {
       "id": 37,
@@ -1668,7 +1772,11 @@
           "mann.cool/jimothy/*"
         ]
       },
-      "status": "published"
+      "status": "published",
+      "sourceUrl": null,
+      "songs": [
+        6412
+      ]
     },
     {
       "id": 38,
@@ -1716,7 +1824,8 @@
           "mann.cool/mack/*"
         ]
       },
-      "status": "published"
+      "status": "published",
+      "sourceUrl": null
     },
     {
       "id": 39,
@@ -1788,7 +1897,75 @@
         ]
       },
       "status": "published",
-      "sourceUrl": "https://github.com/songadaymann/pdoom"
+      "sourceUrl": "https://github.com/songadaymann/pdoom",
+      "songs": [
+        6497
+      ]
+    },
+    {
+      "id": 40,
+      "slug": "clickstr",
+      "title": "Clickstr",
+      "description": "The stupidest clicker on Ethereum. Every click mines $CLICKSTR, and half of every payout is burned.",
+      "cover": "/covers/clickstr.webp",
+      "tags": [
+        "multiplayer",
+        "funny"
+      ],
+      "catalogOrder": 40,
+      "publishedAt": null,
+      "deviceSupport": {
+        "mobile": true,
+        "tablet": true,
+        "desktop": true
+      },
+      "url": "https://clickstr.vercel.app/",
+      "crypto": true,
+      "status": "lab",
+      "sourceUrl": "https://github.com/songadaymann/clickstr"
+    },
+    {
+      "id": 41,
+      "slug": "blue-or-red",
+      "title": "Blue Or Red",
+      "description": "Press red or blue. If more than half of everyone picks blue, everybody wins. If not, red does better. Votes lock at midnight UTC.",
+      "cover": "/covers/blue-or-red.webp",
+      "tags": [
+        "multiplayer",
+        "weird"
+      ],
+      "catalogOrder": 41,
+      "publishedAt": null,
+      "deviceSupport": {
+        "mobile": true,
+        "tablet": true,
+        "desktop": true
+      },
+      "url": "https://redvblue.pages.dev/",
+      "crypto": true,
+      "status": "lab",
+      "sourceUrl": null
+    },
+    {
+      "id": 42,
+      "slug": "tttttttt",
+      "title": "TTTTTTTT",
+      "description": "Twitch The Trigger To Totally Take The Tokenverse. A space dogfight you enter by burning TTT tokens.",
+      "cover": null,
+      "tags": [
+        "multiplayer"
+      ],
+      "catalogOrder": 42,
+      "publishedAt": null,
+      "deviceSupport": {
+        "mobile": true,
+        "tablet": true,
+        "desktop": true
+      },
+      "url": "https://tttttttt.space/",
+      "crypto": true,
+      "status": "lab",
+      "sourceUrl": null
     }
   ]
 }

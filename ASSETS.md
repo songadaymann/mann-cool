@@ -8,6 +8,12 @@ Code is MIT; media retains separate terms. Jonathan Mann original media is CC BY
 - `public/game-gifs/pdoom.gif`: Jonathan's game trailer `pdoom-promo-mario-premix-preview-share.mp4`, 46.866-51.866 seconds (within the final 30 seconds), 9 fps, 360x540. Preview includes third-party Doom imagery, whose rights remain with its owners.
 - Source game and detailed runtime terms: https://github.com/songadaymann/pdoom/blob/main/ASSETS.md
 
+## The lab, added 2026-10-21
+
+- `public/covers/blue-or-red.webp`: the red and blue button images from Jonathan's Blue Or Red (`blue-or-red/public/buttons/redUP.jpg` and `blueUP.jpg` in the games folder), center-cropped and placed side by side, 1200x750. Jonathan's generated artwork: CC BY 4.0.
+- `public/covers/clickstr.webp`: Jonathan's Clickstr thumbnail (`stupid-clicker/thumb.jpg`, source repo https://github.com/songadaymann/clickstr), cropped to 1000x625. Jonathan's generated artwork: CC BY 4.0.
+- TTTTTTTT has no cover yet; the lab page draws its title instead.
+
 ## Paid assets
 
 No paid source pack was added for this publication.

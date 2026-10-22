@@ -15,6 +15,13 @@ export function getGameByApiSlug(slug) {
   return gamesByApiSlug.get(String(slug || "").toLowerCase()) || null;
 }
 
+// Linked Song A Day songs open on YouTube; songaday.world's song pages lead with bids and sales.
+export function getSongLinks(game) {
+  return (game?.songs || [])
+    .filter((number) => gamesData.songVideos?.[number])
+    .map((number) => ({ number, url: `https://www.youtube.com/watch?v=${gamesData.songVideos[number]}` }));
+}
+
 export function getGameStatus(game) {
   if (game.status) return game.status;
   if (game.hidden) return "hidden";
