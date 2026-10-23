@@ -387,9 +387,11 @@
       this.renderGameLinks(this.config.game);
     }
 
-    // The corner "$ Tip" button and the menu's Tip Jar go to the same place.
+    // The corner "$ Tip" button and the menu's Tip Jar go to the same place. A game that draws its
+    // own tip button (Lindsay Graham In Hell does) reads window.mannCool.tipUrl when it's clicked.
     setTipUrl(href) {
       this.shadowRoot.querySelectorAll("[data-tip]").forEach((tip) => { tip.href = href; });
+      mannCool.tipUrl = href;
     }
 
     // The Song A Day song a game came from, and its public source code, sit above the Tip Jar.

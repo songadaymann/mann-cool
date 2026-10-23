@@ -138,4 +138,34 @@ test("the game shell's menu has a Tip Jar in place of Support, and both tip link
   // The config's tagged link replaces the /tip fallback once it arrives.
   assert.match(shell, /this\.setTipUrl\(this\.config\.tipUrl\)/);
   assert.match(shell, /https:\/\/mann\.cool\/tip\?from=\$\{encodeURIComponent\(slug\)\}/);
+  // Games that draw their own tip button read the same link.
+  assert.match(shell, /mannCool\.tipUrl = href;/);
+});
+
+// Every page, script and markup file a game Worker serves from this repo.
+async function gameFiles(dir = "game-workers") {
+  const files = [];
+  for (const entry of await fs.readdir(dir, { withFileTypes: true })) {
+    if (entry.name.startsWith(".") || entry.name === "node_modules") continue;
+    const file = path.join(dir, entry.name);
+    if (entry.isDirectory()) files.push(...await gameFiles(file));
+    else if (/\.(html?|m?js|ts)$/.test(entry.name)) files.push(file);
+  }
+  return files;
+}
+
+test("no game served from this repo links Patreon or Stripe", async () => {
+  for (const file of await gameFiles()) {
+    assert.doesNotMatch(await fs.readFile(file, "utf8"), /patreon\.com|buy\.stripe\.com|ko-fi\.com/i, file);
+  }
+});
+
+test("Lindsay Graham In Hell's own Tip Jar button opens the shell's link, with /tip as the fallback", async () => {
+  const bundle = await fs.readFile("game-workers/hell/assets/assets/player-bV2bU6c6.js", "utf8");
+  assert.doesNotMatch(bundle, /patreon/i);
+  assert.match(bundle, /\{id:"tip",label:"TIP JAR",shortLabel:"TIP",url:"https:\/\/mann\.cool\/tip\?from=hell"\}/);
+  assert.match(bundle, /window\.open\(H\.id==="tip"&&window\.mannCool\?\.tipUrl\|\|H\.url,"_blank","noopener,noreferrer"\)/);
+  // The pause screen's caption names the Tip Jar, not Support.
+  assert.match(bundle, /"WAMP {2}\/ {2}TIP JAR {2}\/ {2}FOLLOW"/);
+  assert.doesNotMatch(bundle, /"[^"]*\bSUPPORT\b[^"_]*"/);
 });

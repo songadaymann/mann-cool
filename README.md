@@ -35,6 +35,8 @@ The homepage and /lab start with the Song A Day universe bar from songaday.studi
 
 The Tip Jar is Song A Day's Zeffy donation form (fiscally sponsored, so gifts are tax-deductible). `TIP_URL` in `wrangler.jsonc` is the one place it's set. `/platform/config.json` hands it out tagged `utm_source=mann.cool`, plus `utm_campaign=<slug>` when a game's shell asks with `?slug=`. The site header and footer, the lab, Bot Blast and the in-game menu each link straight to it in a new tab, so games that load the shared shell get it with no changes of their own. Until the config answers, those links go through `mann.cool/tip`, which still redirects older links to the same form and counts the click. Run `npm run test:tip-jar` to check it.
 
+A game that draws its own tip button reads `window.mannCool.tipUrl`, which the shell keeps set to the same link. Lindsay Graham In Hell does this on its title and pause screens. Its build in `game-workers/hell/assets` is a WAMP export with no source in this repo, and the Tip Jar was patched into that bundle in place of a Patreon link. A fresh export from WAMP would need the same change. It falls back to `mann.cool/tip?from=hell` when the shell isn't there.
+
 ## Independently hosted games
 
 The play API also accepts WAMP (`slug: "wamp"`) at `/api/v1/plays` and the legacy `/api/plays` route. Its play-only registration lives in `worker/lib/externalPlayGames.js`; WAMP continues to run at https://wamp.land and does not become a catalog route. This registration does not enable comments, tips or leaderboards. Run `npm run test:external-plays` to verify counts, CORS and this boundary.

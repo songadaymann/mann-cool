@@ -58,6 +58,9 @@ if (shell.body.includes("api/v1/guestbook") || shell.body.includes("Guestbook"))
 if (shell.body.includes("Patreon") || /\bstripe\b/i.test(shell.body) || shell.body.includes("data-support") || !shell.body.includes("<span>Tip Jar</span>")) {
   throw new Error("Shared shell's menu should have a Tip Jar, not Support, Stripe or Patreon");
 }
+if (!shell.body.includes("mannCool.tipUrl")) {
+  throw new Error("Shared shell does not hand games its Tip Jar link as window.mannCool.tipUrl");
+}
 
 for (const prefix of ["/api/v1", "/api"]) {
   const plays = await check(`${prefix}/plays?slug=fuckice`, 200);
