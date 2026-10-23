@@ -25,12 +25,23 @@ async function check(path, expected, init = {}) {
 }
 
 const config = await check("/platform/config.json", 200);
-if (config.json?.version !== 1 || !config.json?.homeUrl || !config.json?.supportUrl) {
+if (config.json?.version !== 1 || !config.json?.homeUrl || !config.json?.tipUrl) {
   throw new Error("Platform config is incomplete");
+}
+// The Tip Jar goes straight to Song A Day's Zeffy form, tagged with mann.cool and, in a game, its slug.
+const siteTip = new URL(config.json.tipUrl);
+if (siteTip.hostname !== "www.zeffy.com" || siteTip.searchParams.get("utm_source") !== "mann.cool" || siteTip.searchParams.has("utm_campaign") || "supportUrl" in config.json) {
+  throw new Error(`The site's Tip Jar should go straight to the Zeffy form, got ${config.json.tipUrl}`);
+}
+const gameConfig = await check("/platform/config.json?slug=fuckice", 200);
+const gameTip = new URL(gameConfig.json?.tipUrl);
+gameTip.searchParams.delete("utm_campaign");
+if (new URL(gameConfig.json.tipUrl).searchParams.get("utm_campaign") !== "fuckice" || gameTip.href !== siteTip.href) {
+  throw new Error(`A game's Tip Jar should be the same form with its slug as utm_campaign, got ${gameConfig.json.tipUrl}`);
 }
 const shell = await check("/platform/v1/game-shell.js", 200, { redirect: "follow" });
 if (!shell.body.includes("api/v1/plays") || !shell.body.includes("/tip?from=") || !shell.body.includes("leaderboardBoards") || !shell.body.includes("data-leaderboard-board")) {
-  throw new Error("Shared shell does not reference play tracking, tip attribution, and toggleable leaderboard boards");
+  throw new Error("Shared shell does not reference play tracking, the Tip Jar fallback, and toggleable leaderboard boards");
 }
 if (!shell.body.includes("api/v1/player/") || !shell.body.includes("eip6963:requestProvider") || !shell.body.includes("wallet-standard:app-ready")) {
   throw new Error("Shared shell does not offer player identity and wallet detection");
@@ -44,8 +55,11 @@ if (session.json?.error !== "A valid player secret is required") throw new Error
 if (shell.body.includes("api/v1/guestbook") || shell.body.includes("Guestbook")) {
   throw new Error("Shared shell still contains the retired per-game guestbook");
 }
-if (shell.body.includes("Patreon") || !shell.body.includes("data-support")) {
-  throw new Error("Shared shell still links Patreon instead of songaday.studio support");
+if (shell.body.includes("Patreon") || /\bstripe\b/i.test(shell.body) || shell.body.includes("data-support") || !shell.body.includes("<span>Tip Jar</span>")) {
+  throw new Error("Shared shell's menu should have a Tip Jar, not Support, Stripe or Patreon");
+}
+if (!shell.body.includes("mannCool.tipUrl")) {
+  throw new Error("Shared shell does not hand games its Tip Jar link as window.mannCool.tipUrl");
 }
 
 for (const prefix of ["/api/v1", "/api"]) {
@@ -93,7 +107,7 @@ if (preflight.response.headers.get("access-control-allow-origin") !== "*") throw
 if (allowWrites) {
   const tipClicksBefore = await check("/api/v1/tip-clicks?slug=fuckice", 200);
   const tipRedirect = await check("/tip?from=fuckice", 302);
-  if (tipRedirect.response.headers.get("location") !== config.json.tipUrl) throw new Error("Tip redirect destination is incorrect");
+  if (tipRedirect.response.headers.get("location") !== gameConfig.json.tipUrl) throw new Error("Tip redirect destination is incorrect");
   if (tipRedirect.response.headers.get("cache-control") !== "no-store") throw new Error("Tip redirect must not be cached");
   const tipClicksAfter = await check("/api/v1/tip-clicks?slug=fuckice", 200);
   if (tipClicksAfter.json.count !== tipClicksBefore.json.count + 1) throw new Error("Tip click total did not increment exactly once");

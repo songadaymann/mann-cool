@@ -3,16 +3,25 @@ import { handlePlatformApi, recordTipClick } from "./platform-api.js";
 import { handlePlayerApi, handleWalletsApi } from "./player-identity.js";
 
 const PLATFORM_ENDPOINTS = new Set(["plays", "tip-clicks", "guestbook", "comments", "leaderboard", "community-levels"]);
-const GAME_SHELL_VERSION = "20261021-lab-sources1";
+const GAME_SHELL_VERSION = "20261023-tip-jar1";
+
+// The Tip Jar is Song A Day's Zeffy donation form, and TIP_URL is the one place it's set. Links
+// are tagged so Zeffy can tell they came from mann.cool, and from which game.
+function tipJarUrl(env, game) {
+  if (!env.TIP_URL) return null;
+  const url = new URL(env.TIP_URL);
+  url.searchParams.set("utm_source", "mann.cool");
+  if (game) url.searchParams.set("utm_campaign", game.slug);
+  return url.toString();
+}
 
 function platformConfig(request, env) {
-  // A game's shell passes ?slug= to get that game's song and source links.
+  // A game's shell passes ?slug= to get that game's song and source links and its Tip Jar link.
   const game = getGame(new URL(request.url).searchParams.get("slug"));
   return Response.json({
     version: 1,
     homeUrl: "https://mann.cool/",
-    supportUrl: env.SUPPORT_URL || "https://songaday.studio/#donate",
-    tipUrl: env.TIP_URL || null,
+    tipUrl: tipJarUrl(env, game),
     turnstileSiteKey: env.TURNSTILE_SITE_KEY || null,
     ...(game && { game: { songs: getSongLinks(game), sourceUrl: game.sourceUrl || null } }),
   }, {
@@ -67,11 +76,12 @@ function isCrawler(request) {
     .test(request.headers.get("user-agent") || "");
 }
 
+// Older links, and Tip Jar links clicked before the config answers, reach Zeffy through /tip.
 async function handleTipRedirect(request, env, requestedSlug) {
   if (request.method !== "GET") {
     return new Response("Method not allowed", { status: 405, headers: { allow: "GET" } });
   }
-  if (!env.TIP_URL) return new Response("Tip jar unavailable", { status: 404 });
+  if (!env.TIP_URL) return new Response("Tip Jar unavailable", { status: 404 });
 
   try {
     await recordTipClick(request, env, requestedSlug);
@@ -84,7 +94,7 @@ async function handleTipRedirect(request, env, requestedSlug) {
   }
   return new Response(null, {
     status: 302,
-    headers: { location: env.TIP_URL, "cache-control": "no-store" },
+    headers: { location: tipJarUrl(env, getGame(requestedSlug)), "cache-control": "no-store" },
   });
 }
 

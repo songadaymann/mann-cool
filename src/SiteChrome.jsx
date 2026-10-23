@@ -54,11 +54,31 @@ export function GameLinks({ game }) {
   );
 }
 
-function SupportLinks({ tipUrl }) {
+// The Tip Jar link from /platform/config.json, which goes straight to Song A Day's Zeffy form.
+export function useTipUrl() {
+  const [tipUrl, setTipUrl] = useState("");
+  useEffect(() => {
+    let live = true;
+    fetch("/platform/config.json")
+      .then((response) => response.json())
+      .then((config) => { if (live) setTipUrl(config.tipUrl || ""); })
+      .catch(() => {});
+    return () => { live = false; };
+  }, []);
+  return tipUrl;
+}
+
+// Until the config answers, /tip redirects to the same Zeffy form, so the link is never missing.
+export function TipJarLink({ tipUrl, className }) {
+  return (
+    <a className={className} href={tipUrl || "/tip?from=mann-cool"} target="_blank" rel="noopener noreferrer">Tip Jar</a>
+  );
+}
+
+function SiteLinks({ tipUrl }) {
   return (
     <>
-      <a className="support-donate" href="https://songaday.studio/?from=mann-cool#donate" target="_blank" rel="noreferrer">Support</a>
-      {tipUrl && <a className="support-tip" href="/tip?from=mann-cool" target="_blank" rel="noreferrer">Tip Jar</a>}
+      <TipJarLink className="support-tip" tipUrl={tipUrl} />
       <a className="support-x" href="https://x.com/songadaymann" target="_blank" rel="noreferrer">X</a>
       <a className="support-instagram" href="https://instagram.com/jonathanmann" target="_blank" rel="noreferrer">Instagram</a>
       <a href="mailto:jonathan@jonathanmann.net">Contact</a>
@@ -74,11 +94,11 @@ export function SiteHeader({ tipUrl, onOpenGuestbook }) {
         <a className="wordmark" href="/">mann.cool</a>
         <p>games by Jonathan Mann, maker of Song A Day</p>
       </div>
-      <nav className="site-nav" aria-label="Support and contact">
+      <nav className="site-nav" aria-label="Tip Jar and contact">
         {onOpenGuestbook
           ? <button className="nav-guestbook" type="button" onClick={onOpenGuestbook}>Guestbook</button>
           : <a className="nav-guestbook" href="/?guestbook=1">Guestbook</a>}
-        <SupportLinks tipUrl={tipUrl} />
+        <SiteLinks tipUrl={tipUrl} />
       </nav>
     </header>
   );
@@ -92,8 +112,8 @@ export function SiteFooter({ tipUrl, showLab }) {
         Games by Jonathan Mann, maker of Song A Day.
         {showLab && <> B-sides and experiments live in <a href="/lab">the lab</a>.</>}
       </p>
-      <nav aria-label="Support and contact">
-        <SupportLinks tipUrl={tipUrl} />
+      <nav aria-label="Tip Jar and contact">
+        <SiteLinks tipUrl={tipUrl} />
       </nav>
     </footer>
   );

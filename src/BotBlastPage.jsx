@@ -1,10 +1,12 @@
 import { useEffect } from "react";
+import { TipJarLink, useTipUrl } from "./SiteChrome.jsx";
 import "./botblast.css";
 
 const CHROME_STORE_URL =
   "https://chromewebstore.google.com/detail/bot-blast/bkfmmmpoidhhdbgeacfjcbmgjlcckjjj";
 const PRIVACY_URL = "https://twitter-bot-destroyer-registry.novox-robot.workers.dev/privacy";
-const SUPPORT_URL = "https://twitter-bot-destroyer-registry.novox-robot.workers.dev/support";
+// The extension's help and registry-appeals page (the Chrome Web Store's support link).
+const HELP_URL = "https://twitter-bot-destroyer-registry.novox-robot.workers.dev/support";
 
 function InstallControl() {
   if (CHROME_STORE_URL) {
@@ -23,6 +25,8 @@ function InstallControl() {
 }
 
 export default function BotBlastPage() {
+  const tipUrl = useTipUrl();
+
   useEffect(() => {
     const previousTitle = document.title;
     document.title = "Bot Blast — Clean up your timeline";
@@ -55,7 +59,8 @@ export default function BotBlastPage() {
         <a className="botblast-mann" href="/" aria-label="mann.cool home">mann.cool</a>
         <nav aria-label="Bot Blast information">
           <a href={PRIVACY_URL}>Privacy</a>
-          <a href={SUPPORT_URL}>Support</a>
+          <a href={HELP_URL}>Help</a>
+          <TipJarLink tipUrl={tipUrl} />
         </nav>
       </header>
 
@@ -110,8 +115,7 @@ export default function BotBlastPage() {
             <p>
               Every completed run gets an anonymous leaderboard score. Clear
               time and accuracy help; getting hit costs points. The result screen
-              also carries the same optional Stripe tip link used across
-              mann.cool projects.
+              also carries an optional “Tip the maker” link.
             </p>
           </div>
           <img
@@ -134,9 +138,9 @@ export default function BotBlastPage() {
             Bot Blast does not sign into X, read your X password or cookies,
             block anyone, or file a report with X.
           </p>
-          <nav aria-label="Privacy and support links">
+          <nav aria-label="Privacy and help links">
             <a href={PRIVACY_URL}>Read the privacy policy <span aria-hidden="true">↗</span></a>
-            <a href={SUPPORT_URL}>Support and registry appeals <span aria-hidden="true">↗</span></a>
+            <a href={HELP_URL}>Help and registry appeals <span aria-hidden="true">↗</span></a>
           </nav>
         </section>
       </main>

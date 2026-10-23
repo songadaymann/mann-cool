@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { GameLinks, SiteFooter, SiteHeader, UniverseBar, useLabGames } from "./SiteChrome.jsx";
+import { useEffect } from "react";
+import { GameLinks, SiteFooter, SiteHeader, UniverseBar, useLabGames, useTipUrl } from "./SiteChrome.jsx";
 
 function LabCard({ game }) {
   // Lab games usually stay on their own host; the card says where it goes.
@@ -32,19 +32,12 @@ function LabCard({ game }) {
 }
 
 export default function LabPage() {
-  const [tipUrl, setTipUrl] = useState("");
+  const tipUrl = useTipUrl();
   // Crypto-only experiments show only in browsers that have a wallet installed.
   const { games, waiting } = useLabGames();
 
   useEffect(() => {
     document.title = "The lab | mann.cool";
-  }, []);
-
-  useEffect(() => {
-    fetch("/platform/config.json")
-      .then((response) => response.json())
-      .then((config) => setTipUrl(config.tipUrl || ""))
-      .catch(() => {});
   }, []);
 
   // Nothing links here unless this visitor can see a lab game. Anyone who comes straight here

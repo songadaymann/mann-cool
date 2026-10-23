@@ -20,7 +20,8 @@
     "test:pdoom": "node --test tests/pdoom-leaderboard.test.mjs",
     "leaderboard:moderate": "node scripts/moderate-leaderboard.mjs",
     "test:external-plays": "node --test tests/external-plays.test.mjs",
-    "test:lab": "node --test tests/lab-catalog.test.mjs"
+    "test:lab": "node --test tests/lab-catalog.test.mjs",
+    "test:tip-jar": "node --test tests/tip-jar.test.mjs"
   },
   "dependencies": {
     "@upstash/redis": "^1.36.0",

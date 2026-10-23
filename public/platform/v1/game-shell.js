@@ -209,7 +209,6 @@
           .action:hover,.action:focus-visible { outline:3px solid var(--focus); outline-offset:2px; color:var(--paper); background:var(--ink); box-shadow:2px 2px 0 var(--ink); transform:translate(2px,2px); }
           .tip { color:var(--ink); background:var(--accent); font-size:11px; letter-spacing:.04em; text-transform:uppercase; }
           .tip:hover,.tip:focus-visible { color:var(--paper); background:var(--ink); }
-          .tip[hidden] { display:none; }
           .menu-button { font-size:20px; }
           .menu { position:absolute; top:0; right:72px; width:min(280px,calc(100vw - 96px)); padding:0; border:2px solid var(--ink); border-radius:var(--control-radius); color:var(--ink); background:var(--paper); box-shadow:6px 6px 0 var(--ink); }
           .menu[hidden] { display:none; }
@@ -266,7 +265,7 @@
         </style>
         <a class="home" href="https://mann.cool/" aria-label="Back to mann.cool"><b aria-hidden="true">←</b><span>Back to mann.cool</span></a>
         <div class="actions">
-          <a class="action tip" data-tip target="_blank" rel="noopener noreferrer" hidden><span aria-hidden="true">$</span><span>Tip</span></a>
+          <a class="action tip" data-tip target="_blank" rel="noopener noreferrer" aria-label="Tip Jar"><span aria-hidden="true">$</span><span>Tip</span></a>
           <button class="action menu-button" type="button" aria-label="Open game menu" aria-expanded="false">☰</button>
           <div class="menu" hidden>
             <p class="menu-title"></p>
@@ -276,7 +275,7 @@
                 : '<button type="button" data-open="leaderboard"><span>Leaderboard</span><span>↗</span></button>')
               : ""}
             ${playerIdentityEnabled ? '<button type="button" data-open="player"><span data-player-menu>Save your scores</span><span>↗</span></button>' : ""}
-            <a data-support target="_blank" rel="noopener noreferrer"><span>Support</span><span>↗</span></a>
+            <a data-tip data-tip-menu target="_blank" rel="noopener noreferrer"><span>Tip Jar</span><span>↗</span></a>
           </div>
         </div>
         <div class="backdrop" data-modal="leaderboard" hidden>
@@ -310,6 +309,8 @@
         </div>` : ""}`;
       this.shadowRoot.querySelector(".menu-title").textContent = gameTitle;
       this.shadowRoot.querySelectorAll(".kicker").forEach((element) => { element.textContent = gameTitle; });
+      // Until the config answers (or if it can't be read), the Tip Jar reaches Zeffy through mann.cool/tip.
+      this.setTipUrl(`https://mann.cool/tip?from=${encodeURIComponent(slug)}`);
       this.renderLeaderboardControls();
     }
 
@@ -381,21 +382,21 @@
       } catch {
         this.config = {};
       }
-      // Tag the donate link with the game it came from, so songaday.studio's request logs can tell.
-      const support = new URL(this.config.supportUrl || "https://songaday.studio/#donate");
-      support.searchParams.set("from", slug || "mann-cool");
-      this.shadowRoot.querySelector("[data-support]").href = support.href;
-      const tip = this.shadowRoot.querySelector("[data-tip]");
-      if (this.config.tipUrl) {
-        tip.href = `https://mann.cool/tip?from=${encodeURIComponent(slug)}`;
-        tip.hidden = false;
-      }
+      // The config's Tip Jar link goes straight to the Zeffy form, tagged with this game's slug.
+      if (/^https:\/\//.test(String(this.config.tipUrl))) this.setTipUrl(this.config.tipUrl);
       this.renderGameLinks(this.config.game);
     }
 
-    // The Song A Day song a game came from, and its public source code, sit above Support.
+    // The corner "$ Tip" button and the menu's Tip Jar go to the same place. A game that draws its
+    // own tip button (Lindsay Graham In Hell does) reads window.mannCool.tipUrl when it's clicked.
+    setTipUrl(href) {
+      this.shadowRoot.querySelectorAll("[data-tip]").forEach((tip) => { tip.href = href; });
+      mannCool.tipUrl = href;
+    }
+
+    // The Song A Day song a game came from, and its public source code, sit above the Tip Jar.
     renderGameLinks(game) {
-      const support = this.shadowRoot.querySelector("[data-support]");
+      const tipJar = this.shadowRoot.querySelector("[data-tip-menu]");
       const songs = Array.isArray(game?.songs) ? game.songs : [];
       const links = [
         ...songs.map((song) => [`Hear the song: Song A Day #${song.number}`, song.url]),
@@ -413,7 +414,7 @@
         const arrow = document.createElement("span");
         arrow.textContent = "↗";
         link.append(text, arrow);
-        support.before(link);
+        tipJar.before(link);
       }
     }
 
