@@ -31,6 +31,10 @@ Run `npm run test:lab` to check lab redirects, the in-game menu links, lab play 
 
 The homepage and /lab start with the Song A Day universe bar from songaday.studio (`https://songaday.studio/bar/v1/bar.js`, with `data-here="play"`), above mann.cool's own header. `UniverseBar` in `src/SiteChrome.jsx` renders the `<songaday-bar>` placeholder, which `src/styles.css` holds at 36px, and adds the script once the placeholder is on the page. Game pages don't get the bar.
 
+## Tip Jar
+
+The Tip Jar is Song A Day's Zeffy donation form (fiscally sponsored, so gifts are tax-deductible). `TIP_URL` in `wrangler.jsonc` is the one place it's set. `/platform/config.json` hands it out tagged `utm_source=mann.cool`, plus `utm_campaign=<slug>` when a game's shell asks with `?slug=`. The site header and footer, the lab, Bot Blast and the in-game menu each link straight to it in a new tab, so games that load the shared shell get it with no changes of their own. Until the config answers, those links go through `mann.cool/tip`, which still redirects older links to the same form and counts the click. Run `npm run test:tip-jar` to check it.
+
 ## Independently hosted games
 
 The play API also accepts WAMP (`slug: "wamp"`) at `/api/v1/plays` and the legacy `/api/plays` route. Its play-only registration lives in `worker/lib/externalPlayGames.js`; WAMP continues to run at https://wamp.land and does not become a catalog route. This registration does not enable comments, tips or leaderboards. Run `npm run test:external-plays` to verify counts, CORS and this boundary.
