@@ -23,8 +23,7 @@
   ],
   "vars": {
     "PLATFORM_READ_SOURCE": "d1",
-    "SUPPORT_URL": "https://songaday.studio/#donate",
-    "TIP_URL": "https://buy.stripe.com/eVqdR91p20Ra8No1Cs48000",
+    "TIP_URL": "https://www.zeffy.com/en-US/donation-form/song-a-day-studios",
     "PLAYER_EMAIL_FROM": "mann.cool <play@mann.cool>",
     "PLAYER_EMAIL_REPLY_TO": "jonathan@jonathanmann.net"
   },
