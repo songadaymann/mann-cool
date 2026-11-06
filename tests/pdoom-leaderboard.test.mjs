@@ -16,8 +16,9 @@ const {default:worker}=await import(path.join(temp,'worker.mjs'));
 after(()=>fs.rm(temp,{recursive:true,force:true}));
 const schema=await fs.readFile(new URL('../migrations/0001_platform.sql',import.meta.url),'utf8')
   +await fs.readFile(new URL('../migrations/0010_pdoom_ranked_runs.sql',import.meta.url),'utf8');
-// Level 3 (MEG3N's Toy Factory) has its own v1 board and counts her 20 screens as its cameras.
-const BOARD={'five-prisons':'v3','hal-station':'v3','meg3n-factory':'v1'},CAMERAS=levelId=>levelId==='meg3n-factory'?20:9;
+// Level 3 (MEG3N's Toy Factory) has its own v1 board and counts her 20 screens as its cameras; level 4
+// (AGENTIC SMITH's Pod Farm) has a v1 board too, with SMITH's nine cameras.
+const BOARD={'five-prisons':'v3','hal-station':'v3','meg3n-factory':'v1','agentic-pods':'v1'},CAMERAS=levelId=>levelId==='meg3n-factory'?20:9;
 const version=levelId=>`${levelId}-${BOARD[levelId]||'v3'}`;
 const metadata=(levelId='five-prisons',overrides={})=>({
   levelId,levelVersion:version(levelId),scoreVersion:'rescue-v2',boardVersion:BOARD[levelId]||'v3',
@@ -188,5 +189,23 @@ test('level 3 ranks MEG3N\'s factory on its own v1 board with her 20 screens',as
   // A fast claim is stored but held for review, like levels 1-2 (its floor is 3 minutes).
   const quick=await f.start('meg3n-factory');
   const held=await f.api('/api/v1/leaderboard',f.body(quick,'rescue',{metadata:metadata('meg3n-factory',{activeTics:35*120,activeMs:120000})}));
+  assert.equal(held.status,201);assert.equal(held.held,true,JSON.stringify(held));
+});
+
+test('level 4 ranks SMITH\'s pod farm on its own v1 board with his nine cameras',async t=>{
+  const run=metadata('agentic-pods');
+  const result=calculatePdoomScore('agentic-pods-rescue-v1',run);
+  assert.equal(result.score,50000+1000+9*250+1000+950);assert.equal(result.metadata.camerasTotal,9);assert.equal(result.metadata.boardVersion,'v1');
+  assert.throws(()=>calculatePdoomScore('agentic-pods-rescue-v3',run),/board does not belong/);
+  for(const change of [{camerasTotal:20,camerasDestroyed:20},{camerasDestroyed:10},{boardVersion:'v3'},{levelVersion:'agentic-pods-v2'}])
+    assert.throws(()=>calculatePdoomScore('agentic-pods-rescue-v1',{...run,...change}),JSON.stringify(change));
+  const f=fixture(t),ranked=await f.start('agentic-pods');
+  const response=await f.api('/api/v1/leaderboard',f.body(ranked));
+  assert.equal(response.status,201,JSON.stringify(response));assert.equal(response.entry.score,55200);
+  const board=await f.api('/api/v1/leaderboard?slug=pdoom&variant=agentic-pods-rescue-v1');
+  assert.equal(board.status,200);assert.equal(board.entries.length,1);assert.equal(board.entries[0].score,55200);
+  // A fast claim is stored but held for review (its floor is 3 minutes, like level 3's).
+  const quick=await f.start('agentic-pods');
+  const held=await f.api('/api/v1/leaderboard',f.body(quick,'rescue',{metadata:metadata('agentic-pods',{activeTics:35*120,activeMs:120000})}));
   assert.equal(held.status,201);assert.equal(held.held,true,JSON.stringify(held));
 });

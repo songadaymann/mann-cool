@@ -2,11 +2,12 @@ import { timingSafeEqual } from "node:crypto";
 import { HttpError, hashIdentity } from "./lib/http.js";
 
 // These are the locked competitive maps. A map/rules change needs a new board key.
-// cameras: the side bonus's total (level 3 counts MEG3N's live-feed screens instead).
+// cameras: the side bonus's total (level 3 counts MEG3N's live-feed screens instead; level 4, SMITH's nine cameras).
 const LEVELS = Object.freeze({
   "five-prisons": Object.freeze({ version: "five-prisons-v3", board: "v3", cameras: 9 }),
   "hal-station": Object.freeze({ version: "hal-station-v3", board: "v3", cameras: 9 }),
   "meg3n-factory": Object.freeze({ version: "meg3n-factory-v1", board: "v1", cameras: 20 }),
+  "agentic-pods": Object.freeze({ version: "agentic-pods-v1", board: "v1", cameras: 9 }),
 });
 const RUN_ID = /^[a-zA-Z0-9._-]{8,64}$/;
 const NONCE = /^[a-f0-9]{64}$/;
@@ -18,6 +19,7 @@ const REVIEW_BELOW_MS = Object.freeze({
   "five-prisons": 90_000,
   "hal-station": 90_000,
   "meg3n-factory": 180_000,
+  "agentic-pods": 180_000,
 });
 const CLOCK_SLACK_MS = 10_000;
 const integer = (n, min, max) => Number.isSafeInteger(n) && n >= min && n <= max;
