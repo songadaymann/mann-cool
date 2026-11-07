@@ -2,7 +2,7 @@
 // Review, approve or hide leaderboard rows in the platform D1 database via wrangler.
 // Uses production (--remote) unless --local is given. Hidden rows are kept, not deleted.
 //   node scripts/moderate-leaderboard.mjs list [--status pending|approved|hidden|rejected|all]
-//       [--slug pdoom] [--variant five-prisons-rescue-v3] [--sort recent|score|score-asc] [--limit 25]
+//       [--slug pdoom] [--variant campaign-speedrun-v1] [--sort recent|score|score-asc] [--limit 25]
 //   node scripts/moderate-leaderboard.mjs approve <submissionId>...
 //   node scripts/moderate-leaderboard.mjs hide <submissionId>...
 import { execFileSync } from "node:child_process";
