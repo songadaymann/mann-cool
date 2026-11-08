@@ -10,11 +10,11 @@ Open-source check: added missing MIT license and package metadata. The checker a
 
 ## Score review
 
-Runs faster than a level's floor (`REVIEW_BELOW_MS` in `worker/pdoom-scores.js`, 90 s for now) or with more active time than real time since their ticket are stored as `pending`, not ranked. The player sees that the run is held for review. Retries keep that status. The floors are estimates: tighten them once real runs exist.
+p(DOOM) has one leaderboard, `campaign-speedrun-v1`: the whole game as a speedrun, lowest time wins, timed from the first level to the MCP going down (since 2026-11-07; it replaced the four per-level rescue-score boards, whose rows stay in D1). Runs faster than the floor (`REVIEW_BELOW_MS` in `worker/pdoom-scores.js`, 20 minutes for now) or with more active time than real time since their ticket are stored as `pending`, not ranked. The player sees that the run is held for review. Retries keep that status. The floor is an estimate: tighten it once real runs exist.
 
 ```sh
 npm run leaderboard:moderate -- list                      # pending rows, newest first
-npm run leaderboard:moderate -- list --status approved --slug pdoom --sort score
+npm run leaderboard:moderate -- list --status approved --slug pdoom --sort score-asc   # fastest first
 npm run leaderboard:moderate -- approve <submissionId>
 npm run leaderboard:moderate -- hide <submissionId>       # kept in D1, off the board
 ```

@@ -1,36 +1,37 @@
 import { timingSafeEqual } from "node:crypto";
 import { HttpError, hashIdentity } from "./lib/http.js";
 
-// These are the locked competitive maps. A map/rules change needs a new board key.
-// cameras: the side bonus's total (level 3 counts MEG3N's live-feed screens instead; level 4, SMITH's nine cameras).
-const LEVELS = Object.freeze({
-  "five-prisons": Object.freeze({ version: "five-prisons-v3", board: "v3", cameras: 9 }),
-  "hal-station": Object.freeze({ version: "hal-station-v3", board: "v3", cameras: 9 }),
-  "meg3n-factory": Object.freeze({ version: "meg3n-factory-v1", board: "v1", cameras: 20 }),
-  "agentic-pods": Object.freeze({ version: "agentic-pods-v1", board: "v1", cameras: 9 }),
+// p(DOOM) has one leaderboard: a whole-game speedrun, lowest time wins. It replaced the
+// four per-level rescue-score boards on 2026-11-07 (Jonathan: "One single leaderboard
+// that measures how fast people can beat the game"). The clock runs from the first level
+// to the MCP going down: the four levels, safe mode and the endgame, played in one run.
+// The descriptor locks the campaign and its rules. A map/rules change needs a new board key.
+const CAMPAIGN = Object.freeze({
+  levelId: "campaign", levelVersion: "campaign-v1", scoreVersion: "speedrun-v1", boardVersion: "v1",
 });
+const VARIANT = "campaign-speedrun-v1";
+// Every split must be present, in milliseconds of active play. Each level and the endgame
+// must take some time; safe mode may record 0.
+const SPLIT_MINIMUM_MS = Object.freeze({
+  "five-prisons": 1, "hal-station": 1, "meg3n-factory": 1, "agentic-pods": 1, "safe-mode": 0, endgame: 1,
+});
+const SPLITS = Object.freeze(Object.keys(SPLIT_MINIMUM_MS));
+const SPLIT_MAXIMUM_MS = 86_400_000;
+const RESCUE_TOTAL = 20;
 const RUN_ID = /^[a-zA-Z0-9._-]{8,64}$/;
 const NONCE = /^[a-f0-9]{64}$/;
 const TICKET_ID = /^[a-f0-9-]{36}$/;
 const TICKET_LIFETIME = 90 * 24 * 60 * 60 * 1000;
-// Faster claims are stored but held for review, never rejected. These floors are
-// conservative estimates, not measured records; tighten them as real runs arrive.
-const REVIEW_BELOW_MS = Object.freeze({
-  "five-prisons": 90_000,
-  "hal-station": 90_000,
-  "meg3n-factory": 180_000,
-  "agentic-pods": 180_000,
-});
+// Faster claims are stored but held for review, never rejected. This floor is a
+// conservative estimate, not a measured record; tighten it as real runs arrive.
+const REVIEW_BELOW_MS = 1_200_000;
 const CLOCK_SLACK_MS = 10_000;
 const integer = (n, min, max) => Number.isSafeInteger(n) && n >= min && n <= max;
 
-function requireLevel(value) {
-  if (!value || typeof value.levelId !== "string" || !Object.hasOwn(LEVELS, value.levelId)
-    || value.levelVersion !== LEVELS[value.levelId].version
-    || value.scoreVersion !== "rescue-v2" || value.boardVersion !== LEVELS[value.levelId].board) {
-    throw new HttpError(400, "This leaderboard needs the current level and scoring version.");
+function requireCampaign(value) {
+  if (!value || Object.keys(CAMPAIGN).some(key => value[key] !== CAMPAIGN[key])) {
+    throw new HttpError(400, "This leaderboard needs the current campaign and scoring version.");
   }
-  return LEVELS[value.levelId];
 }
 
 function equalHash(a, b) {
@@ -38,8 +39,9 @@ function equalHash(a, b) {
   return a.length === b.length && timingSafeEqual(encoder.encode(a), encoder.encode(b));
 }
 
+// The game requests a ticket when a ranked run begins; its issue time bounds the run's real time.
 export async function issuePdoomTicket(env, body, now = Date.now()) {
-  requireLevel(body);
+  requireCampaign(body);
   if (typeof body.runId !== "string" || !RUN_ID.test(body.runId)
     || typeof body.nonce !== "string" || !NONCE.test(body.nonce)) {
     throw new HttpError(400, "A valid run ID and private run nonce are required.");
@@ -68,62 +70,45 @@ export async function issuePdoomTicket(env, body, now = Date.now()) {
 
 // Plausibility checks, not proof of gameplay. All inputs from the browser remain
 // untrusted; only replay/server simulation can establish that the run happened.
+// The score is the run's active time in milliseconds; the board ranks it ascending.
 export function calculatePdoomScore(variant, input) {
-  const level = requireLevel(input);
-  const variants = ["rescue", "perfect", "clean-sweep"].map(kind => `${input.levelId}-${kind}-${level.board}`);
-  const category = variants.indexOf(variant);
-  if (category < 0) throw new HttpError(400, "The board does not belong to this run's level.");
-  if (input.outcome !== "escaped" || input.practice !== false || input.skill !== 3
-    || input.entry !== "cold" || input.retreat !== false) {
-    throw new HttpError(400, "Only a completed fresh run on the standard rules qualifies.");
+  requireCampaign(input);
+  if (variant !== VARIANT) throw new HttpError(400, "The board does not belong to this run.");
+  if (input.outcome !== "complete" || input.practice !== false) {
+    throw new HttpError(400, "Only a completed run on the standard rules qualifies.");
   }
-  if (!integer(input.savedFigures, 0, 5) || !["conscious", "carried"].includes(input.ceoState)
-    || input.total !== 6 || !integer(input.saved, 1, 6)
-    || input.saved !== input.savedFigures + (input.ceoState === "conscious" ? 1 : 0)
-    || input.camerasTotal !== level.cameras || !integer(input.camerasDestroyed, 0, level.cameras)
-    || !integer(input.activeTics, 1, 2_147_483_647)
-    || !integer(input.pDoomAtCoverOpen, 1, 99) || input.pDoomFinal !== 0) {
-    throw new HttpError(400, "The rescue counts, active time or escape result are inconsistent.");
+  if (input.saved !== RESCUE_TOTAL || input.total !== RESCUE_TOTAL) {
+    throw new HttpError(400, "A ranked speedrun must rescue everyone.");
   }
-  const activeMs = Math.round(input.activeTics * 1000 / 35);
-  if (input.activeMs !== activeMs) throw new HttpError(400, "Active time does not match the native game clock.");
-  if (category > 0 && (input.savedFigures !== 5 || input.ceoState !== "conscious")
-    || category === 2 && input.camerasDestroyed !== level.cameras) {
-    throw new HttpError(400, "This rescue does not qualify for that board.");
+  const splits = input.splits;
+  if (!splits || typeof splits !== "object" || Array.isArray(splits)
+    || Object.keys(splits).length !== SPLITS.length
+    || SPLITS.some(key => !Object.hasOwn(splits, key)
+      || !integer(splits[key], SPLIT_MINIMUM_MS[key], SPLIT_MAXIMUM_MS))) {
+    throw new HttpError(400, "The split times are missing or inconsistent.");
   }
-  const routes = input.routes ?? [];
-  if (!Array.isArray(routes) || routes.length > 5
-    || routes.some(route => typeof route !== "string" || route.length > 64)) {
-    throw new HttpError(400, "Invalid rescue route metadata.");
+  const activeMs = SPLITS.reduce((sum, key) => sum + splits[key], 0);
+  if (!integer(input.activeMs, 1, Number.MAX_SAFE_INTEGER) || input.activeMs !== activeMs) {
+    throw new HttpError(400, "Active time does not match the split times.");
   }
-  if (input.ceo !== undefined && !["altman", "amodei", "doomguy"].includes(input.ceo)) {
+  if (!integer(input.restarts, 0, 100_000)) throw new HttpError(400, "Invalid restart count.");
+  if (input.ceo !== undefined && !["altman", "amodei"].includes(input.ceo)) {
     throw new HttpError(400, "Unknown hero.");
   }
-  const breakdown = {
-    rescue: input.savedFigures * 10_000,
-    ceo: input.ceoState === "conscious" ? 1000 : 0,
-    cameras: input.camerasDestroyed * 250,
-    speed: Math.round(2000 * 600 / (600 + input.activeTics / 35)),
-    outlook: 10 * (100 - input.pDoomAtCoverOpen),
-  };
   const metadata = {
-    levelId: input.levelId, levelVersion: input.levelVersion,
-    scoreVersion: "rescue-v2", boardVersion: level.board, outcome: "escaped", practice: false,
-    savedFigures: input.savedFigures, ceoState: input.ceoState, skill: 3, entry: "cold", retreat: false,
-    saved: input.saved, total: 6, camerasDestroyed: input.camerasDestroyed, camerasTotal: level.cameras,
-    activeMs, activeTics: input.activeTics, pDoomAtCoverOpen: input.pDoomAtCoverOpen,
-    pDoomFinal: 0, breakdown, routes,
+    ...CAMPAIGN, outcome: "complete", practice: false, saved: RESCUE_TOTAL, total: RESCUE_TOTAL,
+    activeMs, splits: Object.fromEntries(SPLITS.map(key => [key, splits[key]])), restarts: input.restarts,
     ...(input.ceo === undefined ? {} : { ceo: input.ceo }),
-    validation: "server-rules-v1",
+    validation: "server-rules-v2",
   };
-  return { score: category === 0 ? Object.values(breakdown).reduce((a, b) => a + b, 0) : activeMs, metadata };
+  return { score: activeMs, metadata };
 }
 
 // Pausing only adds real time, so active time beyond the ticket's age means the
 // run was not played in real time (or its ticket arrived late, e.g. offline at start).
 export function pdoomReviewReasons(metadata, issuedAt, now = Date.now()) {
   const reasons = [];
-  if (metadata.activeMs < REVIEW_BELOW_MS[metadata.levelId]) reasons.push("below-time-floor");
+  if (metadata.activeMs < REVIEW_BELOW_MS) reasons.push("below-time-floor");
   if (now - issuedAt + CLOCK_SLACK_MS < metadata.activeMs) reasons.push("faster-than-real-time");
   return reasons;
 }
@@ -141,13 +126,14 @@ export async function validatePdoomSubmission(env, { body, variant, submissionId
   const nonceHash = await hashIdentity(ticket.token, "pdoom-run-v1");
   if (!row || !equalHash(row.nonce_hash, nonceHash)) throw new HttpError(401, "The run ticket could not be verified.");
   if (!row.completed_at && now > row.expires_at) throw new HttpError(410, "This unused run ticket has expired.");
+  // Older per-level tickets carry a level ID, so they cannot complete a campaign run.
   if (submissionId !== `${row.run_id}:${variant}` || metadata.levelId !== row.level_id
     || metadata.levelVersion !== row.level_version) {
-    throw new HttpError(400, "The ticket, level and submission ID must describe the same run.");
+    throw new HttpError(400, "The ticket, campaign and submission ID must describe the same run.");
   }
   const result = calculatePdoomScore(variant, metadata);
   const completionHash = await hashIdentity(JSON.stringify({ name, playerId, metadata: result.metadata }), "pdoom-result-v1");
-  // A single atomic comparison binds every board to the same completed run.
+  // A single atomic comparison binds the board entry to the same completed run.
   // A failed insert/network response can safely retry the identical completion.
   const bound = await env.DB.prepare(`
     UPDATE pdoom_ranked_runs
