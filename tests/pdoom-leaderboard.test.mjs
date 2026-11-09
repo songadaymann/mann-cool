@@ -7,7 +7,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {calculatePdoomScore,pdoomReviewReasons} from '../worker/pdoom-scores.js';
+import {calculatePdoomScore,pdoomReviewReasons,pdoomReviewTop,cleanVideoUrl} from '../worker/pdoom-scores.js';
 import {readJson,hashIdentity} from '../worker/lib/http.js';
 
 const temp=await fs.mkdtemp(path.join(os.tmpdir(),'pdoom-api-test-'));
@@ -25,10 +25,11 @@ const sum=splits=>Object.values(splits).reduce((a,b)=>a+b,0);
 const metadata=(overrides={})=>({...CAMPAIGN,outcome:'complete',practice:false,saved:20,total:20,activeMs:sum(SPLITS),splits:{...SPLITS},restarts:2,ceo:'amodei',...overrides});
 // Changes splits and keeps activeMs equal to their sum.
 const timed=(changes,overrides={})=>{const splits={...SPLITS,...changes};return metadata({splits,activeMs:sum(splits),...overrides});};
-function fixture(t){
+// reviewTop: the Worker's PDOOM_REVIEW_TOP (off here unless a test asks; null leaves it unset, the default ten).
+function fixture(t,{reviewTop='0'}={}){
   const db=new DatabaseSync(':memory:');db.exec(schema);t.after(()=>db.close());let requests=0;
   const wrap=statement=>{let values=[];return{bind(...v){values=v;return this;},async first(){return statement.get(...values)||null;},async all(){return{results:statement.all(...values)};},async run(){return{meta:{changes:statement.run(...values).changes}};}};};
-  const env={DB:{prepare:sql=>wrap(db.prepare(sql))}};
+  const env={DB:{prepare:sql=>wrap(db.prepare(sql))},...(reviewTop===null?{}:{PDOOM_REVIEW_TOP:reviewTop})};
   const api=async(url,body,headers={})=>{
     const response=await worker.fetch(new Request('https://example.test'+url,{...(body===undefined?{}:{method:'POST',body:JSON.stringify(body)}),headers:{'content-type':'application/json','cf-connecting-ip':`192.0.2.${++requests}`,...headers}}),env);
     return {status:response.status,...await response.json()};
@@ -219,4 +220,44 @@ test('implausibly fast runs are stored for review instead of rejected or ranked'
   assert.deepEqual(f.db.prepare("SELECT moderation_status AS status, COUNT(*) AS n FROM leaderboard_entries GROUP BY status ORDER BY status").all().map(r=>[r.status,r.n]),[['approved',1],['pending',2]]);
   f.db.prepare("UPDATE leaderboard_entries SET moderation_status = 'approved' WHERE submission_id = ?").run(blinkBody.submissionId);
   assert.deepEqual(await f.board(),[1199999,1800000]);
+});
+
+test('every time that would make the top ten is held for review, by default (2026-11-09)',async t=>{
+  assert.equal(pdoomReviewTop({}),10);assert.equal(pdoomReviewTop({PDOOM_REVIEW_TOP:'3'}),3);assert.equal(pdoomReviewTop({PDOOM_REVIEW_TOP:'0'}),0);assert.equal(pdoomReviewTop({PDOOM_REVIEW_TOP:'x'}),10);
+  const f=fixture(t,{reviewTop:null}),approve=id=>f.db.prepare("UPDATE leaderboard_entries SET moderation_status = 'approved' WHERE submission_id = ?").run(id);
+  // An empty board: the first runs are all top ten, so all held.
+  const first=f.body(await f.start()),held=await f.api('/api/v1/leaderboard',first);
+  assert.equal(held.held,true);assert.deepEqual(held.entry.metadata.review,['top-ten']);assert.deepEqual(await f.board(),[]);
+  approve(first.submissionId);
+  // Ten approved runs (30:00 and nine at 25:01..25:09): a slower run (31:00) lands 11th and goes straight on; a faster one is held.
+  for(let i=1;i<10;i++){const b=f.body(await f.start(),{metadata:timed({'agentic-pods':180000+i*1000})});const r=await f.api('/api/v1/leaderboard',b);assert.equal(r.status,201,JSON.stringify(r));approve(b.submissionId);}
+  assert.equal((await f.board()).length,10);
+  const slow=await f.api('/api/v1/leaderboard',f.body(await f.start(),{metadata:timed({endgame:180000+60000})}));
+  assert.equal(slow.held,undefined,JSON.stringify(slow));assert.equal(slow.rank,11);
+  const fast=await f.api('/api/v1/leaderboard',f.body(await f.start(),{metadata:timed({'agentic-pods':80000})}));
+  assert.equal(fast.held,true);assert.deepEqual(fast.entry.metadata.review,['top-ten']);
+});
+test('a run can carry a link to its recording, given with the time or added later from the browser that played it',async t=>{
+  assert.equal(cleanVideoUrl(''),null);assert.equal(cleanVideoUrl(undefined),null);
+  assert.equal(cleanVideoUrl('https://youtu.be/abc123'),'https://youtu.be/abc123');assert.equal(cleanVideoUrl('https://www.twitch.tv/videos/1'),'https://www.twitch.tv/videos/1');
+  assert.equal(cleanVideoUrl('https://drive.google.com/file/d/x/view'),'https://drive.google.com/file/d/x/view');
+  for(const bad of ['http://youtu.be/abc','https://evil.example/watch','javascript:alert(1)','https://youtube.com.evil.example/x','https://user:pw@youtube.com/x','https://youtube.com:8443/x','https://docs.google.com/x','https://'+'a'.repeat(300)+'.youtube.com'])
+    assert.throws(()=>cleanVideoUrl(bad),/link|video/,bad);
+  const f=fixture(t),run=await f.start(),body=f.body(run,{videoUrl:'https://youtu.be/first'});
+  const sent=await f.api('/api/v1/leaderboard',body);assert.equal(sent.status,201,JSON.stringify(sent));assert.equal(sent.entry.metadata.videoUrl,'https://youtu.be/first');
+  assert.equal((await f.api('/api/v1/leaderboard?slug=pdoom&variant='+VARIANT)).entries[0].videoUrl,'https://youtu.be/first','the board shows it');
+  // a bad link refuses the submission without binding the ticket
+  const other=await f.start(),refused=await f.api('/api/v1/leaderboard',f.body(other,{videoUrl:'https://evil.example/x'}));assert.equal(refused.status,400);
+  assert.equal(f.db.prepare('SELECT completed_at FROM pdoom_ranked_runs WHERE id = ?').get(other.runTicket.id).completed_at,null);
+  // later: change it, then clear it; the time and status stay
+  const changed=await f.api('/api/v1/pdoom/runs/video',{runTicket:run.runTicket,videoUrl:'https://vimeo.com/42'});
+  assert.equal(changed.status,200,JSON.stringify(changed));assert.equal(changed.videoUrl,'https://vimeo.com/42');assert.equal(changed.held,false);
+  let row=(await f.api('/api/v1/leaderboard?slug=pdoom&variant='+VARIANT)).entries[0];assert.equal(row.videoUrl,'https://vimeo.com/42');assert.equal(row.score,body.metadata.activeMs);
+  assert.equal((await f.api('/api/v1/pdoom/runs/video',{runTicket:run.runTicket,videoUrl:''})).status,200);
+  row=(await f.api('/api/v1/leaderboard?slug=pdoom&variant='+VARIANT)).entries[0];assert.equal(row.videoUrl,undefined);
+  // only with the run's own token, only for a submitted run, only a video site
+  assert.equal((await f.api('/api/v1/pdoom/runs/video',{runTicket:{...run.runTicket,token:'0'.repeat(64)},videoUrl:'https://youtu.be/x'})).status,401);
+  assert.equal((await f.api('/api/v1/pdoom/runs/video',{runTicket:(await f.start()).runTicket,videoUrl:'https://youtu.be/x'})).status,409);
+  assert.equal((await f.api('/api/v1/pdoom/runs/video',{runTicket:run.runTicket,videoUrl:'https://evil.example/x'})).status,400);
+  assert.equal((await f.api('/api/v1/pdoom/runs/video',{runTicket:run.runTicket})).status,200,'no link clears it');
 });

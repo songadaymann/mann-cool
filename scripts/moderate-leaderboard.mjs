@@ -41,7 +41,8 @@ function query(sql) {
 }
 
 const COLUMNS = `submission_id, slug, variant, player_name, score, moderation_status AS status, created_at,
-  json_extract(metadata, '$.activeMs') AS active_ms, json_extract(metadata, '$.review') AS review`;
+  json_extract(metadata, '$.activeMs') AS active_ms, json_extract(metadata, '$.review') AS review,
+  json_extract(metadata, '$.videoUrl') AS video`;
 
 if (command === "list") {
   const status = flags.status || "pending";
