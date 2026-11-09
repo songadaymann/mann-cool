@@ -104,7 +104,7 @@ for (const game of catalog.games || []) {
       if (!board.label || !board.metric || !board.metricLabel) errors.push(`${game.slug}/${board.variant}: board label and metric fields are required`);
       if (!["asc", "desc"].includes(board.direction)) errors.push(`${game.slug}/${board.variant}: invalid board direction`);
       if (!["number", "integer", "percent", "time-ms", "record"].includes(board.display)) errors.push(`${game.slug}/${board.variant}: invalid board display`);
-      if (!["best", "win-loss-rate"].includes(board.aggregation)) errors.push(`${game.slug}/${board.variant}: invalid board aggregation`);
+      if (!["best", "player-best", "win-loss-rate"].includes(board.aggregation)) errors.push(`${game.slug}/${board.variant}: invalid board aggregation`);
       if (board.aggregation === "win-loss-rate" && board.direction !== "desc") errors.push(`${game.slug}/${board.variant}: win/loss rate must rank descending`);
     }
     const legacyVariants = game.leaderboard.variants || [];

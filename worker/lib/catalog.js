@@ -29,7 +29,7 @@ export function getGameStatus(game) {
 }
 
 const BOARD_DISPLAYS = new Set(["number", "integer", "percent", "time-ms", "record"]);
-const BOARD_AGGREGATIONS = new Set(["best", "win-loss-rate"]);
+const BOARD_AGGREGATIONS = new Set(["best", "player-best", "win-loss-rate"]);
 
 function boardLabel(variant) {
   return String(variant).replace(/[-_]+/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());

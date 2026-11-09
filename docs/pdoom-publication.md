@@ -18,6 +18,13 @@ p(DOOM) has one leaderboard, `campaign-speedrun-v1`: the whole game as a speedru
 - **Where it shows:** `list` shows each row's `video`. The shared shell shows a ▶ link next to the name of a run that has one.
 - **Times over an hour:** the shell shows them as h:mm:ss.cc.
 
+**One row per player, and signing in for the challenge (2026-11-09).** Jonathan: "if they want to have their run count for the contest, they have to sign in, but if they just want to put their run there, they don't have to".
+- **Who the player is:** for p(DOOM) the server works it out from the browser's player secret (`playerSecret`, from the shell's `mannCool.player.credential()`; `player-identity.js playerForSecret`). It never trusts a claimed ID, so nobody can post as someone else. The secret is never stored. A run without one is anonymous: no player, its own row.
+- **The board (`aggregation: "player-best"`):** one row per player, their best approved time. A row is `signedIn` when its player has saved their scores to an email (`player_profiles`). The check is made when the board is read, so signing in later counts the runs that browser already posted. The shell marks signed-in rows ✓, with a key under the list.
+- **The top-ten hold counts players,** not runs.
+- **The moderation list** shows `player_id`, `signed_in` (the email hint) and `same_ip_players`: how many other players posted from the same IP (its hash). That's a reason to look twice, not proof: households, schools and phone networks share IPs.
+- **Wallet sign-in:** not built. mann.cool only counts which wallet extensions are installed.
+
 ```sh
 npm run leaderboard:moderate -- list                      # pending rows, newest first
 npm run leaderboard:moderate -- list --status approved --slug pdoom --sort score-asc   # fastest first
