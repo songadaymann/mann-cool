@@ -1,5 +1,7 @@
 import { HttpError, cleanSlug, cleanText, hashIdentity, json, options as corsOptions, readJson } from "./lib/http.js";
 import { consumeRateLimit, enforceRateLimit, ensureRegisteredGame } from "./platform-api.js";
+import { createPublicClient, getAddress, http, isAddress, isAddressEqual, recoverMessageAddress } from "viem";
+import { createSiweMessage, generateSiweNonce, parseSiweMessage } from "viem/siwe";
 
 // Player identity without accounts. A browser keeps a private random secret (32 bytes,
 // base64url) in localStorage; its public player ID is derived from it, so the ID can be
@@ -154,7 +156,15 @@ async function handleEmailVerify(request, env) {
     .bind(emailHash).first();
 
   if (!profile) {
-    if (device) throw new HttpError(409, "This browser is already saved to another email.");
+    if (device) {
+      // Signed in with a wallet only: the email joins that player (its profile row was the wallet's).
+      const own = await env.DB.prepare("SELECT email_hash AS emailHash FROM player_profiles WHERE player_id = ?").bind(device.playerId).first();
+      if (!own?.emailHash?.startsWith("wallet:")) throw new HttpError(409, "This browser is already saved to another email.");
+      const hint = emailHint(email);
+      await env.DB.prepare("UPDATE player_profiles SET email_hash = ?, email_hint = ?, updated_at = CURRENT_TIMESTAMP WHERE player_id = ?")
+        .bind(emailHash, hint, device.playerId).run();
+      return json({ success: true, playerId: device.playerId, emailHint: hint, linked: true, merged: 0 });
+    }
     const hint = emailHint(email);
     await env.DB.batch([
       env.DB.prepare("INSERT INTO player_profiles (player_id, email_hash, email_hint) VALUES (?, ?, ?)").bind(current, emailHash, hint),
@@ -197,12 +207,126 @@ async function handleSession(request, env) {
   const body = await readJson(request, 1_024);
   const secret = cleanSecret(body.secret);
   const row = await env.DB.prepare(`
-    SELECT d.player_id AS playerId, p.email_hint AS emailHint
+    SELECT d.player_id AS playerId, p.email_hint AS emailHint,
+      (SELECT address FROM player_wallets w WHERE w.player_id = d.player_id ORDER BY w.created_at LIMIT 1) AS wallet
     FROM player_devices d JOIN player_profiles p ON p.player_id = d.player_id
     WHERE d.secret_hash = ?
   `).bind(await secretHash(secret)).first();
-  if (row) return json({ success: true, playerId: row.playerId, emailHint: row.emailHint, linked: true });
+  if (row) return json({ success: true, playerId: row.playerId, emailHint: row.emailHint, walletHint: row.wallet ? walletHint(getAddress(row.wallet)) : null, linked: true });
   return json({ success: true, playerId: await derivedPlayerId(secret), emailHint: null, linked: false });
+}
+
+// Wallet sign-in (Sign-In with Ethereum, EIP-4361; 2026-11-09). The server writes the whole message, so its domain,
+// address, nonce and times can't be swapped: start returns it, the wallet signs it (personal_sign, free, no
+// transaction), and verify checks the signature against the address before linking it, like an email code.
+const WALLET_TTL_SECONDS = 600;
+const WALLET_STATEMENT = "Sign in to mann.cool to save your scores. Signing costs nothing and sends no transaction.";
+// Smart-contract wallets (Coinbase Smart Wallet, Safe) can't be recovered from the signature; viem asks the chain
+// (ERC-1271/6492) over these RPCs. PLAYER_WALLET_RPCS (JSON, chain ID to URL) replaces them.
+const WALLET_RPCS = {
+  1: "https://ethereum-rpc.publicnode.com", 8453: "https://mainnet.base.org", 10: "https://mainnet.optimism.io",
+  42161: "https://arb1.arbitrum.io/rpc", 137: "https://polygon-bor-rpc.publicnode.com",
+};
+const walletHint = (address) => `${address.slice(0, 6)}…${address.slice(-4)}`;
+
+// The page asking: mann.cool itself. In local development (PLAYER_EMAIL_DEV=1) plain http too: loopback, and
+// http://mann.cool, since wrangler dev rewrites a loopback Origin's host to the route's.
+function walletOrigin(request, env) {
+  let origin;
+  try { origin = new URL(request.headers.get("origin") || ""); } catch { throw new HttpError(403, "Sign in from mann.cool."); }
+  const local = env.PLAYER_EMAIL_DEV === "1" && origin.protocol === "http:" && ["127.0.0.1", "localhost", "mann.cool", "www.mann.cool"].includes(origin.hostname);
+  if (!local && !(origin.protocol === "https:" && ["mann.cool", "www.mann.cool"].includes(origin.hostname))) {
+    throw new HttpError(403, "Sign in from mann.cool.");
+  }
+  return origin;
+}
+
+async function handleWalletStart(request, env) {
+  await enforceRateLimit(request, env, "player-wallet:start");
+  const body = await readJson(request, 2_048);
+  const secret = cleanSecret(body.secret);
+  if (typeof body.address !== "string" || !isAddress(body.address, { strict: false })) throw new HttpError(400, "That isn't a wallet address.");
+  const chainId = Number(body.chainId);
+  if (!Number.isSafeInteger(chainId) || chainId < 1) throw new HttpError(400, "Unknown network.");
+  const origin = walletOrigin(request, env);
+  const address = getAddress(body.address), nonce = generateSiweNonce(), now = new Date();
+  const message = createSiweMessage({
+    domain: origin.host, address, statement: WALLET_STATEMENT, uri: origin.origin, version: "1", chainId, nonce,
+    issuedAt: now, expirationTime: new Date(now.getTime() + WALLET_TTL_SECONDS * 1000),
+  });
+  await env.DB.prepare(`
+    INSERT INTO player_wallet_challenges (nonce, secret_hash, address, message, expires_at) VALUES (?, ?, ?, ?, ?)
+  `).bind(nonce, await secretHash(secret), address.toLowerCase(), message, Math.floor(now.getTime() / 1000) + WALLET_TTL_SECONDS).run();
+  return json({ success: true, message });
+}
+
+async function contractWalletSigned(env, chainId, address, message, signature) {
+  let rpcs = WALLET_RPCS;
+  try { if (env.PLAYER_WALLET_RPCS) rpcs = JSON.parse(env.PLAYER_WALLET_RPCS); } catch {}
+  const url = rpcs[chainId];
+  if (!url) return false;
+  try { return await createPublicClient({ transport: http(url, { timeout: 8_000 }) }).verifyMessage({ address, message, signature }); }
+  catch { return false; }
+}
+
+async function handleWalletVerify(request, env) {
+  await enforceRateLimit(request, env, "player-wallet:verify");
+  const body = await readJson(request, 16_384);
+  const secret = cleanSecret(body.secret);
+  const message = typeof body.message === "string" ? body.message : "";
+  const signature = typeof body.signature === "string" ? body.signature : "";
+  if (!message || message.length > 2_000 || !/^0x[0-9a-fA-F]{2,12000}$/.test(signature)) throw new HttpError(400, "The signature is missing.");
+  const nonce = parseSiweMessage(message).nonce;
+  const deviceHash = await secretHash(secret);
+  const challenge = nonce ? await env.DB.prepare(`
+    SELECT address, message, expires_at AS expiresAt, consumed_at AS consumedAt, secret_hash AS secretHash
+    FROM player_wallet_challenges WHERE nonce = ?
+  `).bind(nonce).first() : null;
+  // Only the message this server wrote for this browser, unused and in time.
+  if (!challenge || challenge.secretHash !== deviceHash || challenge.message !== message || challenge.consumedAt
+    || challenge.expiresAt < Math.floor(Date.now() / 1000)) {
+    throw new HttpError(400, "That sign-in request has expired. Try again.");
+  }
+  const used = await env.DB.prepare("UPDATE player_wallet_challenges SET consumed_at = CURRENT_TIMESTAMP WHERE nonce = ? AND consumed_at IS NULL")
+    .bind(nonce).run();
+  if (!used.meta?.changes) throw new HttpError(400, "That sign-in request has expired. Try again.");
+  const address = getAddress(challenge.address);
+  let signed = false;
+  try { signed = isAddressEqual(await recoverMessageAddress({ message, signature }), address); } catch {}
+  if (!signed) signed = await contractWalletSigned(env, parseSiweMessage(message).chainId, address, message, signature);
+  if (!signed) throw new HttpError(400, "That signature isn't from this wallet.");
+
+  const key = challenge.address, hint = walletHint(address);
+  const device = await env.DB.prepare("SELECT player_id AS playerId FROM player_devices WHERE secret_hash = ?").bind(deviceHash).first();
+  const owner = await env.DB.prepare("SELECT player_id AS playerId FROM player_wallets WHERE address = ?").bind(key).first();
+  const current = device?.playerId || await derivedPlayerId(secret);
+  if (owner) {
+    // A wallet already saved to a player: this browser joins them, bringing its scores, as with an email.
+    if (device && device.playerId !== owner.playerId) throw new HttpError(409, "This browser is already saved to another player.");
+    let merged = 0;
+    if (device) {
+      await env.DB.prepare("UPDATE player_devices SET last_seen_at = CURRENT_TIMESTAMP WHERE secret_hash = ?").bind(deviceHash).run();
+    } else {
+      const statements = [env.DB.prepare("INSERT INTO player_devices (secret_hash, player_id) VALUES (?, ?)").bind(deviceHash, owner.playerId)];
+      if (current !== owner.playerId) statements.unshift(env.DB.prepare("UPDATE leaderboard_entries SET player_id = ? WHERE player_id = ?").bind(owner.playerId, current));
+      const results = await env.DB.batch(statements);
+      merged = current !== owner.playerId ? Number(results[0].meta?.changes || 0) : 0;
+    }
+    const profile = await env.DB.prepare("SELECT email_hint AS emailHint FROM player_profiles WHERE player_id = ?").bind(owner.playerId).first();
+    return json({ success: true, playerId: owner.playerId, emailHint: profile?.emailHint || hint, walletHint: hint, linked: true, merged });
+  }
+  // A new wallet: it joins this browser's player (who may have an email already), or makes one.
+  if (device) {
+    await env.DB.prepare("INSERT INTO player_wallets (address, player_id) VALUES (?, ?)").bind(key, device.playerId).run();
+    const profile = await env.DB.prepare("SELECT email_hint AS emailHint FROM player_profiles WHERE player_id = ?").bind(device.playerId).first();
+    return json({ success: true, playerId: device.playerId, emailHint: profile?.emailHint || hint, walletHint: hint, linked: true, merged: 0 });
+  }
+  await env.DB.batch([
+    env.DB.prepare("INSERT INTO player_profiles (player_id, email_hash, email_hint) VALUES (?, ?, ?)").bind(current, `wallet:${key}`, hint),
+    env.DB.prepare("INSERT INTO player_wallets (address, player_id) VALUES (?, ?)").bind(key, current),
+    env.DB.prepare("INSERT INTO player_devices (secret_hash, player_id) VALUES (?, ?)").bind(deviceHash, current),
+  ]);
+  return json({ success: true, playerId: current, emailHint: hint, walletHint: hint, linked: true, merged: 0 });
 }
 
 export async function handlePlayerApi(request, env, route) {
@@ -212,6 +336,8 @@ export async function handlePlayerApi(request, env, route) {
     if (route === "email/start") return await handleEmailStart(request, env);
     if (route === "email/verify") return await handleEmailVerify(request, env);
     if (route === "session") return await handleSession(request, env);
+    if (route === "wallet/start") return await handleWalletStart(request, env);
+    if (route === "wallet/verify") return await handleWalletVerify(request, env);
     return json({ error: "API route not found" }, { status: 404 });
   } catch (error) {
     if (error instanceof HttpError) return json({ error: error.message }, { status: error.status });

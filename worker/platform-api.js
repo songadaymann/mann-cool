@@ -29,6 +29,8 @@ const LIMITS = {
   "player-email:start": { requests: 5, seconds: 600 },
   "player-email:verify": { requests: 30, seconds: 600 },
   "player:session": { requests: 60, seconds: 60 },
+  "player-wallet:start": { requests: 10, seconds: 600 },
+  "player-wallet:verify": { requests: 20, seconds: 600 },
   "wallets:get": { requests: 60, seconds: 60 },
   "wallets:post": { requests: 30, seconds: 600 },
 };
