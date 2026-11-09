@@ -228,6 +228,9 @@
           .scores { display:grid; gap:6px; margin:28px 0 0; padding:0; list-style:none; }
           .score { display:grid; grid-template-columns:36px minmax(0,1fr) auto; align-items:center; gap:12px; padding:13px; border:1px solid var(--rule); border-radius:var(--control-radius); background:var(--field); }
           .rank { color:var(--accent); }
+          .score .who { display:flex; align-items:center; gap:8px; min-width:0; }
+          .score .who > span { overflow:hidden; text-overflow:ellipsis; }
+          .score .video { flex:none; color:var(--accent); text-decoration:none; font-size:12px; }
           .leaderboard-tabs { display:flex; flex-wrap:wrap; gap:0; margin:0 0 12px; border:2px solid var(--panel-muted); }
           .leaderboard-tabs[hidden] { display:none; }
           .leaderboard-tabs button { flex:1 1 120px; min-height:42px; padding:0 12px; border:0; border-right:2px solid var(--panel-muted); border-radius:0; color:var(--panel-ink); background:var(--panel); cursor:pointer; }
@@ -535,7 +538,12 @@
           const rank = document.createElement("span"); rank.className = "rank"; rank.textContent = entry.rank;
           const name = document.createElement("span"); name.textContent = entry.name;
           const score = document.createElement("strong"); score.textContent = this.formatLeaderboardScore(entry, board);
-          item.append(rank, name, score); container.append(item);
+          // A run's recording, when it has one (p(DOOM)'s speedrun, 2026-11-09): https links only, the server checks the site.
+          let video = null;
+          try { const href = new URL(String(entry.videoUrl || "")); if (href.protocol === "https:") { video = document.createElement("a"); video.className = "video"; video.href = href.toString(); video.target = "_blank"; video.rel = "noopener noreferrer nofollow"; video.textContent = "▶"; video.title = "Watch the run"; video.setAttribute("aria-label", `Watch ${entry.name}'s run`); } } catch { /* no video */ }
+          if (video) { const who = document.createElement("span"); who.className = "who"; who.append(name, video); item.append(rank, who, score); }
+          else item.append(rank, name, score);
+          container.append(item);
         });
       } catch (error) { container.innerHTML = `<p class="status"></p>`; container.firstElementChild.textContent = error.message; }
     }
@@ -552,10 +560,13 @@
       if (board.display === "percent") return Number.isFinite(value) ? `${value.toLocaleString(undefined, { maximumFractionDigits: 1 })}%` : "—";
       if (board.display === "integer") return Number.isFinite(value) ? Math.round(value).toLocaleString() : "—";
       if (board.display === "time-ms" && Number.isFinite(value)) {
+        // m:ss.cc, and h:mm:ss.cc from an hour (a whole-game speedrun can take one)
         const totalSeconds = Math.max(0, value) / 1000;
-        const minutes = Math.floor(totalSeconds / 60);
-        const seconds = totalSeconds - minutes * 60;
-        return `${minutes}:${seconds.toFixed(2).padStart(5, "0")}`;
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor(totalSeconds / 60) - hours * 60;
+        const seconds = totalSeconds - Math.floor(totalSeconds / 60) * 60;
+        const tail = `${seconds.toFixed(2).padStart(5, "0")}`;
+        return hours ? `${hours}:${String(minutes).padStart(2, "0")}:${tail}` : `${minutes}:${tail}`;
       }
       return Number.isFinite(value) ? value.toLocaleString() : "—";
     }

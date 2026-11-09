@@ -26,6 +26,32 @@ const TICKET_LIFETIME = 90 * 24 * 60 * 60 * 1000;
 // conservative estimate, not a measured record; tighten it as real runs arrive.
 const REVIEW_BELOW_MS = 1_200_000;
 const CLOCK_SLACK_MS = 10_000;
+// Every time that would make the top ten is held for review too (2026-11-09: Jonathan's challenge is judged on screen
+// recordings, so whatever reaches the top has been checked by a person). PDOOM_REVIEW_TOP in the Worker's vars
+// changes the ten; 0 turns this hold off.
+const REVIEW_TOP = 10;
+export function pdoomReviewTop(env) {
+  const value = Number(env?.PDOOM_REVIEW_TOP);
+  return env?.PDOOM_REVIEW_TOP !== undefined && Number.isInteger(value) && value >= 0 ? value : REVIEW_TOP;
+}
+// A link to the run's recording, given with the time or added later. Only https links to the usual video sites, so
+// the board can't carry arbitrary links.
+const VIDEO_HOSTS = Object.freeze([
+  "youtube.com", "youtu.be", "twitch.tv", "kick.com", "vimeo.com", "streamable.com", "loom.com", "archive.org",
+  "tiktok.com", "instagram.com", "facebook.com", "x.com", "twitter.com", "bsky.app", "drive.google.com", "dropbox.com",
+]);
+export function cleanVideoUrl(value) {
+  if (value === undefined || value === null || value === "") return null;
+  if (typeof value !== "string" || value.length > 300) throw new HttpError(400, "That video link is too long.");
+  let url;
+  try { url = new URL(value.trim()); } catch { throw new HttpError(400, "That doesn't look like a link."); }
+  const host = url.hostname.toLowerCase().replace(/^(www|m)\./, "");
+  if (url.protocol !== "https:" || url.username || url.password || url.port
+    || !VIDEO_HOSTS.some(allowed => host === allowed || host.endsWith(`.${allowed}`))) {
+    throw new HttpError(400, "Use an https link to YouTube, Twitch, Vimeo, Google Drive, Dropbox or another video site.");
+  }
+  return url.toString();
+}
 const integer = (n, min, max) => Number.isSafeInteger(n) && n >= min && n <= max;
 
 function requireCampaign(value) {
@@ -113,8 +139,8 @@ export function pdoomReviewReasons(metadata, issuedAt, now = Date.now()) {
   return reasons;
 }
 
-export async function validatePdoomSubmission(env, { body, variant, submissionId, name, playerId, metadata }, now = Date.now()) {
-  const ticket = body.runTicket;
+// The run ticket's private browser nonce proves a run is yours; only its hash is stored.
+async function ownedTicket(env, ticket) {
   if (!ticket || typeof ticket.id !== "string" || !TICKET_ID.test(ticket.id)
     || typeof ticket.token !== "string" || !NONCE.test(ticket.token)) {
     throw new HttpError(401, "Leaderboard validation was updated. Reload before starting a new ranked run.");
@@ -125,6 +151,12 @@ export async function validatePdoomSubmission(env, { body, variant, submissionId
   `).bind(ticket.id).first();
   const nonceHash = await hashIdentity(ticket.token, "pdoom-run-v1");
   if (!row || !equalHash(row.nonce_hash, nonceHash)) throw new HttpError(401, "The run ticket could not be verified.");
+  return { row, nonceHash };
+}
+
+export async function validatePdoomSubmission(env, { body, variant, submissionId, name, playerId, metadata }, now = Date.now()) {
+  const { row, nonceHash } = await ownedTicket(env, body.runTicket);
+  const videoUrl = cleanVideoUrl(body.videoUrl);
   if (!row.completed_at && now > row.expires_at) throw new HttpError(410, "This unused run ticket has expired.");
   // Older per-level tickets carry a level ID, so they cannot complete a campaign run.
   if (submissionId !== `${row.run_id}:${variant}` || metadata.levelId !== row.level_id
@@ -142,6 +174,31 @@ export async function validatePdoomSubmission(env, { body, variant, submissionId
     RETURNING completion_hash
   `).bind(completionHash, now, row.id, nonceHash, completionHash).first();
   if (!bound) throw new HttpError(409, "This run ticket is already bound to a different result. Retry the original result.");
-  // Not part of the completion hash: a retry keeps the first stored moderation status.
-  return { ...result, review: pdoomReviewReasons(result.metadata, row.issued_at, now) };
+  // Not part of the completion hash: a retry keeps the first stored moderation status, and the video can change.
+  const review = pdoomReviewReasons(result.metadata, row.issued_at, now);
+  const top = pdoomReviewTop(env);
+  if (top > 0) {
+    const ahead = await env.DB.prepare(`
+      SELECT COUNT(*) AS n FROM leaderboard_entries
+      WHERE slug = 'pdoom' AND variant = ? AND moderation_status = 'approved' AND score <= ?
+    `).bind(variant, result.score).first();
+    if (Number(ahead?.n ?? 0) < top) review.push("top-ten");
+  }
+  return { ...result, videoUrl, review };
+}
+
+// Adding, changing or clearing ("") the recording of a run already on the board, from the browser that played it.
+// The time and its review status stay as they are.
+export async function attachPdoomVideo(env, body) {
+  const { row } = await ownedTicket(env, body?.runTicket);
+  if (!row.completed_at) throw new HttpError(409, "Submit the run before adding its video.");
+  const videoUrl = cleanVideoUrl(body.videoUrl);
+  const submissionId = `${row.run_id}:${VARIANT}`;
+  const updated = await (videoUrl
+    ? env.DB.prepare(`UPDATE leaderboard_entries SET metadata = json_set(metadata, '$.videoUrl', ?)
+        WHERE slug = 'pdoom' AND submission_id = ? RETURNING moderation_status AS status`).bind(videoUrl, submissionId)
+    : env.DB.prepare(`UPDATE leaderboard_entries SET metadata = json_remove(metadata, '$.videoUrl')
+        WHERE slug = 'pdoom' AND submission_id = ? RETURNING moderation_status AS status`).bind(submissionId)).first();
+  if (!updated) throw new HttpError(404, "That run isn't on the leaderboard.");
+  return { success: true, submissionId, videoUrl, held: updated.status !== "approved" };
 }

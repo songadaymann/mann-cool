@@ -1,6 +1,6 @@
 import { getGame, getGameByApiSlug, getGameStatus, getLeaderboardConfig } from "./lib/catalog.js";
 import { getExternalPlayGame } from "./lib/externalPlayGames.js";
-import { issuePdoomTicket, validatePdoomSubmission } from "./pdoom-scores.js";
+import { attachPdoomVideo, issuePdoomTicket, validatePdoomSubmission } from "./pdoom-scores.js";
 import {
   HttpError,
   cleanSlug,
@@ -22,6 +22,7 @@ const LIMITS = {
   "leaderboard:get": { requests: 120, seconds: 60 },
   "leaderboard:post": { requests: 20, seconds: 60 },
   "pdoom-runs:post": { requests: 60, seconds: 60 },
+  "pdoom-video:post": { requests: 10, seconds: 600 },
   "community-levels:get": { requests: 120, seconds: 60 },
   "community-levels:post": { requests: 3, seconds: 600 },
   "player-email:start": { requests: 5, seconds: 600 },
@@ -634,7 +635,7 @@ async function handleLeaderboard(request, env, legacy = false) {
     if (slug === "pdoom") {
       const validated = await validatePdoomSubmission(env, { body, variant, submissionId, name, playerId, metadata });
       score = validated.score;
-      metadata = validated.metadata;
+      metadata = validated.videoUrl ? { ...validated.metadata, videoUrl: validated.videoUrl } : validated.metadata;
       if (validated.review.length) {
         moderationStatus = "pending";
         metadata = { ...metadata, review: validated.review };
@@ -713,6 +714,13 @@ export async function handlePlatformApi(request, env, endpoint, requestOptions =
       const game = await ensureRegisteredGame(env, "pdoom");
       if (!getLeaderboardConfig(game).enabled) throw new HttpError(404, "Leaderboard is not enabled for this game");
       return json(await issuePdoomTicket(env, body), { status: 201 });
+    }
+    // A run's recording, added (or changed) after the time went in: POST /api/v1/pdoom/runs/video.
+    if (endpoint === "pdoom-run-video") {
+      if (request.method !== "POST") throw new HttpError(405, "Method not allowed");
+      await enforceRateLimit(request, env, "pdoom-video:post");
+      const body = await readJson(request, 2_048);
+      return json(await attachPdoomVideo(env, body));
     }
     if (endpoint === "community-levels") return await handleCommunityLevels(request, env);
     return json({ error: "API route not found" }, { status: 404 });

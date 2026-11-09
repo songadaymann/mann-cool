@@ -3,7 +3,7 @@ import { handlePlatformApi, recordTipClick } from "./platform-api.js";
 import { handlePlayerApi, handleWalletsApi } from "./player-identity.js";
 
 const PLATFORM_ENDPOINTS = new Set(["plays", "tip-clicks", "guestbook", "comments", "leaderboard", "community-levels"]);
-const GAME_SHELL_VERSION = "20261021-lab-sources1";
+const GAME_SHELL_VERSION = "20261109-run-videos1";
 
 function platformConfig(request, env) {
   // A game's shell passes ?slug= to get that game's song and source links.
@@ -106,6 +106,9 @@ async function handleRequest(request, env) {
     const endpoint = isVersioned ? segments[2] : segments[1];
     if (isVersioned && endpoint === "pdoom" && segments[3] === "runs" && segments.length === 4) {
       return handlePlatformApi(request, env, "pdoom-runs");
+    }
+    if (isVersioned && endpoint === "pdoom" && segments[3] === "runs" && segments[4] === "video" && segments.length === 5) {
+      return handlePlatformApi(request, env, "pdoom-run-video");
     }
     if (isVersioned && endpoint === "player") return handlePlayerApi(request, env, segments.slice(3).join("/"));
     if (isVersioned && endpoint === "wallets" && segments.length === 3) return handleWalletsApi(request, env);
