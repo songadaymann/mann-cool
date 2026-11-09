@@ -23,7 +23,14 @@ p(DOOM) has one leaderboard, `campaign-speedrun-v1`: the whole game as a speedru
 - **The board (`aggregation: "player-best"`):** one row per player, their best approved time. A row is `signedIn` when its player has saved their scores to an email (`player_profiles`). The check is made when the board is read, so signing in later counts the runs that browser already posted. The shell marks signed-in rows ✓, with a key under the list.
 - **The top-ten hold counts players,** not runs.
 - **The moderation list** shows `player_id`, `signed_in` (the email hint) and `same_ip_players`: how many other players posted from the same IP (its hash). That's a reason to look twice, not proof: households, schools and phone networks share IPs.
-- **Wallet sign-in:** not built. mann.cool only counts which wallet extensions are installed.
+- **Wallet sign-in (2026-11-09):** a second way to sign in, in the same "Save your scores" panel, using Sign-In with Ethereum (EIP-4361).
+  - **Finding wallets:** the shell lists the wallets this browser announces (EIP-6963), else `window.ethereum`. On a phone that usually means a wallet's own browser.
+  - **The message:** `POST /api/v1/player/wallet/start` writes the whole message (domain, checksummed address, statement, nonce, ten-minute expiry) for this browser's secret. The wallet signs it with `personal_sign`, which is free and sends no transaction.
+  - **The check:** `POST /api/v1/player/wallet/verify` accepts it only from the browser that asked, once, in time, word for word. It recovers the signer with viem. A smart-contract wallet (Coinbase Smart Wallet, Safe) is checked over an RPC (ERC-1271/6492): public defaults for Ethereum, Base, Optimism, Arbitrum and Polygon, which `PLAYER_WALLET_RPCS` (JSON) replaces. That path wasn't tested with a real smart wallet.
+  - **Pages:** only https://mann.cool and www.mann.cool can start one. Local dev (`PLAYER_EMAIL_DEV=1`) also takes http loopback, and http://mann.cool, because wrangler dev rewrites the Origin's host.
+  - **Tables:** migration `0012_player_wallets.sql` adds `player_wallets` and `player_wallet_challenges`. A wallet-only player still has a `player_profiles` row (`email_hash` `wallet:<address>`, `email_hint` the short address), so sign-in checks, the board's ✓ and other browsers work unchanged. Adding an email later takes over that row, and a player can have both.
+  - **Moderation:** the list shows `wallet`.
+  - **Not supported:** WalletConnect (it needs a project ID) and Solana wallets.
 
 ```sh
 npm run leaderboard:moderate -- list                      # pending rows, newest first

@@ -44,10 +44,12 @@ const COLUMNS = `submission_id, slug, variant, player_name, score, moderation_st
   json_extract(metadata, '$.activeMs') AS active_ms, json_extract(metadata, '$.review') AS review,
   json_extract(metadata, '$.videoUrl') AS video`;
 // The list also says who and from where (subqueries can't go in UPDATE ... RETURNING): signed_in is the email the
-// player saved their scores to, shown only as a hint; same_ip_players counts other players who posted from the
+// player saved their scores to, shown only as a hint (or the short address of a wallet-only player), wallet the
+// address they signed in with, if any; same_ip_players counts other players who posted from the
 // same IP (its hash), a reason to look twice, not proof.
 const LIST_COLUMNS = `${COLUMNS}, player_id,
   (SELECT email_hint FROM player_profiles p WHERE p.player_id = leaderboard_entries.player_id) AS signed_in,
+  (SELECT address FROM player_wallets w WHERE w.player_id = leaderboard_entries.player_id ORDER BY w.created_at LIMIT 1) AS wallet,
   (SELECT COUNT(DISTINCT COALESCE(NULLIF(o.player_id, ''), o.submission_id)) FROM leaderboard_entries o
     WHERE o.slug = leaderboard_entries.slug AND o.ip_hash = leaderboard_entries.ip_hash
       AND o.submission_id != leaderboard_entries.submission_id

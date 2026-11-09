@@ -9,6 +9,8 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {calculatePdoomScore,pdoomReviewReasons,pdoomReviewTop,cleanVideoUrl} from '../worker/pdoom-scores.js';
 import {readJson,hashIdentity} from '../worker/lib/http.js';
+import {generatePrivateKey,privateKeyToAccount} from 'viem/accounts';
+import {parseSiweMessage} from 'viem/siwe';
 
 const temp=await fs.mkdtemp(path.join(os.tmpdir(),'pdoom-api-test-'));
 await build({entryPoints:[fileURLToPath(new URL('../worker/index.js',import.meta.url))],bundle:true,platform:'node',format:'esm',outfile:path.join(temp,'worker.mjs'),logLevel:'silent'});
@@ -16,7 +18,8 @@ const {default:worker}=await import(path.join(temp,'worker.mjs'));
 after(()=>fs.rm(temp,{recursive:true,force:true}));
 const schema=await fs.readFile(new URL('../migrations/0001_platform.sql',import.meta.url),'utf8')
   +await fs.readFile(new URL('../migrations/0009_player_identity_wallets.sql',import.meta.url),'utf8')
-  +await fs.readFile(new URL('../migrations/0010_pdoom_ranked_runs.sql',import.meta.url),'utf8');
+  +await fs.readFile(new URL('../migrations/0010_pdoom_ranked_runs.sql',import.meta.url),'utf8')
+  +await fs.readFile(new URL('../migrations/0012_player_wallets.sql',import.meta.url),'utf8');
 // One board: the whole game as a speedrun, from the first level to the MCP going down. Lowest time wins.
 const CAMPAIGN={levelId:'campaign',levelVersion:'campaign-v1',scoreVersion:'speedrun-v1',boardVersion:'v1'},VARIANT='campaign-speedrun-v1';
 const RETIRED=['five-prisons-rescue-v3','hal-station-rescue-v3','meg3n-factory-rescue-v1','agentic-pods-rescue-v1','five-prisons-perfect-v3','hal-station-clean-sweep-v3'];
@@ -28,7 +31,7 @@ const metadata=(overrides={})=>({...CAMPAIGN,outcome:'complete',practice:false,s
 const timed=(changes,overrides={})=>{const splits={...SPLITS,...changes};return metadata({splits,activeMs:sum(splits),...overrides});};
 // reviewTop: the Worker's PDOOM_REVIEW_TOP (off here unless a test asks; null leaves it unset, the default ten).
 function fixture(t,{reviewTop='0'}={}){
-  const db=new DatabaseSync(':memory:');db.exec(schema);t.after(()=>db.close());let requests=0;
+  const db=new DatabaseSync(':memory:');db.exec('PRAGMA foreign_keys = ON;'+schema);t.after(()=>db.close());let requests=0;
   const wrap=statement=>{let values=[];return{bind(...v){values=v;return this;},async first(){return statement.get(...values)||null;},async all(){return{results:statement.all(...values)};},async run(){return{meta:{changes:statement.run(...values).changes}};}};};
   const env={DB:{prepare:sql=>wrap(db.prepare(sql)),batch:async statements=>{const out=[];for(const s of statements)out.push(await s.run());return out;}},PLAYER_EMAIL_DEV:'1',...(reviewTop===null?{}:{PDOOM_REVIEW_TOP:reviewTop})};
   const api=async(url,body,headers={})=>{
@@ -307,4 +310,60 @@ test('the top-ten hold counts players, not runs',async t=>{
   // now three players are ahead: a fourth player's slower run goes straight on, ranked 4th
   const slow=await f.api('/api/v1/leaderboard',f.body(await f.start(),{playerSecret:secret(),metadata:timed({endgame:400000})}));
   assert.equal(slow.held,undefined,JSON.stringify(slow));assert.equal(slow.rank,4);
+});
+
+// Wallet sign-in (Sign-In with Ethereum, 2026-11-09): the server writes the message, the wallet signs it.
+const MANN={origin:'https://mann.cool'};
+async function walletSignIn(f,playerSecret,account,{chainId=1,origin=MANN.origin,sign=m=>account.signMessage({message:m})}={}){
+  const started=await f.api('/api/v1/player/wallet/start',{secret:playerSecret,address:account.address.toLowerCase(),chainId},{origin});
+  if(started.status!==200)return started;
+  return f.api('/api/v1/player/wallet/verify',{secret:playerSecret,message:started.message,signature:await sign(started.message)},{origin});
+}
+test('a wallet signs in by signing the message the server wrote, and its player counts as signed in',async t=>{
+  const f=fixture(t),browser=secret(),wallet=privateKeyToAccount(generatePrivateKey());
+  const started=await f.api('/api/v1/player/wallet/start',{secret:browser,address:wallet.address.toLowerCase(),chainId:8453},MANN);
+  assert.equal(started.status,200,JSON.stringify(started));
+  const parsed=parseSiweMessage(started.message);
+  assert.equal(parsed.domain,'mann.cool');assert.equal(parsed.uri,'https://mann.cool');assert.equal(parsed.address,wallet.address,'checksummed');assert.equal(parsed.chainId,8453);
+  assert.match(started.message,/costs nothing and sends no transaction/);assert.ok(parsed.expirationTime-parsed.issuedAt<=600000);
+  const signed=await f.api('/api/v1/player/wallet/verify',{secret:browser,message:started.message,signature:await wallet.signMessage({message:started.message})},MANN);
+  assert.equal(signed.status,200,JSON.stringify(signed));assert.equal(signed.linked,true);assert.equal(signed.walletHint,`${wallet.address.slice(0,6)}…${wallet.address.slice(-4)}`);
+  const session=await f.api('/api/v1/player/session',{secret:browser});assert.equal(session.linked,true);assert.equal(session.walletHint,signed.walletHint);assert.equal(session.playerId,signed.playerId);
+  // its runs carry the ✓
+  await f.api('/api/v1/leaderboard',f.body(await f.start(),{playerSecret:browser}));
+  const row=(await f.api('/api/v1/leaderboard?slug=pdoom&variant='+VARIANT)).entries[0];assert.equal(row.playerId,signed.playerId);assert.equal(row.signedIn,true);
+  // the same message can't be used twice
+  assert.equal((await f.api('/api/v1/player/wallet/verify',{secret:browser,message:started.message,signature:await wallet.signMessage({message:started.message})},MANN)).status,400);
+});
+test('wallet sign-in refuses the wrong signer, a changed message, another browser, an old request and other sites',async t=>{
+  const f=fixture(t),browser=secret(),wallet=privateKeyToAccount(generatePrivateKey()),other=privateKeyToAccount(generatePrivateKey());
+  assert.equal((await walletSignIn(f,browser,wallet,{sign:m=>other.signMessage({message:m})})).status,400,'signed by someone else');
+  assert.equal((await walletSignIn(f,browser,wallet,{sign:m=>wallet.signMessage({message:m.replace('mann.cool wants','evil.example wants')})})).status,400,'a different message');
+  // a message started by one browser can't be finished by another
+  const started=await f.api('/api/v1/player/wallet/start',{secret:browser,address:wallet.address,chainId:1},MANN);
+  assert.equal((await f.api('/api/v1/player/wallet/verify',{secret:secret(),message:started.message,signature:await wallet.signMessage({message:started.message})},MANN)).status,400);
+  // ten minutes on, it has expired
+  const late=await f.api('/api/v1/player/wallet/start',{secret:browser,address:wallet.address,chainId:1},MANN);
+  f.db.prepare('UPDATE player_wallet_challenges SET expires_at = 1').run();
+  assert.equal((await f.api('/api/v1/player/wallet/verify',{secret:browser,message:late.message,signature:await wallet.signMessage({message:late.message})},MANN)).status,400);
+  assert.equal((await walletSignIn(f,browser,wallet,{origin:'https://evil.example'})).status,403,'only from mann.cool');
+  assert.equal((await f.api('/api/v1/player/wallet/start',{secret:browser,address:'0x123',chainId:1},MANN)).status,400);
+  assert.equal((await f.api('/api/v1/player/session',{secret:browser})).linked,false,'nothing linked');
+  assert.equal((await walletSignIn(f,browser,wallet)).linked,true,'and the real thing works');
+});
+test('a second browser with the same wallet joins the player and brings its scores; email and wallet share one player',async t=>{
+  const f=fixture(t),first=secret(),second=secret(),wallet=privateKeyToAccount(generatePrivateKey());
+  const a=await walletSignIn(f,first,wallet);
+  await f.api('/api/v1/leaderboard',f.body(await f.start(),{playerSecret:second,name:'Second browser'}));
+  const b=await walletSignIn(f,second,wallet);
+  assert.equal(b.playerId,a.playerId);assert.equal(b.merged,1,'its run joined the player');
+  let rows=(await f.api('/api/v1/leaderboard?slug=pdoom&variant='+VARIANT)).entries;assert.equal(rows[0].playerId,a.playerId);assert.equal(rows[0].signedIn,true);
+  // the wallet player adds an email: still one player, now with an email hint
+  const withEmail=await signIn(f,first,'wallet-player@example.test');assert.equal(withEmail,a.playerId);
+  assert.match((await f.api('/api/v1/player/session',{secret:first})).emailHint,/^w•••@example\.test$/);
+  // an email player adds a wallet: the same player
+  const emailFirst=secret(),id=await signIn(f,emailFirst,'email-first@example.test'),fresh=privateKeyToAccount(generatePrivateKey());
+  assert.equal((await walletSignIn(f,emailFirst,fresh)).playerId,id);
+  // a wallet already saved to someone else can't join a browser saved to another player
+  assert.equal((await walletSignIn(f,emailFirst,wallet)).status,409);
 });

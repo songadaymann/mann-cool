@@ -103,7 +103,18 @@
     })();
     return playerPromise;
   };
-  const publicPlayer = (state) => ({ playerId: state.playerId, linked: Boolean(state.linked), emailHint: state.emailHint || null });
+  const publicPlayer = (state) => ({ playerId: state.playerId, linked: Boolean(state.linked), emailHint: state.emailHint || null, walletHint: state.walletHint || null });
+  // Wallets in this browser that can sign (EIP-6963, else window.ethereum), for signing in with one (2026-11-09).
+  const evmProviders = async () => {
+    const found = new Map();
+    const onAnnounce = (event) => { const detail = event.detail; if (detail?.provider?.request && detail.info?.name) found.set(detail.info.rdns || detail.info.uuid || detail.info.name, { name: String(detail.info.name), provider: detail.provider }); };
+    window.addEventListener("eip6963:announceProvider", onAnnounce);
+    window.dispatchEvent(new Event("eip6963:requestProvider"));
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    window.removeEventListener("eip6963:announceProvider", onAnnounce);
+    if (!found.size && window.ethereum?.request) found.set("injected", { name: "your wallet", provider: window.ethereum });
+    return [...found.values()];
+  };
   const announcePlayer = (state) => window.dispatchEvent(new CustomEvent("mann-cool:player", { detail: publicPlayer(state) }));
 
   // Wallet detection: listen for wallets announcing themselves (EIP-6963 for Ethereum-style
@@ -253,6 +264,13 @@
           .player-form .primary { min-height:48px; border:2px solid var(--accent); border-radius:var(--control-radius); color:var(--ink); background:var(--accent); cursor:pointer; }
           .player-form .primary:hover,.player-form .primary:focus-visible { outline:3px solid var(--focus); outline-offset:2px; }
           .player-form .primary[disabled] { opacity:.6; cursor:progress; }
+          .player-wallet { margin:18px 0 0; }
+          .player-wallet[hidden] { display:none; }
+          .player-wallet .status { margin:0 0 10px; font-size:13px; }
+          .wallet-buttons { display:flex; flex-wrap:wrap; gap:8px; }
+          .wallet-buttons button { min-height:44px; padding:0 14px; border:2px solid var(--accent); border-radius:var(--control-radius); color:var(--panel-ink); background:transparent; cursor:pointer; font:700 14px/1 var(--shell-font); }
+          .wallet-buttons button:hover,.wallet-buttons button:focus-visible { outline:3px solid var(--focus); outline-offset:2px; }
+          .wallet-buttons button[disabled] { opacity:.6; cursor:progress; }
           .player-form .link { justify-self:start; padding:4px 0; border:0; color:var(--panel-muted); background:none; text-decoration:underline; cursor:pointer; }
           .player-saved { margin:0; padding:14px; border:2px solid var(--accent); border-radius:var(--control-radius); color:var(--panel-ink); }
           .player-message { min-height:1.5em; margin:14px 0 0; }
@@ -313,6 +331,10 @@
               <button class="primary" type="submit">Confirm</button>
               <button class="link" type="button" data-player-back>Use a different email</button>
             </form>
+            <div class="player-wallet" data-player-wallet hidden>
+              <p class="status">Or sign in with a crypto wallet. Signing is free and sends no transaction.</p>
+              <div class="wallet-buttons" data-wallet-buttons></div>
+            </div>
             <p class="status player-message" data-player-message role="status" aria-live="polite"></p>
           </section>
         </div>` : ""}`;
@@ -441,8 +463,8 @@
       try {
         // Another browser may have changed where this one's scores are saved.
         const data = await this.playerRequest("session", { secret: state.secret });
-        if (Boolean(data.linked) !== Boolean(state.linked) || data.playerId !== state.playerId) {
-          Object.assign(state, { playerId: data.playerId, linked: Boolean(data.linked), emailHint: data.emailHint || null });
+        if (Boolean(data.linked) !== Boolean(state.linked) || data.playerId !== state.playerId || (data.walletHint || null) !== (state.walletHint || null)) {
+          Object.assign(state, { playerId: data.playerId, linked: Boolean(data.linked), emailHint: data.emailHint || null, walletHint: data.walletHint || null });
           savePlayer(state); announcePlayer(state); this.renderPlayerPanel(state);
         }
       } catch {}
@@ -452,10 +474,54 @@
       const root = this.shadowRoot;
       const saved = root.querySelector("[data-player-saved]");
       saved.hidden = !state.linked;
-      saved.textContent = state.linked ? `Your scores are saved to ${state.emailHint}. On another device, open Save your scores and enter the same email.` : "";
+      const walletOnly = state.walletHint && state.emailHint === state.walletHint;
+      saved.textContent = !state.linked ? ""
+        : walletOnly ? `Your scores are saved to your wallet ${state.walletHint}. On another device, open Save your scores and sign in with the same wallet.`
+        : `Your scores are saved to ${state.emailHint}. On another device, open Save your scores and enter the same email.`;
+      void this.renderWalletOptions(state);
       root.querySelector("[data-player-intro]").hidden = Boolean(state.linked);
       if (state.linked) root.querySelectorAll("[data-player-step]").forEach((form) => { form.hidden = true; });
       root.querySelector("[data-player-menu]").textContent = state.linked ? "Scores saved ✓" : "Save your scores";
+    }
+
+    // The wallets this browser has, one button each, while nothing is saved yet.
+    async renderWalletOptions(state) {
+      const section = this.shadowRoot.querySelector("[data-player-wallet]"), buttons = this.shadowRoot.querySelector("[data-wallet-buttons]");
+      if (state.linked) { section.hidden = true; return; }
+      const wallets = await evmProviders();
+      buttons.replaceChildren(...wallets.map(({ name, provider }) => {
+        const button = document.createElement("button"); button.type = "button"; button.textContent = `Sign in with ${name}`;
+        button.addEventListener("click", () => this.connectWallet(provider, button)); return button;
+      }));
+      section.hidden = !wallets.length;
+    }
+
+    // Sign-In with Ethereum: the server writes the message, the wallet signs it, the server checks it.
+    async connectWallet(provider, button) {
+      button.disabled = true;
+      this.setPlayerMessage("Check your wallet…");
+      try {
+        const state = await loadPlayer();
+        const [address] = await provider.request({ method: "eth_requestAccounts" });
+        const chainId = Number.parseInt(await provider.request({ method: "eth_chainId" }), 16);
+        const { message } = await this.playerRequest("wallet/start", { secret: state.secret, address, chainId });
+        const hex = `0x${Array.from(new TextEncoder().encode(message), (byte) => byte.toString(16).padStart(2, "0")).join("")}`;
+        const signature = await provider.request({ method: "personal_sign", params: [hex, address] });
+        this.setPlayerMessage("Checking…");
+        const data = await this.playerRequest("wallet/verify", { secret: state.secret, message, signature });
+        const returning = data.playerId !== state.playerId;
+        Object.assign(state, { playerId: data.playerId, linked: true, emailHint: data.emailHint, walletHint: data.walletHint });
+        savePlayer(state);
+        announcePlayer(state);
+        this.renderPlayerPanel(state);
+        this.setPlayerMessage(!returning ? "Saved."
+          : data.merged ? `Welcome back. ${data.merged} score${data.merged === 1 ? "" : "s"} from this browser joined the rest.`
+          : "Welcome back. Your scores are on this device now.");
+      } catch (error) {
+        this.setPlayerMessage(error?.code === 4001 ? "Cancelled in your wallet." : error?.message || "The wallet didn't answer. Please try again.", true);
+      } finally {
+        button.disabled = false;
+      }
     }
 
     showPlayerStep(step) {
