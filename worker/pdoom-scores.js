@@ -178,10 +178,12 @@ export async function validatePdoomSubmission(env, { body, variant, submissionId
   const review = pdoomReviewReasons(result.metadata, row.issued_at, now);
   const top = pdoomReviewTop(env);
   if (top > 0) {
+    // other players at least as fast (a player is one row on the board: their best), anonymous runs one each
     const ahead = await env.DB.prepare(`
-      SELECT COUNT(*) AS n FROM leaderboard_entries
+      SELECT COUNT(DISTINCT COALESCE(NULLIF(player_id, ''), submission_id)) AS n FROM leaderboard_entries
       WHERE slug = 'pdoom' AND variant = ? AND moderation_status = 'approved' AND score <= ?
-    `).bind(variant, result.score).first();
+        AND (? IS NULL OR player_id IS NULL OR player_id != ?)
+    `).bind(variant, result.score, playerId, playerId).first();
     if (Number(ahead?.n ?? 0) < top) review.push("top-ten");
   }
   return { ...result, videoUrl, review };

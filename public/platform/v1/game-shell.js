@@ -173,6 +173,9 @@
     getId: async () => (await loadPlayer()).playerId,
     get: async () => publicPlayer(await loadPlayer()),
     openSave: () => shellElement?.openModal("player"),
+    // The browser's player secret, for this page's game to prove who is posting to mann.cool's own leaderboard
+    // (p(DOOM)'s speedrun, 2026-11-09). Send it only to mann.cool.
+    credential: async () => (await loadPlayer()).secret,
   };
   mannCool.wallets = { detect: wallets };
   if (document.readyState === "complete") setTimeout(wallets, 1_500);
@@ -231,6 +234,8 @@
           .score .who { display:flex; align-items:center; gap:8px; min-width:0; }
           .score .who > span { overflow:hidden; text-overflow:ellipsis; }
           .score .video { flex:none; color:var(--accent); text-decoration:none; font-size:12px; }
+          .score .signed { flex:none; color:var(--accent); font-size:12px; }
+          .scores .key { margin:6px 0 0; font-size:12px; }
           .leaderboard-tabs { display:flex; flex-wrap:wrap; gap:0; margin:0 0 12px; border:2px solid var(--panel-muted); }
           .leaderboard-tabs[hidden] { display:none; }
           .leaderboard-tabs button { flex:1 1 120px; min-height:42px; padding:0 12px; border:0; border-right:2px solid var(--panel-muted); border-radius:0; color:var(--panel-ink); background:var(--panel); cursor:pointer; }
@@ -541,10 +546,16 @@
           // A run's recording, when it has one (p(DOOM)'s speedrun, 2026-11-09): https links only, the server checks the site.
           let video = null;
           try { const href = new URL(String(entry.videoUrl || "")); if (href.protocol === "https:") { video = document.createElement("a"); video.className = "video"; video.href = href.toString(); video.target = "_blank"; video.rel = "noopener noreferrer nofollow"; video.textContent = "▶"; video.title = "Watch the run"; video.setAttribute("aria-label", `Watch ${entry.name}'s run`); } } catch { /* no video */ }
-          if (video) { const who = document.createElement("span"); who.className = "who"; who.append(name, video); item.append(rank, who, score); }
+          // A player who saved their scores to an email (p(DOOM)'s challenge counts only those).
+          let signed = null;
+          if (entry.signedIn === true) { signed = document.createElement("span"); signed.className = "signed"; signed.textContent = "✓"; signed.title = "Signed in"; signed.setAttribute("aria-label", "signed in"); }
+          if (video || signed) { const who = document.createElement("span"); who.className = "who"; who.append(...[name, signed, video].filter(Boolean)); item.append(rank, who, score); }
           else item.append(rank, name, score);
           container.append(item);
         });
+        // what the marks mean, when there are any
+        const signedRows = data.entries.some((entry) => entry.signedIn === true), videoRows = data.entries.some((entry) => /^https:/.test(String(entry.videoUrl || "")));
+        if (signedRows || videoRows) { const key = document.createElement("p"); key.className = "status key"; key.textContent = [signedRows ? "✓ signed in" : "", videoRows ? "▶ watch the run" : ""].filter(Boolean).join(" · "); container.append(key); }
       } catch (error) { container.innerHTML = `<p class="status"></p>`; container.firstElementChild.textContent = error.message; }
     }
 

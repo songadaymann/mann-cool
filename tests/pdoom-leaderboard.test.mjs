@@ -15,6 +15,7 @@ await build({entryPoints:[fileURLToPath(new URL('../worker/index.js',import.meta
 const {default:worker}=await import(path.join(temp,'worker.mjs'));
 after(()=>fs.rm(temp,{recursive:true,force:true}));
 const schema=await fs.readFile(new URL('../migrations/0001_platform.sql',import.meta.url),'utf8')
+  +await fs.readFile(new URL('../migrations/0009_player_identity_wallets.sql',import.meta.url),'utf8')
   +await fs.readFile(new URL('../migrations/0010_pdoom_ranked_runs.sql',import.meta.url),'utf8');
 // One board: the whole game as a speedrun, from the first level to the MCP going down. Lowest time wins.
 const CAMPAIGN={levelId:'campaign',levelVersion:'campaign-v1',scoreVersion:'speedrun-v1',boardVersion:'v1'},VARIANT='campaign-speedrun-v1';
@@ -29,7 +30,7 @@ const timed=(changes,overrides={})=>{const splits={...SPLITS,...changes};return 
 function fixture(t,{reviewTop='0'}={}){
   const db=new DatabaseSync(':memory:');db.exec(schema);t.after(()=>db.close());let requests=0;
   const wrap=statement=>{let values=[];return{bind(...v){values=v;return this;},async first(){return statement.get(...values)||null;},async all(){return{results:statement.all(...values)};},async run(){return{meta:{changes:statement.run(...values).changes}};}};};
-  const env={DB:{prepare:sql=>wrap(db.prepare(sql))},...(reviewTop===null?{}:{PDOOM_REVIEW_TOP:reviewTop})};
+  const env={DB:{prepare:sql=>wrap(db.prepare(sql)),batch:async statements=>{const out=[];for(const s of statements)out.push(await s.run());return out;}},PLAYER_EMAIL_DEV:'1',...(reviewTop===null?{}:{PDOOM_REVIEW_TOP:reviewTop})};
   const api=async(url,body,headers={})=>{
     const response=await worker.fetch(new Request('https://example.test'+url,{...(body===undefined?{}:{method:'POST',body:JSON.stringify(body)}),headers:{'content-type':'application/json','cf-connecting-ip':`192.0.2.${++requests}`,...headers}}),env);
     return {status:response.status,...await response.json()};
@@ -103,7 +104,7 @@ test('the speedrun board ranks the lowest time first and preserves identical ret
   const data=await f.api('/api/v1/leaderboard?slug=pdoom&variant='+VARIANT);
   assert.deepEqual(data.entries.map(entry=>entry.score),[1740000,1800000,2400000]);
   assert.deepEqual(data.entries.map(entry=>entry.rank),[1,2,3]);
-  assert.equal(data.direction,'asc');assert.equal(data.board.label,'Speedrun');assert.equal(data.board.display,'time-ms');assert.equal(data.board.aggregation,'best');
+  assert.equal(data.direction,'asc');assert.equal(data.board.label,'Speedrun');assert.equal(data.board.display,'time-ms');assert.equal(data.board.aggregation,'player-best');
 });
 test('incomplete, practice and inconsistent runs are rejected without consuming the ticket',async t=>{
   const f=fixture(t),run=await f.start(),{endgame,...withoutEndgame}=SPLITS;
@@ -260,4 +261,50 @@ test('a run can carry a link to its recording, given with the time or added late
   assert.equal((await f.api('/api/v1/pdoom/runs/video',{runTicket:(await f.start()).runTicket,videoUrl:'https://youtu.be/x'})).status,409);
   assert.equal((await f.api('/api/v1/pdoom/runs/video',{runTicket:run.runTicket,videoUrl:'https://evil.example/x'})).status,400);
   assert.equal((await f.api('/api/v1/pdoom/runs/video',{runTicket:run.runTicket})).status,200,'no link clears it');
+});
+
+// A browser's player: its secret, and (once saved to an email through the real code flow, dev mode) signed in.
+const secret=()=>randomBytes(32).toString('base64url');
+async function signIn(f,playerSecret,email){
+  const started=await f.api('/api/v1/player/email/start',{secret:playerSecret,email});assert.equal(started.status,200,JSON.stringify(started));
+  const verified=await f.api('/api/v1/player/email/verify',{secret:playerSecret,email,code:started.devCode});assert.equal(verified.status,200,JSON.stringify(verified));
+  return verified.playerId;
+}
+test('the board shows each player once, their best; signing in (even later) marks their row; nobody can post as someone else',async t=>{
+  const f=fixture(t),alice=secret(),bob=secret();
+  const post=async(playerSecret,changes,overrides={})=>{const r=await f.api('/api/v1/leaderboard',f.body(await f.start(),{metadata:timed(changes),...(playerSecret?{playerSecret}:{}),...overrides}));assert.equal(r.status,201,JSON.stringify(r));return r;};
+  await post(alice,{endgame:240000});await post(alice,{endgame:120000});await post(alice,{endgame:300000});
+  await post(bob,{endgame:200000});
+  await post(null,{endgame:100000});await post(null,{endgame:110000});
+  let rows=(await f.api('/api/v1/leaderboard?slug=pdoom&variant='+VARIANT)).entries;
+  assert.deepEqual(rows.map(r=>r.score),[1720000,1730000,1740000,1820000],'two anonymous runs, then Alice once (her best), then Bob');
+  assert.deepEqual(rows.map(r=>r.signedIn),[false,false,false,false]);
+  const aliceId=rows[2].playerId;assert.match(aliceId,/^mc_/);assert.equal(rows[0].playerId,null,'an anonymous run has no player');
+  // Alice saves her scores to an email: her row is signed in, without resubmitting
+  assert.equal(await signIn(f,alice,'alice@example.test'),aliceId);
+  rows=(await f.api('/api/v1/leaderboard?slug=pdoom&variant='+VARIANT)).entries;
+  assert.deepEqual(rows.map(r=>[r.score,r.signedIn]),[[1720000,false],[1730000,false],[1740000,true],[1820000,false]]);
+  // claiming Alice's public ID without her secret posts an anonymous run, not hers
+  const forged=await post(null,{endgame:90000},{playerId:aliceId,name:'Not Alice'});assert.equal(forged.entry.playerId,null);
+  rows=(await f.api('/api/v1/leaderboard?slug=pdoom&variant='+VARIANT)).entries;
+  assert.equal(rows[0].name,'Not Alice');assert.equal(rows[0].signedIn,false);assert.equal(rows.filter(r=>r.playerId===aliceId).length,1);
+  // a new run from Alice's signed-in browser joins her row; her secret is never stored
+  await post(alice,{endgame:60000});
+  rows=(await f.api('/api/v1/leaderboard?slug=pdoom&variant='+VARIANT)).entries;
+  assert.equal(rows[0].playerId,aliceId);assert.equal(rows[0].score,1680000);assert.equal(rows[0].signedIn,true);assert.equal(rows.length,5);
+  assert.equal(f.db.prepare("SELECT COUNT(*) AS n FROM leaderboard_entries WHERE metadata LIKE ?").get('%'+alice+'%').n,0);
+  assert.equal((await f.api('/api/v1/leaderboard',f.body(await f.start(),{playerSecret:'not-a-secret'}))).status,400);
+});
+test('the top-ten hold counts players, not runs',async t=>{
+  const f=fixture(t,{reviewTop:'3'}),approve=()=>f.db.prepare("UPDATE leaderboard_entries SET moderation_status = 'approved'").run();
+  const one=secret();
+  for(let i=0;i<4;i++)await f.api('/api/v1/leaderboard',f.body(await f.start(),{playerSecret:one,metadata:timed({endgame:100000+i*1000})}));
+  approve();
+  // four approved runs, but one player: a slower run from someone else is still inside the top three
+  const held=await f.api('/api/v1/leaderboard',f.body(await f.start(),{playerSecret:secret()}));
+  assert.equal(held.held,true);assert.deepEqual(held.entry.metadata.review,['top-ten']);
+  approve();await f.api('/api/v1/leaderboard',f.body(await f.start(),{playerSecret:secret(),metadata:timed({endgame:150000})}));approve();
+  // now three players are ahead: a fourth player's slower run goes straight on, ranked 4th
+  const slow=await f.api('/api/v1/leaderboard',f.body(await f.start(),{playerSecret:secret(),metadata:timed({endgame:400000})}));
+  assert.equal(slow.held,undefined,JSON.stringify(slow));assert.equal(slow.rank,4);
 });

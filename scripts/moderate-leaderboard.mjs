@@ -43,6 +43,15 @@ function query(sql) {
 const COLUMNS = `submission_id, slug, variant, player_name, score, moderation_status AS status, created_at,
   json_extract(metadata, '$.activeMs') AS active_ms, json_extract(metadata, '$.review') AS review,
   json_extract(metadata, '$.videoUrl') AS video`;
+// The list also says who and from where (subqueries can't go in UPDATE ... RETURNING): signed_in is the email the
+// player saved their scores to, shown only as a hint; same_ip_players counts other players who posted from the
+// same IP (its hash), a reason to look twice, not proof.
+const LIST_COLUMNS = `${COLUMNS}, player_id,
+  (SELECT email_hint FROM player_profiles p WHERE p.player_id = leaderboard_entries.player_id) AS signed_in,
+  (SELECT COUNT(DISTINCT COALESCE(NULLIF(o.player_id, ''), o.submission_id)) FROM leaderboard_entries o
+    WHERE o.slug = leaderboard_entries.slug AND o.ip_hash = leaderboard_entries.ip_hash
+      AND o.submission_id != leaderboard_entries.submission_id
+      AND COALESCE(o.player_id, '') != COALESCE(leaderboard_entries.player_id, '')) AS same_ip_players`;
 
 if (command === "list") {
   const status = flags.status || "pending";
@@ -55,7 +64,7 @@ if (command === "list") {
     flags.slug ? `slug = ${checked(flags.slug, /^[a-z0-9-]{1,64}$/, "slug")}` : null,
     flags.variant ? `variant = ${checked(flags.variant, /^[a-zA-Z0-9._-]{1,40}$/, "variant")}` : null,
   ].filter(Boolean);
-  const rows = query(`SELECT ${COLUMNS} FROM leaderboard_entries
+  const rows = query(`SELECT ${LIST_COLUMNS} FROM leaderboard_entries
     ${where.length ? `WHERE ${where.join(" AND ")}` : ""} ORDER BY ${order} LIMIT ${limit}`);
   if (rows.length) console.table(rows);
   else console.log(`No ${status === "all" ? "" : `${status} `}leaderboard rows.`);

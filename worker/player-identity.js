@@ -180,6 +180,17 @@ async function handleEmailVerify(request, env) {
   return json({ success: true, playerId: profile.playerId, emailHint: profile.emailHint, linked: true, merged });
 }
 
+// The player a browser secret proves: the email's player ID when this browser is saved to one (signed in),
+// else the ID derived from the secret. Nobody can post as another player without that player's secret.
+export async function playerForSecret(env, value) {
+  const secret = cleanSecret(value);
+  const row = await env.DB.prepare(`
+    SELECT d.player_id AS playerId FROM player_devices d JOIN player_profiles p ON p.player_id = d.player_id
+    WHERE d.secret_hash = ?
+  `).bind(await secretHash(secret)).first();
+  return row ? { playerId: row.playerId, signedIn: true } : { playerId: await derivedPlayerId(secret), signedIn: false };
+}
+
 // Where are this browser's scores saved, if anywhere?
 async function handleSession(request, env) {
   await enforceRateLimit(request, env, "player:session");

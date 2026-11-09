@@ -1,6 +1,7 @@
 import { getGame, getGameByApiSlug, getGameStatus, getLeaderboardConfig } from "./lib/catalog.js";
 import { getExternalPlayGame } from "./lib/externalPlayGames.js";
 import { attachPdoomVideo, issuePdoomTicket, validatePdoomSubmission } from "./pdoom-scores.js";
+import { playerForSecret } from "./player-identity.js";
 import {
   HttpError,
   cleanSlug,
@@ -482,7 +483,7 @@ function parseMetadata(value) {
 
 const LEADERBOARD_RESERVED_FIELDS = new Set([
   "slug", "game", "variant", "name", "playerName", "score", "metadata",
-  "playerId", "address", "submissionId", "runTicket",
+  "playerId", "address", "submissionId", "runTicket", "playerSecret", "videoUrl",
 ]);
 
 function leaderboardMetadata(body) {
@@ -559,6 +560,25 @@ async function readWinLossLeaderboard(env, slug, variant, board, limit) {
   return result.results.map((row, index) => winLossEntry(row, index + 1));
 }
 
+// "player-best" boards (p(DOOM)'s speedrun, 2026-11-09): one row per player, their best approved score; runs
+// without a player stay a row each. signedIn: the player has saved their scores to an email (player_profiles).
+async function readPlayerBestLeaderboard(env, slug, variant, config, order, limit) {
+  const better = order === "ASC" ? "<" : ">";
+  const result = await env.DB.prepare(`
+    SELECT e.submission_id AS submissionId, e.player_name AS name, e.player_id AS playerId,
+      e.score, e.metadata, e.created_at AS timestamp,
+      EXISTS (SELECT 1 FROM player_profiles p WHERE p.player_id = e.player_id) AS signedIn
+    FROM leaderboard_entries e
+    WHERE e.slug = ? AND e.variant = ? AND e.moderation_status = 'approved'
+      AND (e.player_id IS NULL OR e.player_id = '' OR NOT EXISTS (
+        SELECT 1 FROM leaderboard_entries b
+        WHERE b.slug = e.slug AND b.variant = e.variant AND b.moderation_status = 'approved' AND b.player_id = e.player_id
+          AND (b.score ${better} e.score OR (b.score = e.score AND b.created_at < e.created_at))))
+    ORDER BY e.score ${order}, e.created_at ASC LIMIT ?
+  `).bind(slug, variant, limit).all();
+  return result.results.map((row, index) => ({ ...leaderboardEntry(row, config, index + 1), signedIn: Boolean(row.signedIn) }));
+}
+
 async function handleLeaderboard(request, env, legacy = false) {
   const url = new URL(request.url);
   const requestedSlug = request.method === "GET"
@@ -585,6 +605,10 @@ async function handleLeaderboard(request, env, legacy = false) {
     }
     const direction = board?.direction || config.direction;
     const order = direction === "asc" ? "ASC" : "DESC";
+    if (board?.aggregation === "player-best") {
+      const entries = await readPlayerBestLeaderboard(env, slug, variant, config, order, limit);
+      return json({ success: true, game: slug, slug, variant, direction, board, entries });
+    }
     const result = await env.DB.prepare(`
       SELECT submission_id AS submissionId, player_name AS name, player_id AS playerId,
         score, metadata, created_at AS timestamp
@@ -613,7 +637,10 @@ async function handleLeaderboard(request, env, legacy = false) {
     const name = cleanText(body.name || body.playerName, 30);
     if (!name) throw new HttpError(400, "Player name is required");
     let metadata = leaderboardMetadata(body);
-    const playerId = (body.playerId || body.address) ? cleanText(body.playerId || body.address, 100) : null;
+    let playerId = (body.playerId || body.address) ? cleanText(body.playerId || body.address, 100) : null;
+    // p(DOOM): the player comes from the browser's secret (player-identity.js), never from a claimed ID, so nobody
+    // can post as someone else. Without one the run is anonymous: its own row, not signed in.
+    if (slug === "pdoom") playerId = body.playerSecret ? (await playerForSecret(env, body.playerSecret)).playerId : null;
     let score;
     if (board?.aggregation === "win-loss-rate") {
       if (!playerId) throw new HttpError(400, "A stable playerId is required for win/loss leaderboards");
@@ -685,6 +712,19 @@ async function handleLeaderboard(request, env, legacy = false) {
     }
     const storedScore = Number(row.score);
     const comparator = (board?.direction || config.direction) === "asc" ? "<" : ">";
+    if (board?.aggregation === "player-best") {
+      // the rank this run would have among the players' bests
+      const ahead = await env.DB.prepare(`
+        SELECT COUNT(DISTINCT COALESCE(NULLIF(player_id, ''), submission_id)) AS n FROM leaderboard_entries
+        WHERE slug = ? AND variant = ? AND moderation_status = 'approved'
+          AND (score ${comparator} ? OR (score = ? AND created_at < ?))
+          AND (? IS NULL OR player_id IS NULL OR player_id != ?)
+      `).bind(slug, variant, storedScore, storedScore, row.timestamp, row.playerId ?? null, row.playerId ?? null).first();
+      return json(
+        { success: true, game: slug, slug, variant, entry, rank: Number(ahead?.n || 0) + 1 },
+        { status: legacy ? 200 : 201 },
+      );
+    }
     const rankRow = await env.DB.prepare(`
       SELECT 1 + COUNT(*) AS rank FROM leaderboard_entries
       WHERE slug = ? AND variant = ? AND moderation_status = 'approved'
