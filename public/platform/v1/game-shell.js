@@ -115,6 +115,25 @@
     if (!found.size && window.ethereum?.request) found.set("injected", { name: "your wallet", provider: window.ethereum });
     return [...found.values()];
   };
+  // Solana wallets that can sign a message (the Wallet Standard, else Phantom's or Solflare's own object).
+  const solanaWallets = async () => {
+    const found = new Map();
+    const register = (...wallets) => {
+      for (const wallet of wallets) {
+        if (wallet?.chains?.some((chain) => String(chain).startsWith("solana:")) && wallet.features?.["standard:connect"] && wallet.features?.["solana:signMessage"]) found.set(String(wallet.name), { name: String(wallet.name), standard: wallet });
+      }
+      return () => {};
+    };
+    const onRegister = (event) => { try { event.detail?.({ register }); } catch {} };
+    window.addEventListener("wallet-standard:register-wallet", onRegister);
+    try { window.dispatchEvent(new CustomEvent("wallet-standard:app-ready", { detail: { register } })); } catch {}
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    window.removeEventListener("wallet-standard:register-wallet", onRegister);
+    const legacy = window.phantom?.solana || window.solflare || window.solana;
+    if (!found.size && legacy?.connect && legacy?.signMessage) found.set("legacy", { name: legacy.isPhantom ? "Phantom" : legacy.isSolflare ? "Solflare" : "your Solana wallet", legacy });
+    return [...found.values()];
+  };
+  const walletCancelled = (error) => error?.code === 4001 || /reject|cancel|denied|declined/i.test(String(error?.message || ""));
   const announcePlayer = (state) => window.dispatchEvent(new CustomEvent("mann-cool:player", { detail: publicPlayer(state) }));
 
   // Wallet detection: listen for wallets announcing themselves (EIP-6963 for Ethereum-style
@@ -488,12 +507,13 @@
     async renderWalletOptions(state) {
       const section = this.shadowRoot.querySelector("[data-player-wallet]"), buttons = this.shadowRoot.querySelector("[data-wallet-buttons]");
       if (state.linked) { section.hidden = true; return; }
-      const wallets = await evmProviders();
-      buttons.replaceChildren(...wallets.map(({ name, provider }) => {
-        const button = document.createElement("button"); button.type = "button"; button.textContent = `Sign in with ${name}`;
-        button.addEventListener("click", () => this.connectWallet(provider, button)); return button;
-      }));
-      section.hidden = !wallets.length;
+      const [ethereum, solana] = await Promise.all([evmProviders(), solanaWallets()]);
+      const button = (label, connect) => { const element = document.createElement("button"); element.type = "button"; element.textContent = label; element.addEventListener("click", () => connect(element)); return element; };
+      buttons.replaceChildren(
+        ...solana.map((wallet) => button(`Sign in with ${wallet.name} (Solana)`, (element) => this.connectSolana(wallet, element))),
+        ...ethereum.map(({ name, provider }) => button(`Sign in with ${name} (Ethereum)`, (element) => this.connectWallet(provider, element))),
+      );
+      section.hidden = !(ethereum.length + solana.length);
     }
 
     // Sign-In with Ethereum: the server writes the message, the wallet signs it, the server checks it.
@@ -508,20 +528,53 @@
         const hex = `0x${Array.from(new TextEncoder().encode(message), (byte) => byte.toString(16).padStart(2, "0")).join("")}`;
         const signature = await provider.request({ method: "personal_sign", params: [hex, address] });
         this.setPlayerMessage("Checking…");
-        const data = await this.playerRequest("wallet/verify", { secret: state.secret, message, signature });
-        const returning = data.playerId !== state.playerId;
-        Object.assign(state, { playerId: data.playerId, linked: true, emailHint: data.emailHint, walletHint: data.walletHint });
-        savePlayer(state);
-        announcePlayer(state);
-        this.renderPlayerPanel(state);
-        this.setPlayerMessage(!returning ? "Saved."
-          : data.merged ? `Welcome back. ${data.merged} score${data.merged === 1 ? "" : "s"} from this browser joined the rest.`
-          : "Welcome back. Your scores are on this device now.");
+        this.walletSignedIn(state, await this.playerRequest("wallet/verify", { secret: state.secret, message, signature }));
       } catch (error) {
-        this.setPlayerMessage(error?.code === 4001 ? "Cancelled in your wallet." : error?.message || "The wallet didn't answer. Please try again.", true);
+        this.setPlayerMessage(walletCancelled(error) ? "Cancelled in your wallet." : error?.message || "The wallet didn't answer. Please try again.", true);
       } finally {
         button.disabled = false;
       }
+    }
+
+    // Sign In With Solana: the same, with the wallet signing the message's bytes (solana:signMessage).
+    async connectSolana(wallet, button) {
+      button.disabled = true;
+      this.setPlayerMessage("Check your wallet…");
+      try {
+        const state = await loadPlayer();
+        let address, signBytes;
+        if (wallet.standard) {
+          const { accounts } = await wallet.standard.features["standard:connect"].connect();
+          const account = (accounts || []).find((candidate) => candidate.chains?.some((chain) => String(chain).startsWith("solana:"))) || accounts?.[0];
+          if (!account) throw new Error("The wallet didn't share an account.");
+          address = account.address;
+          signBytes = async (bytes) => (await wallet.standard.features["solana:signMessage"].signMessage({ account, message: bytes }))[0].signature;
+        } else {
+          const response = await wallet.legacy.connect();
+          address = String(response?.publicKey ?? wallet.legacy.publicKey);
+          signBytes = async (bytes) => { const result = await wallet.legacy.signMessage(bytes, "utf8"); return result?.signature ?? result; };
+        }
+        const { message } = await this.playerRequest("solana/start", { secret: state.secret, address });
+        const signature = await signBytes(new TextEncoder().encode(message));
+        this.setPlayerMessage("Checking…");
+        const hex = Array.from(signature, (byte) => byte.toString(16).padStart(2, "0")).join("");
+        this.walletSignedIn(state, await this.playerRequest("solana/verify", { secret: state.secret, message, signature: hex }));
+      } catch (error) {
+        this.setPlayerMessage(walletCancelled(error) ? "Cancelled in your wallet." : error?.message || "The wallet didn't answer. Please try again.", true);
+      } finally {
+        button.disabled = false;
+      }
+    }
+
+    walletSignedIn(state, data) {
+      const returning = data.playerId !== state.playerId;
+      Object.assign(state, { playerId: data.playerId, linked: true, emailHint: data.emailHint, walletHint: data.walletHint });
+      savePlayer(state);
+      announcePlayer(state);
+      this.renderPlayerPanel(state);
+      this.setPlayerMessage(!returning ? "Saved."
+        : data.merged ? `Welcome back. ${data.merged} score${data.merged === 1 ? "" : "s"} from this browser joined the rest.`
+        : "Welcome back. Your scores are on this device now.");
     }
 
     showPlayerStep(step) {

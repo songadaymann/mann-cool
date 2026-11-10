@@ -30,7 +30,12 @@ p(DOOM) has one leaderboard, `campaign-speedrun-v1`: the whole game as a speedru
   - **Pages:** only https://mann.cool and www.mann.cool can start one. Local dev (`PLAYER_EMAIL_DEV=1`) also takes http loopback, and http://mann.cool, because wrangler dev rewrites the Origin's host.
   - **Tables:** migration `0012_player_wallets.sql` adds `player_wallets` and `player_wallet_challenges`. A wallet-only player still has a `player_profiles` row (`email_hash` `wallet:<address>`, `email_hint` the short address), so sign-in checks, the board's ✓ and other browsers work unchanged. Adding an email later takes over that row, and a player can have both.
   - **Moderation:** the list shows `wallet`.
-  - **Not supported:** WalletConnect (it needs a project ID) and Solana wallets.
+  - **Solana (2026-11-09, Jonathan: "we need solana wallets"):** the same flow through `POST /api/v1/player/solana/start` and `/verify`.
+    - **Finding wallets:** the shell finds Solana wallets through the Wallet Standard (Phantom, Solflare, Backpack and others), else `window.phantom.solana`, `window.solflare` or `window.solana`. Buttons name the network: "Sign in with Phantom (Solana)", "Sign in with MetaMask (Ethereum)".
+    - **The message:** follows Sign In With Solana ("mann.cool wants you to sign in with your Solana account:", Chain ID `mainnet`). The wallet signs its bytes (`solana:signMessage`), which is free and sends no transaction.
+    - **The check:** the Worker verifies the Ed25519 signature against the address (a base58 32-byte public key) with Web Crypto, so no new dependency.
+    - **Storage:** the wallet is stored as `sol:<address>`, case and all. One player can hold Solana and Ethereum wallets and an email.
+  - **Not supported:** WalletConnect (it needs a project ID).
 
 ```sh
 npm run leaderboard:moderate -- list                      # pending rows, newest first

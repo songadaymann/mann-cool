@@ -212,7 +212,7 @@ async function handleSession(request, env) {
     FROM player_devices d JOIN player_profiles p ON p.player_id = d.player_id
     WHERE d.secret_hash = ?
   `).bind(await secretHash(secret)).first();
-  if (row) return json({ success: true, playerId: row.playerId, emailHint: row.emailHint, walletHint: row.wallet ? walletHint(getAddress(row.wallet)) : null, linked: true });
+  if (row) return json({ success: true, playerId: row.playerId, emailHint: row.emailHint, walletHint: row.wallet ? hintFor(row.wallet) : null, linked: true });
   return json({ success: true, playerId: await derivedPlayerId(secret), emailHint: null, linked: false });
 }
 
@@ -269,20 +269,12 @@ async function contractWalletSigned(env, chainId, address, message, signature) {
   catch { return false; }
 }
 
-async function handleWalletVerify(request, env) {
-  await enforceRateLimit(request, env, "player-wallet:verify");
-  const body = await readJson(request, 16_384);
-  const secret = cleanSecret(body.secret);
-  const message = typeof body.message === "string" ? body.message : "";
-  const signature = typeof body.signature === "string" ? body.signature : "";
-  if (!message || message.length > 2_000 || !/^0x[0-9a-fA-F]{2,12000}$/.test(signature)) throw new HttpError(400, "The signature is missing.");
-  const nonce = parseSiweMessage(message).nonce;
-  const deviceHash = await secretHash(secret);
+// The one-time message this server wrote for this browser: unused and in time, word for word. Taking it uses it up.
+async function takeChallenge(env, deviceHash, nonce, message) {
   const challenge = nonce ? await env.DB.prepare(`
     SELECT address, message, expires_at AS expiresAt, consumed_at AS consumedAt, secret_hash AS secretHash
     FROM player_wallet_challenges WHERE nonce = ?
   `).bind(nonce).first() : null;
-  // Only the message this server wrote for this browser, unused and in time.
   if (!challenge || challenge.secretHash !== deviceHash || challenge.message !== message || challenge.consumedAt
     || challenge.expiresAt < Math.floor(Date.now() / 1000)) {
     throw new HttpError(400, "That sign-in request has expired. Try again.");
@@ -290,13 +282,91 @@ async function handleWalletVerify(request, env) {
   const used = await env.DB.prepare("UPDATE player_wallet_challenges SET consumed_at = CURRENT_TIMESTAMP WHERE nonce = ? AND consumed_at IS NULL")
     .bind(nonce).run();
   if (!used.meta?.changes) throw new HttpError(400, "That sign-in request has expired. Try again.");
+  return challenge;
+}
+
+async function handleWalletVerify(request, env) {
+  await enforceRateLimit(request, env, "player-wallet:verify");
+  const body = await readJson(request, 16_384);
+  const secret = cleanSecret(body.secret);
+  const message = typeof body.message === "string" ? body.message : "";
+  const signature = typeof body.signature === "string" ? body.signature : "";
+  if (!message || message.length > 2_000 || !/^0x[0-9a-fA-F]{2,12000}$/.test(signature)) throw new HttpError(400, "The signature is missing.");
+  const deviceHash = await secretHash(secret);
+  const challenge = await takeChallenge(env, deviceHash, parseSiweMessage(message).nonce, message);
+  if (challenge.address.startsWith("sol:")) throw new HttpError(400, "That sign-in request has expired. Try again.");
   const address = getAddress(challenge.address);
   let signed = false;
   try { signed = isAddressEqual(await recoverMessageAddress({ message, signature }), address); } catch {}
   if (!signed) signed = await contractWalletSigned(env, parseSiweMessage(message).chainId, address, message, signature);
   if (!signed) throw new HttpError(400, "That signature isn't from this wallet.");
+  return json(await linkWallet(env, secret, deviceHash, challenge.address, walletHint(address)));
+}
 
-  const key = challenge.address, hint = walletHint(address);
+// Solana (2026-11-09, Jonathan: "we need solana wallets"): the same flow. The message follows Sign In With Solana
+// (EIP-4361's format, "...with your Solana account"), the wallet signs its bytes (solana:signMessage, free, no
+// transaction), and the Worker checks the Ed25519 signature against the address (its 32-byte public key, base58).
+// Stored as sol:<address>, case and all.
+const BASE58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+function base58Bytes(text) {
+  if (typeof text !== "string" || !text || text.length > 64) return null;
+  let bytes = [0];
+  for (const char of text) {
+    let carry = BASE58.indexOf(char);
+    if (carry < 0) return null;
+    for (let i = 0; i < bytes.length; i++) { carry += bytes[i] * 58; bytes[i] = carry & 255; carry >>= 8; }
+    while (carry) { bytes.push(carry & 255); carry >>= 8; }
+  }
+  for (const char of text) { if (char !== "1") break; bytes.push(0); }
+  return new Uint8Array(bytes.reverse());
+}
+const solanaHint = (address) => `${address.slice(0, 4)}…${address.slice(-4)}`;
+const hintFor = (key) => key.startsWith("sol:") ? solanaHint(key.slice(4)) : walletHint(getAddress(key));
+
+async function handleSolanaStart(request, env) {
+  await enforceRateLimit(request, env, "player-wallet:start");
+  const body = await readJson(request, 2_048);
+  const secret = cleanSecret(body.secret);
+  const address = typeof body.address === "string" ? body.address.trim() : "";
+  if (base58Bytes(address)?.length !== 32) throw new HttpError(400, "That isn't a Solana address.");
+  const origin = walletOrigin(request, env);
+  const nonce = generateSiweNonce(), now = new Date(), expires = new Date(now.getTime() + WALLET_TTL_SECONDS * 1000);
+  const message = `${origin.host} wants you to sign in with your Solana account:\n${address}\n\n${WALLET_STATEMENT}\n\n`
+    + `URI: ${origin.origin}\nVersion: 1\nChain ID: mainnet\nNonce: ${nonce}\nIssued At: ${now.toISOString()}\nExpiration Time: ${expires.toISOString()}`;
+  await env.DB.prepare(`
+    INSERT INTO player_wallet_challenges (nonce, secret_hash, address, message, expires_at) VALUES (?, ?, ?, ?, ?)
+  `).bind(nonce, await secretHash(secret), `sol:${address}`, message, Math.floor(expires.getTime() / 1000)).run();
+  return json({ success: true, message });
+}
+
+async function ed25519Signed(publicKey, signature, message) {
+  for (const algorithm of [{ name: "Ed25519" }, { name: "NODE-ED25519", namedCurve: "NODE-ED25519" }]) {
+    try {
+      const key = await crypto.subtle.importKey("raw", publicKey, algorithm, false, ["verify"]);
+      return await crypto.subtle.verify(algorithm, key, signature, message);
+    } catch { /* try the next name for the algorithm */ }
+  }
+  return false;
+}
+
+async function handleSolanaVerify(request, env) {
+  await enforceRateLimit(request, env, "player-wallet:verify");
+  const body = await readJson(request, 4_096);
+  const secret = cleanSecret(body.secret);
+  const message = typeof body.message === "string" ? body.message : "";
+  const signature = typeof body.signature === "string" ? body.signature : "";
+  if (!message || message.length > 2_000 || !/^[0-9a-fA-F]{128}$/.test(signature)) throw new HttpError(400, "The signature is missing.");
+  const deviceHash = await secretHash(secret);
+  const challenge = await takeChallenge(env, deviceHash, /\nNonce: ([0-9a-zA-Z]+)\n/.exec(message)?.[1], message);
+  if (!challenge.address.startsWith("sol:")) throw new HttpError(400, "That sign-in request has expired. Try again.");
+  const address = challenge.address.slice(4);
+  const bytes = Uint8Array.from(signature.match(/../g), (pair) => Number.parseInt(pair, 16));
+  if (!await ed25519Signed(base58Bytes(address), bytes, new TextEncoder().encode(message))) throw new HttpError(400, "That signature isn't from this wallet.");
+  return json(await linkWallet(env, secret, deviceHash, challenge.address, solanaHint(address)));
+}
+
+// Links a proven wallet (key: a lowercase 0x address, or sol:<base58>) to this browser's player, as an email code does.
+async function linkWallet(env, secret, deviceHash, key, hint) {
   const device = await env.DB.prepare("SELECT player_id AS playerId FROM player_devices WHERE secret_hash = ?").bind(deviceHash).first();
   const owner = await env.DB.prepare("SELECT player_id AS playerId FROM player_wallets WHERE address = ?").bind(key).first();
   const current = device?.playerId || await derivedPlayerId(secret);
@@ -313,20 +383,20 @@ async function handleWalletVerify(request, env) {
       merged = current !== owner.playerId ? Number(results[0].meta?.changes || 0) : 0;
     }
     const profile = await env.DB.prepare("SELECT email_hint AS emailHint FROM player_profiles WHERE player_id = ?").bind(owner.playerId).first();
-    return json({ success: true, playerId: owner.playerId, emailHint: profile?.emailHint || hint, walletHint: hint, linked: true, merged });
+    return { success: true, playerId: owner.playerId, emailHint: profile?.emailHint || hint, walletHint: hint, linked: true, merged };
   }
   // A new wallet: it joins this browser's player (who may have an email already), or makes one.
   if (device) {
     await env.DB.prepare("INSERT INTO player_wallets (address, player_id) VALUES (?, ?)").bind(key, device.playerId).run();
     const profile = await env.DB.prepare("SELECT email_hint AS emailHint FROM player_profiles WHERE player_id = ?").bind(device.playerId).first();
-    return json({ success: true, playerId: device.playerId, emailHint: profile?.emailHint || hint, walletHint: hint, linked: true, merged: 0 });
+    return { success: true, playerId: device.playerId, emailHint: profile?.emailHint || hint, walletHint: hint, linked: true, merged: 0 };
   }
   await env.DB.batch([
     env.DB.prepare("INSERT INTO player_profiles (player_id, email_hash, email_hint) VALUES (?, ?, ?)").bind(current, `wallet:${key}`, hint),
     env.DB.prepare("INSERT INTO player_wallets (address, player_id) VALUES (?, ?)").bind(key, current),
     env.DB.prepare("INSERT INTO player_devices (secret_hash, player_id) VALUES (?, ?)").bind(deviceHash, current),
   ]);
-  return json({ success: true, playerId: current, emailHint: hint, walletHint: hint, linked: true, merged: 0 });
+  return { success: true, playerId: current, emailHint: hint, walletHint: hint, linked: true, merged: 0 };
 }
 
 export async function handlePlayerApi(request, env, route) {
@@ -338,6 +408,8 @@ export async function handlePlayerApi(request, env, route) {
     if (route === "session") return await handleSession(request, env);
     if (route === "wallet/start") return await handleWalletStart(request, env);
     if (route === "wallet/verify") return await handleWalletVerify(request, env);
+    if (route === "solana/start") return await handleSolanaStart(request, env);
+    if (route === "solana/verify") return await handleSolanaVerify(request, env);
     return json({ error: "API route not found" }, { status: 404 });
   } catch (error) {
     if (error instanceof HttpError) return json({ error: error.message }, { status: error.status });

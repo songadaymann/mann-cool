@@ -3,7 +3,7 @@ import { handlePlatformApi, recordTipClick } from "./platform-api.js";
 import { handlePlayerApi, handleWalletsApi } from "./player-identity.js";
 
 const PLATFORM_ENDPOINTS = new Set(["plays", "tip-clicks", "guestbook", "comments", "leaderboard", "community-levels"]);
-const GAME_SHELL_VERSION = "20261109-wallet-signin1";
+const GAME_SHELL_VERSION = "20261109-solana-signin1";
 
 function platformConfig(request, env) {
   // A game's shell passes ?slug= to get that game's song and source links.

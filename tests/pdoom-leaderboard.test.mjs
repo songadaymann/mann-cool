@@ -367,3 +367,54 @@ test('a second browser with the same wallet joins the player and brings its scor
   // a wallet already saved to someone else can't join a browser saved to another player
   assert.equal((await walletSignIn(f,emailFirst,wallet)).status,409);
 });
+
+// Solana sign-in (2026-11-09): the same flow, Ed25519 signatures on a Sign In With Solana message.
+const {generateKeyPairSync,sign:edSign}=await import('node:crypto');
+const B58='123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+const base58=bytes=>{let digits=[0];for(const byte of bytes){let carry=byte;for(let i=0;i<digits.length;i++){carry+=digits[i]<<8;digits[i]=carry%58;carry=carry/58|0;}while(carry){digits.push(carry%58);carry=carry/58|0;}}let out='';for(const byte of bytes){if(byte)break;out+='1';}return out+digits.reverse().map(d=>B58[d]).join('');};
+function solanaWallet(){const {publicKey,privateKey}=generateKeyPairSync('ed25519');const raw=Buffer.from(publicKey.export({format:'jwk'}).x,'base64url');
+  return {address:base58(raw),sign:message=>edSign(null,Buffer.from(message,'utf8'),privateKey).toString('hex')};}
+async function solanaSignIn(f,playerSecret,wallet,{origin=MANN.origin,sign=wallet.sign}={}){
+  const started=await f.api('/api/v1/player/solana/start',{secret:playerSecret,address:wallet.address},{origin});
+  if(started.status!==200)return started;
+  return f.api('/api/v1/player/solana/verify',{secret:playerSecret,message:started.message,signature:sign(started.message)},{origin});
+}
+test('a Solana wallet signs in with Sign In With Solana, and its player counts as signed in',async t=>{
+  const f=fixture(t),browser=secret(),wallet=solanaWallet();
+  const started=await f.api('/api/v1/player/solana/start',{secret:browser,address:wallet.address},MANN);
+  assert.equal(started.status,200,JSON.stringify(started));
+  assert.ok(started.message.startsWith(`mann.cool wants you to sign in with your Solana account:\n${wallet.address}\n\n`));
+  assert.match(started.message,/\nURI: https:\/\/mann\.cool\nVersion: 1\nChain ID: mainnet\nNonce: \w+\nIssued At: .+\nExpiration Time: .+$/);
+  const signed=await f.api('/api/v1/player/solana/verify',{secret:browser,message:started.message,signature:wallet.sign(started.message)},MANN);
+  assert.equal(signed.status,200,JSON.stringify(signed));assert.equal(signed.linked,true);assert.equal(signed.walletHint,`${wallet.address.slice(0,4)}…${wallet.address.slice(-4)}`);
+  const session=await f.api('/api/v1/player/session',{secret:browser});assert.equal(session.linked,true);assert.equal(session.walletHint,signed.walletHint);
+  assert.equal(f.db.prepare('SELECT address FROM player_wallets').get().address,`sol:${wallet.address}`,'stored with its case');
+  await f.api('/api/v1/leaderboard',f.body(await f.start(),{playerSecret:browser}));
+  assert.equal((await f.api('/api/v1/leaderboard?slug=pdoom&variant='+VARIANT)).entries[0].signedIn,true);
+  assert.equal((await f.api('/api/v1/player/solana/verify',{secret:browser,message:started.message,signature:wallet.sign(started.message)},MANN)).status,400,'once only');
+});
+test('Solana sign-in refuses the wrong key, a changed message, another browser, bad addresses, other sites, and crossing with Ethereum',async t=>{
+  const f=fixture(t),browser=secret(),wallet=solanaWallet(),other=solanaWallet();
+  assert.equal((await solanaSignIn(f,browser,wallet,{sign:m=>other.sign(m)})).status,400,'signed by another key');
+  assert.equal((await solanaSignIn(f,browser,wallet,{sign:m=>wallet.sign(m.replace('mann.cool wants','evil.example wants'))})).status,400,'a different message');
+  const started=await f.api('/api/v1/player/solana/start',{secret:browser,address:wallet.address},MANN);
+  assert.equal((await f.api('/api/v1/player/solana/verify',{secret:secret(),message:started.message,signature:wallet.sign(started.message)},MANN)).status,400,'another browser');
+  for(const bad of ['0x1F9418Dde1fF334Efb74263dD8b15eCfDDdff3d9','not-base58-0OIl','1111']){assert.equal((await f.api('/api/v1/player/solana/start',{secret:browser,address:bad},MANN)).status,400,bad);}
+  assert.equal((await solanaSignIn(f,browser,wallet,{origin:'https://evil.example'})).status,403);
+  // a Solana message can't go through the Ethereum route, nor the other way round
+  const sol=await f.api('/api/v1/player/solana/start',{secret:browser,address:wallet.address},MANN);
+  assert.equal((await f.api('/api/v1/player/wallet/verify',{secret:browser,message:sol.message,signature:'0x'+'1'.repeat(130)},MANN)).status,400);
+  const evm=privateKeyToAccount(generatePrivateKey()),eth=await f.api('/api/v1/player/wallet/start',{secret:browser,address:evm.address,chainId:1},MANN);
+  assert.equal((await f.api('/api/v1/player/solana/verify',{secret:browser,message:eth.message,signature:'ab'.repeat(64)},MANN)).status,400);
+  assert.equal((await f.api('/api/v1/player/session',{secret:browser})).linked,false,'nothing linked');
+  assert.equal((await solanaSignIn(f,browser,wallet)).linked,true,'and the real thing works');
+});
+test('one player can hold a Solana wallet, an Ethereum wallet and an email; a second browser with the Solana wallet joins them',async t=>{
+  const f=fixture(t),first=secret(),second=secret(),sol=solanaWallet(),evm=privateKeyToAccount(generatePrivateKey());
+  const a=await solanaSignIn(f,first,sol);
+  assert.equal((await walletSignIn(f,first,evm)).playerId,a.playerId,'an Ethereum wallet joins the same player');
+  assert.equal(await signIn(f,first,'both-wallets@example.test'),a.playerId,'and an email');
+  await f.api('/api/v1/leaderboard',f.body(await f.start(),{playerSecret:second}));
+  const b=await solanaSignIn(f,second,sol);assert.equal(b.playerId,a.playerId);assert.equal(b.merged,1);
+  assert.deepEqual(f.db.prepare('SELECT COUNT(*) AS n FROM player_wallets WHERE player_id = ?').get(a.playerId).n,2);
+});
