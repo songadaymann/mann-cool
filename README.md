@@ -27,9 +27,11 @@ npm run preview
 
 Run `npm run test:lab` to check lab redirects, the in-game menu links, lab play registration and which lab games each visitor sees.
 
-## The Song A Day bar
+## The Song A Day Studio header
 
-The homepage and /lab start with the Song A Day universe bar from songaday.studio (`https://songaday.studio/bar/v1/bar.js`, with `data-here="play"`), above mann.cool's own header. `UniverseBar` in `src/SiteChrome.jsx` renders the `<songaday-bar>` placeholder, which `src/styles.css` holds at 36px, and adds the script once the placeholder is on the page. Game pages don't get the bar.
+mann.cool is the Games section of songaday.studio, so the homepage and /lab start with the studio's own header (`https://songaday.studio/bar/v1/header.js`, with `data-here="games"`), above mann.cool's header. It has the studio's menu with Games marked as the current section, so coming here from the studio doesn't look like leaving. `StudioHeader` in `src/SiteChrome.jsx` renders the `<songaday-header>` placeholder, which `src/styles.css` holds at the header's height (68px, or 101px at 1100px wide and under), and adds the script once the placeholder is on the page. The header stays at the top while the page scrolls, as on the studio. Game pages don't get it. It replaces the thinner universe bar (`bar/v1/bar.js`) these pages had before.
+
+The menu itself lives in the songaday-studios repo (`bar/v1/header.js`); a change to the studio's menu shows here within four hours with no deploy. To try a local copy of the studio's header, run `VITE_STUDIO_ORIGIN=http://localhost:8787 npm run dev` with the studio's own preview on that port.
 
 ## Independently hosted games
 

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import catalog from "../games.json";
-import { GameLinks, SiteFooter, SiteHeader, UniverseBar, useLabGames } from "./SiteChrome.jsx";
+import { GameLinks, SiteFooter, SiteHeader, StudioHeader, useLabGames } from "./SiteChrome.jsx";
 
 const publishedGames = catalog.games.filter((game) => game.status === "published");
 const featuredGames = publishedGames
@@ -684,7 +684,7 @@ export default function App() {
 
   return (
     <>
-      <UniverseBar />
+      <StudioHeader />
       <div className="site-shell">
         <SiteHeader tipUrl={tipUrl} onOpenGuestbook={() => setGuestbookOpen(true)} />
 
