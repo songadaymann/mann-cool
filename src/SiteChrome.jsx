@@ -3,21 +3,25 @@ import catalog from "../games.json";
 import { visibleLabGames } from "./lib/lab.js";
 import { applyWalletGate } from "./lib/wallet-gate.js";
 
-const UNIVERSE_BAR_SRC = "https://songaday.studio/bar/v1/bar.js";
+// VITE_STUDIO_ORIGIN points a local build at a local studio (see the README); otherwise the real one.
+const STUDIO_ORIGIN = import.meta.env.VITE_STUDIO_ORIGIN || "https://songaday.studio";
+const STUDIO_HEADER_SRC = `${STUDIO_ORIGIN}/bar/v1/header.js`;
 
-// The Song A Day universe bar from songaday.studio, on the homepage and the lab only (never over a
-// game). The placeholder holds its 36px so nothing moves when the bar draws into it. The script is
-// added once the placeholder is on the page, so the bar fills it in rather than adding its own.
-export function UniverseBar() {
+// The Song A Day Studio header from songaday.studio: the studio's own menu, with Games marked as
+// where you are. mann.cool is the studio's Games section, so the homepage and the lab carry the
+// studio's menu and coming here from the studio doesn't look like leaving. Never over a game.
+// The placeholder holds the header's height so nothing moves when it draws in. The script is
+// added once the placeholder is on the page, so the header fills it in rather than adding its own.
+export function StudioHeader() {
   useEffect(() => {
-    if (document.querySelector(`script[src="${UNIVERSE_BAR_SRC}"]`)) return;
+    if (document.querySelector(`script[src="${STUDIO_HEADER_SRC}"]`)) return;
     const script = document.createElement("script");
     script.type = "module";
-    script.src = UNIVERSE_BAR_SRC;
-    script.dataset.here = "play";
+    script.src = STUDIO_HEADER_SRC;
+    script.dataset.here = "games";
     document.head.append(script);
   }, []);
-  return <songaday-bar data-here="play" />;
+  return <songaday-header data-here="games" />;
 }
 
 // The lab games this visitor can see. Until the wallet gate answers, that's only the ones open to

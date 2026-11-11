@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { GameLinks, SiteFooter, SiteHeader, UniverseBar, useLabGames } from "./SiteChrome.jsx";
+import { GameLinks, SiteFooter, SiteHeader, StudioHeader, useLabGames } from "./SiteChrome.jsx";
 
 function LabCard({ game }) {
   // Lab games usually stay on their own host; the card says where it goes.
@@ -51,7 +51,7 @@ export default function LabPage() {
   // when there's nothing for them gets one line, once the wallet gate has answered.
   return (
     <>
-      <UniverseBar />
+      <StudioHeader />
       <div className="site-shell">
         <SiteHeader tipUrl={tipUrl} />
 
