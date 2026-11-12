@@ -1965,10 +1965,22 @@
         "desktop": true
       },
       "leaderboard": {
-        "enabled": false,
+        "enabled": true,
         "direction": "desc",
         "variants": [
-          "default"
+          "dirt"
+        ],
+        "boards": [
+          {
+            "variant": "dirt",
+            "label": "Dirt moved",
+            "metric": "dirtM3",
+            "metricLabel": "Cubic metres of dirt moved",
+            "direction": "desc",
+            "display": "integer",
+            "aggregation": "player-best",
+            "minimumMatches": 1
+          }
         ]
       },
       "delivery": {
