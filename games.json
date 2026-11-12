@@ -1944,6 +1944,56 @@
       "crypto": true,
       "status": "lab",
       "sourceUrl": null
+    },
+    {
+      "id": 43,
+      "slug": "leave",
+      "title": "Chuck & Hakeem Won't Leave",
+      "description": "Chuck Schumer and Hakeem Jeffries have buried themselves at the Capitol, and the whole country digs them out together before their leadership votes.",
+      "cover": "/covers/leave.webp",
+      "hoverGif": "/game-gifs/leave.gif",
+      "tags": [
+        "political",
+        "multiplayer",
+        "funny"
+      ],
+      "catalogOrder": 43,
+      "publishedAt": "2026-11-12",
+      "deviceSupport": {
+        "mobile": true,
+        "tablet": true,
+        "desktop": true
+      },
+      "leaderboard": {
+        "enabled": true,
+        "direction": "desc",
+        "variants": [
+          "dirt"
+        ],
+        "boards": [
+          {
+            "variant": "dirt",
+            "label": "Dirt moved",
+            "metric": "dirtM3",
+            "metricLabel": "Cubic metres of dirt moved",
+            "direction": "desc",
+            "display": "integer",
+            "aggregation": "player-best",
+            "minimumMatches": 1
+          }
+        ]
+      },
+      "delivery": {
+        "mode": "worker-route",
+        "origin": "https://dig-them-out.novox-robot.workers.dev",
+        "workerName": "dig-them-out",
+        "routePatterns": [
+          "mann.cool/leave",
+          "mann.cool/leave/*"
+        ]
+      },
+      "status": "published",
+      "sourceUrl": null
     }
   ]
 }

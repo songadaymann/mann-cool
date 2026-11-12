@@ -35,5 +35,6 @@
   "sledding": { "paths": ["game.js", "assets/1819.mp3"] },
   "hell": { "paths": ["assets/music/lindsay-intro.mp3", "project.json"], "deepLinks": ["leaderboard/"] },
   "poop": { "paths": ["assets/index-BIwda_Oc.js", "assets/butthead_avatar-rigged-CU2Hct_S.fbx", "assets/match-Drar2sW6.mp3"], "deepLinks": ["deep/test"] },
-  "mack": { "paths": ["assets/index-IcULTLts.js", "assets/sound/footsteps-run.ogg", "assets/world/village-kit.glb"] }
+  "mack": { "paths": ["assets/index-IcULTLts.js", "assets/sound/footsteps-run.ogg", "assets/world/village-kit.glb"] },
+  "leave": { "paths": ["og.jpg", "credits.txt", "models/Business_Male_01.glb"] }
 }
