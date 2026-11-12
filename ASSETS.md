@@ -16,7 +16,7 @@ Code is MIT; media retains separate terms. Jonathan Mann original media is CC BY
 
 ## Chuck & Hakeem Won't Leave, added 2026-11-12
 
-- `public/covers/leave.webp`: composited, with no image generation. The cartridge is the catalog's `sledding.webp`, its alpha untouched. The label is a picture taken in the game, with its two giant heads put side by side in one pile and the Capitol dome behind them for the cover, under the game's own title lettering (Rubik Dirt and Silkscreen, both SIL Open Font License 1.1) and hazard stripes. Exact 800x1200 RGBA. The heads are likenesses of Chuck Schumer and Hakeem Jeffries; the game is satire.
+- `public/covers/leave.webp`: composited, with no image generation. The cartridge is the catalog's `sledding.webp`, its alpha untouched. The label is assembled from cut-outs rendered from the game itself (its two giant heads, the Capitol, its dirt and two of its player characters with shovels), arranged as box art under the game's own title lettering (Rubik Dirt and Silkscreen, both SIL Open Font License 1.1) and hazard stripes. It is rebuilt by `tools/cover/` in the game project. Exact 800x1200 RGBA. The heads are likenesses of Chuck Schumer and Hakeem Jeffries; the game is satire.
 - `public/game-gifs/leave.gif`: the time-lapse shot recorded from the game for its launch video (`shots/v2/timelapse.mp4` in the game project), 1.5-6.5 seconds, 8 fps, 360x540, 64 colors. The launch video was not cut yet, so there was no trailer to take the loop from.
 - The game's source is not public. Its credits: https://mann.cool/leave/credits.txt
 
