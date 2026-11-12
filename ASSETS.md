@@ -14,6 +14,12 @@ Code is MIT; media retains separate terms. Jonathan Mann original media is CC BY
 - `public/covers/clickstr.webp`: Jonathan's Clickstr thumbnail (`stupid-clicker/thumb.jpg`, source repo https://github.com/songadaymann/clickstr), cropped to 1000x625. Jonathan's generated artwork: CC BY 4.0.
 - TTTTTTTT has no cover yet; the lab page draws its title instead.
 
+## Chuck & Hakeem Won't Leave, added 2026-11-12
+
+- `public/covers/leave.webp`: composited, with no image generation. The cartridge is the catalog's `sledding.webp`, its alpha untouched. The label is a picture taken in the game, with its two giant heads put side by side in one pile and the Capitol dome behind them for the cover, under the game's own title lettering (Rubik Dirt and Silkscreen, both SIL Open Font License 1.1) and hazard stripes. Exact 800x1200 RGBA. The heads are likenesses of Chuck Schumer and Hakeem Jeffries; the game is satire.
+- `public/game-gifs/leave.gif`: the time-lapse shot recorded from the game for its launch video (`shots/v2/timelapse.mp4` in the game project), 1.5-6.5 seconds, 8 fps, 360x540, 64 colors. The launch video was not cut yet, so there was no trailer to take the loop from.
+- The game's source is not public. Its credits: https://mann.cool/leave/credits.txt
+
 ## Paid assets
 
 No paid source pack was added for this publication.
