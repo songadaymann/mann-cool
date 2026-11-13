@@ -321,7 +321,7 @@
                 : '<button type="button" data-open="leaderboard"><span>Leaderboard</span><span>↗</span></button>')
               : ""}
             ${playerIdentityEnabled ? '<button type="button" data-open="player"><span data-player-menu>Save your scores</span><span>↗</span></button>' : ""}
-            <a data-support target="_blank" rel="noopener noreferrer"><span>Support</span><span>↗</span></a>
+            <a data-support target="_blank" rel="noopener noreferrer"><span>Patronage</span><span>↗</span></a>
           </div>
         </div>
         <div class="backdrop" data-modal="leaderboard" hidden>
@@ -442,7 +442,7 @@
       this.renderGameLinks(this.config.game);
     }
 
-    // The Song A Day song a game came from, and its public source code, sit above Support.
+    // The Song A Day song a game came from, and its public source code, sit above Patronage.
     renderGameLinks(game) {
       const support = this.shadowRoot.querySelector("[data-support]");
       const songs = Array.isArray(game?.songs) ? game.songs : [];
