@@ -1968,7 +1968,9 @@
         "enabled": true,
         "direction": "desc",
         "variants": [
-          "dirt"
+          "dirt",
+          "lobbyists",
+          "nests"
         ],
         "boards": [
           {
@@ -1976,6 +1978,26 @@
             "label": "Dirt moved",
             "metric": "dirtM3",
             "metricLabel": "Cubic metres of dirt moved",
+            "direction": "desc",
+            "display": "integer",
+            "aggregation": "player-best",
+            "minimumMatches": 1
+          },
+          {
+            "variant": "lobbyists",
+            "label": "Lobbyists stopped",
+            "metric": "lobbyists",
+            "metricLabel": "Lobbyists stopped",
+            "direction": "desc",
+            "display": "integer",
+            "aggregation": "player-best",
+            "minimumMatches": 1
+          },
+          {
+            "variant": "nests",
+            "label": "Nests flattened",
+            "metric": "nests",
+            "metricLabel": "Lobby nests flattened",
             "direction": "desc",
             "display": "integer",
             "aggregation": "player-best",
