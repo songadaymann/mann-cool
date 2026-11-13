@@ -5,6 +5,8 @@
   const leaderboardEnabled = script?.dataset.leaderboard === "true";
   const leaderboardUrl = script?.dataset.leaderboardUrl || "";
   const leaderboardVariant = script?.dataset.leaderboardVariant || "default";
+  // How many rows the board shows: data-leaderboard-limit, 1 to 100 (the API's own ceiling), 25 if not given.
+  const leaderboardLimit = Math.min(100, Math.max(1, Math.floor(Number(script?.dataset.leaderboardLimit)) || 25));
   // Games opt in to the "Save your scores" panel; every game gets window.mannCool.player.
   const playerIdentityEnabled = script?.dataset.playerIdentity === "true";
   const homeTop = slug === "windows"
@@ -652,7 +654,7 @@
       const board = this.leaderboardBoard || { variant: leaderboardVariant, display: "number", aggregation: "best" };
       container.innerHTML = '<p class="status">Loading scores…</p>';
       try {
-        const response = await fetch(`/api/v1/leaderboard?slug=${encodeURIComponent(slug)}&variant=${encodeURIComponent(board.variant)}&limit=25`);
+        const response = await fetch(`/api/v1/leaderboard?slug=${encodeURIComponent(slug)}&variant=${encodeURIComponent(board.variant)}&limit=${leaderboardLimit}`);
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || "Leaderboard unavailable");
         container.replaceChildren();
