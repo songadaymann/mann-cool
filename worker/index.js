@@ -1,3 +1,4 @@
+import { adminRunsPage, handleAdminApi } from "./admin-runs.js";
 import { games, getGame, getSongLinks } from "./lib/catalog.js";
 import { handlePlatformApi, recordTipClick } from "./platform-api.js";
 import { handlePlayerApi, handleWalletsApi } from "./player-identity.js";
@@ -97,6 +98,9 @@ async function handleRequest(request, env) {
 
   const segments = url.pathname.split("/").filter(Boolean);
 
+  // the private review page for submitted leaderboard runs (worker/admin-runs.js)
+  if (url.pathname === "/admin/runs") return adminRunsPage();
+
   if (url.pathname === "/tip") {
     return handleTipRedirect(request, env, url.searchParams.get("from") || "mann-cool");
   }
@@ -111,6 +115,7 @@ async function handleRequest(request, env) {
       return handlePlatformApi(request, env, "pdoom-run-video");
     }
     if (isVersioned && endpoint === "player") return handlePlayerApi(request, env, segments.slice(3).join("/"));
+    if (isVersioned && endpoint === "admin") return handleAdminApi(request, env, segments.slice(3).join("/"));
     if (isVersioned && endpoint === "wallets" && segments.length === 3) return handleWalletsApi(request, env);
     if (PLATFORM_ENDPOINTS.has(endpoint)) return handlePlatformApi(request, env, endpoint, { legacy: !isVersioned });
     return Response.json({ error: "API route not found" }, { status: 404 });

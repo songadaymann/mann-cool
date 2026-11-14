@@ -29,11 +29,12 @@ const sum=splits=>Object.values(splits).reduce((a,b)=>a+b,0);
 const metadata=(overrides={})=>({...CAMPAIGN,outcome:'complete',practice:false,saved:20,total:20,activeMs:sum(SPLITS),splits:{...SPLITS},restarts:2,ceo:'amodei',...overrides});
 // Changes splits and keeps activeMs equal to their sum.
 const timed=(changes,overrides={})=>{const splits={...SPLITS,...changes};return metadata({splits,activeMs:sum(splits),...overrides});};
+const ADMIN='admin-token-'+'x'.repeat(32);
 // reviewTop: the Worker's PDOOM_REVIEW_TOP (off here unless a test asks; null leaves it unset, the default ten).
-function fixture(t,{reviewTop='0'}={}){
+function fixture(t,{reviewTop='0',adminToken=ADMIN}={}){
   const db=new DatabaseSync(':memory:');db.exec('PRAGMA foreign_keys = ON;'+schema);t.after(()=>db.close());let requests=0;
   const wrap=statement=>{let values=[];return{bind(...v){values=v;return this;},async first(){return statement.get(...values)||null;},async all(){return{results:statement.all(...values)};},async run(){return{meta:{changes:statement.run(...values).changes}};}};};
-  const env={DB:{prepare:sql=>wrap(db.prepare(sql)),batch:async statements=>{const out=[];for(const s of statements)out.push(await s.run());return out;}},PLAYER_EMAIL_DEV:'1',...(reviewTop===null?{}:{PDOOM_REVIEW_TOP:reviewTop})};
+  const env={DB:{prepare:sql=>wrap(db.prepare(sql)),batch:async statements=>{const out=[];for(const s of statements)out.push(await s.run());return out;}},PLAYER_EMAIL_DEV:'1',...(adminToken?{ADMIN_TOKEN:adminToken}:{}),...(reviewTop===null?{}:{PDOOM_REVIEW_TOP:reviewTop})};
   const api=async(url,body,headers={})=>{
     const response=await worker.fetch(new Request('https://example.test'+url,{...(body===undefined?{}:{method:'POST',body:JSON.stringify(body)}),headers:{'content-type':'application/json','cf-connecting-ip':`192.0.2.${++requests}`,...headers}}),env);
     return {status:response.status,...await response.json()};
@@ -48,7 +49,7 @@ function fixture(t,{reviewTop='0'}={}){
   const body=(run,overrides={})=>({slug:'pdoom',variant:VARIANT,name:'Genuine fixture',playerId:'fixture-player',submissionId:`${run.runId}:${VARIANT}`,score:1,runTicket:run.runTicket,metadata:metadata(),...overrides});
   const board=async()=>(await api('/api/v1/leaderboard?slug=pdoom&variant='+VARIANT)).entries.map(entry=>entry.score);
   const count=()=>db.prepare('SELECT COUNT(*) AS n FROM leaderboard_entries').get().n;
-  return {db,api,start,body,board,count};
+  return {db,env,api,start,body,board,count};
 }
 
 test('a complete campaign scores its active time and the server rebuilds the metadata',()=>{
@@ -417,4 +418,44 @@ test('one player can hold a Solana wallet, an Ethereum wallet and an email; a se
   await f.api('/api/v1/leaderboard',f.body(await f.start(),{playerSecret:second}));
   const b=await solanaSignIn(f,second,sol);assert.equal(b.playerId,a.playerId);assert.equal(b.merged,1);
   assert.deepEqual(f.db.prepare('SELECT COUNT(*) AS n FROM player_wallets WHERE player_id = ?').get(a.playerId).n,2);
+});
+
+// The private review page (2026-11-13): https://mann.cool/admin/runs and its API, behind ADMIN_TOKEN.
+test('the review page lists submitted runs with why they are held, and approves or hides them, only with the admin token',async t=>{
+  const f=fixture(t,{reviewTop:null}),auth={authorization:'Bearer '+ADMIN};
+  const page=await worker.fetch(new Request('https://example.test/admin/runs'),{});
+  assert.equal(page.status,200);const html=await page.text();assert.match(html,/Submitted runs/);
+  assert.match(page.headers.get('content-security-policy'),/script-src 'nonce-[^']+'/);assert.equal(page.headers.get('x-frame-options'),'DENY');assert.match(page.headers.get('x-robots-tag'),/noindex/);
+  assert.ok(!html.includes('__NONCE__'),'the nonce is filled in');
+  const get=async(path,headers={})=>{const r=await worker.fetch(new Request('https://example.test'+path,{headers}),f.env);return {...await r.json(),code:r.status};};
+  assert.equal((await get('/api/v1/admin/runs')).code,401,'no token');
+  assert.equal((await get('/api/v1/admin/runs',{authorization:'Bearer wrong'})).code,401,'a wrong token');
+  // a signed-in player's run with a video, held because it's top ten
+  const player=secret(),email=await signIn(f,player,'runner@example.test');
+  const body=f.body(await f.start(),{playerSecret:player,videoUrl:'https://youtu.be/run1',name:'Runner'});
+  assert.equal((await f.api('/api/v1/leaderboard',body)).held,true);
+  let list=await get('/api/v1/admin/runs?slug=pdoom&status=pending',auth);
+  assert.equal(list.code,200,JSON.stringify(list));assert.deepEqual(list.counts,{pending:1});
+  const run=list.runs[0];
+  assert.equal(run.name,'Runner');assert.equal(run.status,'pending');assert.deepEqual(run.review,['top-ten']);assert.equal(run.videoUrl,'https://youtu.be/run1');
+  assert.equal(run.signedIn,'r•••@example.test');assert.equal(run.playerId,email);assert.equal(run.activeMs,body.metadata.activeMs);assert.deepEqual(run.splits,body.metadata.splits);
+  assert.equal(run.sameIpPlayers,0);assert.equal('metadata' in run,false);
+  // approve: it's on the public board; hide: off again
+  const post=async(payload,headers=auth)=>{const r=await worker.fetch(new Request('https://example.test/api/v1/admin/runs/moderate',{method:'POST',headers:{'content-type':'application/json',...headers},body:JSON.stringify(payload)}),f.env);return {...await r.json(),code:r.status};};
+  assert.equal((await post({slug:'pdoom',action:'approve',submissionIds:[run.submissionId]},{})).code,401,'not without the token');
+  const approved=await post({slug:'pdoom',action:'approve',submissionIds:[run.submissionId,'missing-run:x']});
+  assert.deepEqual(approved.changed,[run.submissionId]);assert.deepEqual(approved.missing,['missing-run:x']);
+  assert.equal((await f.board()).length,1);assert.deepEqual((await get('/api/v1/admin/runs?status=approved',auth)).runs.map(r=>r.name),['Runner']);
+  await post({slug:'pdoom',action:'hide',submissionIds:[run.submissionId]});assert.deepEqual(await f.board(),[]);
+  assert.deepEqual((await get('/api/v1/admin/runs?status=all',auth)).counts,{hidden:1});
+  assert.equal((await post({slug:'pdoom',action:'delete',submissionIds:[run.submissionId]})).code,400);
+  assert.equal((await post({slug:'pdoom',action:'approve',submissionIds:[]})).code,400);
+  assert.equal((await get('/api/v1/admin/runs?status=nope',auth)).code,400);
+  // another game's runs aren't touched by a p(DOOM) action
+  assert.deepEqual((await post({slug:'other-game',action:'approve',submissionIds:[run.submissionId]})).changed,[]);
+});
+test('the review page says when it is not set up, rather than opening',async t=>{
+  const f=fixture(t,{adminToken:null});
+  const r=await worker.fetch(new Request('https://example.test/api/v1/admin/runs',{headers:{authorization:'Bearer anything'}}),f.env);
+  assert.equal(r.status,503);assert.match((await r.json()).error,/ADMIN_TOKEN/);
 });

@@ -45,3 +45,16 @@ npm run leaderboard:moderate -- hide <submissionId>       # kept in D1, off the 
 ```
 
 It uses production D1 unless `--local` is given.
+
+**The review page (2026-11-13): https://mann.cool/admin/runs.** Jonathan: "give me the place where i can see people's submitted runs". It does in a browser what `leaderboard:moderate` does in a terminal.
+- **What it shows:** every run, newest first, under the tabs Waiting, Approved, Hidden and All, with counts. Each run has its time, name, when it was sent, why it's held, the video link, sign-in (email hint or short wallet), a same-IP warning, and its splits, restarts, hero, wallet, player and submission ID.
+- **Actions:** Approve, Hide and Back to waiting.
+- **The game box:** switches to another game's slug.
+- **Access:** the page holds nothing. Its data comes from `GET /api/v1/admin/runs` and `POST /api/v1/admin/runs/moderate`, which need the `ADMIN_TOKEN` Worker secret as a Bearer token. The page asks for it once and keeps it in that browser until Sign out.
+- **Protection:**
+  - Without the secret the API answers 503.
+  - Wrong tokens are rate-limited: 10 per 10 minutes per IP.
+  - Other sites can't send the header, because CORS doesn't allow Authorization.
+  - The page has a per-response CSP nonce, `X-Frame-Options: DENY` and `noindex`, and every value is set as text.
+- **Setting or changing the token:** run this once in this repo. It prints the token for you to paste into the page:
+  `T=$(openssl rand -hex 24) && echo "$T" && printf '%s' "$T" | CLOUDFLARE_ACCOUNT_ID=a79a1faef6e8f94566f3320429d54006 npx wrangler secret put ADMIN_TOKEN`
