@@ -39,13 +39,58 @@ function runDetails(text) {
   return pick;
 }
 
+// p(DOOM) speedruns that started but never sent a time (2026-11-15, Jonathan: "Are there any runs in there that
+// are longer than a few minutes/seconds but not completed"). The game asks for a run ticket when a speedrun's first
+// level begins, and the ticket is marked when a time is sent, so a ticket says only when the run started and
+// whether it was sent: not how far the player got. Unsent tickets are deleted after 90 days (worker/index.js).
+const SPEEDRUN_LEVEL = "campaign";
+
+async function unsentRuns(env, url, limit) {
+  // the browser's offset from UTC in minutes, so days are the reader's days
+  const offset = Math.min(Math.max(Math.trunc(Number(url.searchParams.get("tzOffset")) || 0), -840), 840);
+  const [totals, days, runs] = await Promise.all([
+    env.DB.prepare(`
+      SELECT COUNT(*) AS started, COALESCE(SUM(completed_at IS NOT NULL), 0) AS sent, MIN(issued_at) AS firstAt
+      FROM pdoom_ranked_runs WHERE level_id = ?
+    `).bind(SPEEDRUN_LEVEL).first(),
+    env.DB.prepare(`
+      SELECT date(issued_at / 1000 + ? * 60, 'unixepoch') AS day, COUNT(*) AS started,
+        SUM(completed_at IS NOT NULL) AS sent, SUM(completed_at IS NULL) AS notSent
+      FROM pdoom_ranked_runs WHERE level_id = ? GROUP BY day ORDER BY day DESC LIMIT 120
+    `).bind(offset, SPEEDRUN_LEVEL).all(),
+    env.DB.prepare(`
+      SELECT run_id AS runId, issued_at AS startedAt, expires_at AS expiresAt
+      FROM pdoom_ranked_runs WHERE level_id = ? AND completed_at IS NULL ORDER BY issued_at DESC LIMIT ?
+    `).bind(SPEEDRUN_LEVEL, limit).all(),
+  ]);
+  const started = Number(totals?.started || 0), sent = Number(totals?.sent || 0);
+  return {
+    totals: { started, sent, notSent: started - sent, firstAt: totals?.firstAt ?? null },
+    days: days.results.map((row) => ({ day: row.day, started: Number(row.started), sent: Number(row.sent), notSent: Number(row.notSent) })),
+    runs: runs.results.map((row) => ({ runId: row.runId, startedAt: Number(row.startedAt), expiresAt: Number(row.expiresAt) })),
+  };
+}
+
 async function listRuns(request, env) {
   const url = new URL(request.url);
   const slug = cleanSlug(url.searchParams.get("slug") || "pdoom");
   if (!slug) throw new HttpError(400, "A valid slug is required");
   const status = url.searchParams.get("status") || "pending";
-  if (status !== "all" && !STATUSES.includes(status)) throw new HttpError(400, "Unknown status");
+  if (status !== "all" && status !== "unsent" && !STATUSES.includes(status)) throw new HttpError(400, "Unknown status");
+  if (status === "unsent" && slug !== "pdoom") throw new HttpError(400, "Only p(DOOM) speedruns are tracked before they're sent.");
   const limit = Math.min(Math.max(Number(url.searchParams.get("limit")) || 200, 1), 500);
+  const counts = await env.DB.prepare(`
+    SELECT moderation_status AS status, COUNT(*) AS n FROM leaderboard_entries WHERE slug = ? GROUP BY moderation_status
+  `).bind(slug).all();
+  const tally = Object.fromEntries(counts.results.map((row) => [row.status, Number(row.n)]));
+  // only p(DOOM) has tickets; unsentCount is null for other games
+  let unsentCount = null;
+  if (slug === "pdoom") {
+    const unsent = await env.DB.prepare(`SELECT COUNT(*) AS n FROM pdoom_ranked_runs WHERE level_id = ? AND completed_at IS NULL`)
+      .bind(SPEEDRUN_LEVEL).first();
+    unsentCount = Number(unsent?.n || 0);
+  }
+  if (status === "unsent") return json({ success: true, slug, status, counts: tally, unsentCount, runs: [], unsent: await unsentRuns(env, url, limit) });
   const rows = await env.DB.prepare(`
     SELECT e.submission_id AS submissionId, e.variant, e.player_name AS name, e.player_id AS playerId, e.score,
       e.moderation_status AS status, e.created_at AS createdAt, e.metadata,
@@ -58,12 +103,9 @@ async function listRuns(request, env) {
     WHERE e.slug = ? ${status === "all" ? "" : "AND e.moderation_status = ?"}
     ORDER BY e.created_at DESC LIMIT ?
   `).bind(...(status === "all" ? [slug, limit] : [slug, status, limit])).all();
-  const counts = await env.DB.prepare(`
-    SELECT moderation_status AS status, COUNT(*) AS n FROM leaderboard_entries WHERE slug = ? GROUP BY moderation_status
-  `).bind(slug).all();
   return json({
     success: true, slug, status,
-    counts: Object.fromEntries(counts.results.map((row) => [row.status, Number(row.n)])),
+    counts: tally, unsentCount,
     runs: rows.results.map(({ metadata, sameIpPlayers, ...row }) => ({
       ...row, score: Number(row.score), sameIpPlayers: Number(sameIpPlayers || 0), ...runDetails(metadata),
     })),

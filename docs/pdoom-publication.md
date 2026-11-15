@@ -49,6 +49,11 @@ It uses production D1 unless `--local` is given.
 **The review page (2026-11-13): https://mann.cool/admin/runs.** Jonathan: "give me the place where i can see people's submitted runs". It does in a browser what `leaderboard:moderate` does in a terminal.
 - **What it shows:** every run, newest first, under the tabs Waiting, Approved, Hidden and All, with counts. Each run has its time, name, when it was sent, why it's held, the video link, sign-in (email hint or short wallet), a same-IP warning, and its splits, restarts, hero, wallet, player and submission ID.
 - **Actions:** Approve, Hide and Back to waiting.
+- **Not sent (2026-11-15, p(DOOM) only):** Jonathan asked whether any runs were "longer than a few minutes/seconds but not completed".
+  - The tab lists speedruns that started but never sent a time, from `pdoom_ranked_runs` rows with no `completed_at`. It shows totals, a per-day table of started, sent and not sent (in the reader's time zone), and each start time.
+  - A ticket records only when the run started and whether a time was sent. Nothing records how far the player got or how long they played, so an unsent run may have been quit, may still be going, or may have finished without Submit.
+  - Practice runs get no ticket. Unsent tickets are deleted after 90 days.
+  - API: `GET /api/v1/admin/runs?status=unsent&tzOffset=<minutes east of UTC>`. Every pdoom list also carries `unsentCount`, which is null for other games.
 - **The game box:** switches to another game's slug.
 - **Access:** the page holds nothing. Its data comes from `GET /api/v1/admin/runs` and `POST /api/v1/admin/runs/moderate`, which need the `ADMIN_TOKEN` Worker secret as a Bearer token. The page asks for it once and keeps it in that browser until Sign out.
 - **Protection:**

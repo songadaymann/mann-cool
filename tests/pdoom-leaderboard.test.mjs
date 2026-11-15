@@ -454,6 +454,38 @@ test('the review page lists submitted runs with why they are held, and approves 
   // another game's runs aren't touched by a p(DOOM) action
   assert.deepEqual((await post({slug:'other-game',action:'approve',submissionIds:[run.submissionId]})).changed,[]);
 });
+test('the review page lists speedruns that started but never sent a time',async t=>{
+  const f=fixture(t),auth={authorization:'Bearer '+ADMIN};
+  const get=async(path,headers=auth)=>{const r=await worker.fetch(new Request('https://example.test'+path,{headers}),f.env);return {...await r.json(),code:r.status};};
+  assert.equal((await get('/api/v1/admin/runs?status=unsent',{})).code,401,'not without the token');
+  // one run sent; two never sent, started 2 hours and 26 hours ago; an old per-level ticket isn't the speedrun
+  const sent=await f.start(randomUUID(),undefined,3600000);assert.equal((await f.api('/api/v1/leaderboard',f.body(sent))).status,201);
+  const recent=await f.start('recent-run-'+randomUUID(),undefined,2*3600000),older=await f.start('older-run-'+randomUUID(),undefined,26*3600000);
+  f.db.prepare("INSERT INTO pdoom_ranked_runs (id, run_id, nonce_hash, level_id, level_version, issued_at, expires_at) VALUES (?, ?, 'x', 'five-prisons', 'v3', ?, ?)").run(randomUUID(),'old-level-run',Date.now()-3600000,Date.now()+3600000);
+  const waiting=await get('/api/v1/admin/runs?slug=pdoom&status=pending');
+  assert.equal(waiting.unsentCount,2);assert.equal(Object.keys(waiting.counts).includes('unsent'),false,'moderation counts stay apart');
+  const list=await get('/api/v1/admin/runs?slug=pdoom&status=unsent&tzOffset=0');
+  assert.equal(list.code,200,JSON.stringify(list));assert.deepEqual(list.runs,[]);assert.equal(list.unsentCount,2);
+  assert.deepEqual(list.unsent.runs.map(r=>r.runId),[recent.runId,older.runId],'newest first');
+  assert.deepEqual(Object.keys(list.unsent.runs[0]).sort(),['expiresAt','runId','startedAt'],'no ticket secrets');
+  const issued=id=>f.db.prepare('SELECT issued_at AS at FROM pdoom_ranked_runs WHERE run_id = ?').get(id).at;
+  assert.equal(list.unsent.runs[1].startedAt,issued(older.runId));
+  assert.deepEqual({...list.unsent.totals,firstAt:undefined},{started:3,sent:1,notSent:2,firstAt:undefined});
+  assert.equal(list.unsent.totals.firstAt,issued(older.runId));
+  // days are the reader's days: count them the same way here
+  const day=(at,offset)=>new Date(at+offset*60000).toISOString().slice(0,10);
+  for(const offset of [0,-300,540]){
+    const expected={};for(const [at,isSent] of [[issued(sent.runId),1],[issued(recent.runId),0],[issued(older.runId),0]]){const d=day(at,offset);expected[d]??={day:d,started:0,sent:0,notSent:0};expected[d].started++;expected[d][isSent?'sent':'notSent']++;}
+    const days=(await get('/api/v1/admin/runs?slug=pdoom&status=unsent&tzOffset='+offset)).unsent.days;
+    assert.deepEqual(days,Object.values(expected).sort((a,b)=>b.day.localeCompare(a.day)),'offset '+offset);
+  }
+  assert.equal((await get('/api/v1/admin/runs?slug=pdoom&status=unsent&limit=1')).unsent.runs.length,1);
+  // other games have no tickets
+  const other=await get('/api/v1/admin/runs?slug=other-game&status=pending');assert.equal(other.unsentCount,null);
+  assert.equal((await get('/api/v1/admin/runs?slug=other-game&status=unsent')).code,400);
+  const page=await (await worker.fetch(new Request('https://example.test/admin/runs'),{})).text();
+  assert.match(page,/Not sent/);assert.match(page,/never sent a time/);
+});
 test('the review page says when it is not set up, rather than opening',async t=>{
   const f=fixture(t,{adminToken:null});
   const r=await worker.fetch(new Request('https://example.test/api/v1/admin/runs',{headers:{authorization:'Bearer anything'}}),f.env);
