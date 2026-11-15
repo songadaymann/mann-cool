@@ -31,6 +31,8 @@ const LIMITS = {
   "player:session": { requests: 60, seconds: 60 },
   "player-wallet:start": { requests: 10, seconds: 600 },
   "player-wallet:verify": { requests: 20, seconds: 600 },
+  "admin:api": { requests: 120, seconds: 60 },
+  "admin:fail": { requests: 10, seconds: 600 },
   "wallets:get": { requests: 60, seconds: 60 },
   "wallets:post": { requests: 30, seconds: 600 },
 };
