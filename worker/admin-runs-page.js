@@ -46,6 +46,20 @@ a{color:var(--accent)}
 details{margin:10px 0 0}summary{cursor:pointer;color:var(--muted);font-size:14px}
 dl{display:grid;grid-template-columns:max-content 1fr;gap:2px 16px;margin:8px 0 0;font-size:14px}dt{color:var(--muted)}dd{margin:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;overflow-wrap:anywhere}
 .actions{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 0}
+.unsent p{margin:0 0 10px}
+.totals b{font-variant-numeric:tabular-nums}
+.tablewrap{overflow-x:auto;margin:6px 0 0}
+table.days{border-collapse:collapse;width:100%;max-width:560px;font-variant-numeric:tabular-nums}
+.days caption{text-align:left;padding:0 0 6px;color:var(--muted);font-size:13px}
+.days th,.days td{padding:6px 10px;border-bottom:1px solid var(--rule);text-align:right;white-space:nowrap}
+.days th{color:var(--muted);font-weight:600;font-size:13px}
+.days th:first-child,.days td:first-child{text-align:left}
+.unsent h2{margin:24px 0 8px;font-size:18px}
+.starts{margin:0;padding:0;list-style:none;border:1px solid var(--rule);border-radius:12px;background:var(--panel)}
+.starts li{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 14px;padding:10px 14px;border-top:1px solid var(--rule)}
+.starts li:first-child{border-top:0}
+.starts .when{font-weight:600}
+.starts .id{font:13px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--muted)}
 .toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);max-width:calc(100vw - 32px);padding:10px 16px;border-radius:10px;background:#2b2620;border:1px solid var(--rule)}
 [hidden]{display:none!important}
 </style>
@@ -72,6 +86,20 @@ dl{display:grid;grid-template-columns:max-content 1fr;gap:2px 16px;margin:8px 0 
     </div>
     <p class="note" data-status role="status"></p>
     <ol class="runs" data-runs></ol>
+    <section class="unsent" data-unsent hidden>
+      <p>Speedruns started on mann.cool that never sent a time.</p>
+      <p class="note">The server learns only when a run starts and whether a time was sent. It doesn't know how far the player got or how long they played, so a run here may have been quit, may still be going, or may have finished without anyone pressing Submit. Practice runs aren't counted. Runs that are never sent are forgotten after 90 days.</p>
+      <p class="totals" data-unsent-totals></p>
+      <div class="tablewrap">
+        <table class="days">
+          <caption>By the day each run started</caption>
+          <thead><tr><th scope="col">Day</th><th scope="col">Started</th><th scope="col">Sent</th><th scope="col">Not sent</th></tr></thead>
+          <tbody data-unsent-days></tbody>
+        </table>
+      </div>
+      <h2>Not sent, newest first</h2>
+      <ol class="starts" data-unsent-runs></ol>
+    </section>
   </section>
 </main>
 <div class="toast" data-toast role="status" hidden></div>
@@ -79,7 +107,7 @@ dl{display:grid;grid-template-columns:max-content 1fr;gap:2px 16px;margin:8px 0 
 (() => {
   const KEY = "mann-cool-admin-token";
   const $ = (selector) => document.querySelector(selector);
-  const STATUSES = [["pending", "Waiting"], ["approved", "Approved"], ["hidden", "Hidden"], ["all", "All"]];
+  const STATUSES = [["pending", "Waiting"], ["approved", "Approved"], ["hidden", "Hidden"], ["all", "All"], ["unsent", "Not sent"]];
   const REASONS = { "top-ten": "Top ten", "below-time-floor": "Under 20 minutes", "faster-than-real-time": "Faster than real time" };
   const SPLITS = [["five-prisons", "Level 1"], ["hal-station", "Level 2"], ["meg3n-factory", "Level 3"], ["agentic-pods", "Level 4"], ["safe-mode", "SAFE MODE"], ["endgame", "Endgame"]];
   let token = ""; try { token = localStorage.getItem(KEY) || ""; } catch {}
@@ -106,7 +134,16 @@ dl{display:grid;grid-template-columns:max-content 1fr;gap:2px 16px;margin:8px 0 
   $("[data-signout]").addEventListener("click", () => { token = ""; try { localStorage.removeItem(KEY); } catch {} showGate(); });
   $("[data-refresh]").addEventListener("click", () => load());
   $("[data-slug]").value = slug;
-  $("[data-slug]").addEventListener("change", (event) => { slug = event.target.value.trim() || "pdoom"; load(); });
+  $("[data-slug]").addEventListener("change", (event) => { slug = event.target.value.trim() || "pdoom"; if (status === "unsent" && slug !== "pdoom") status = "pending"; load(); });
+  const ago = (at) => {
+    const minutes = Math.round((Date.now() - at) / 60000);
+    if (minutes < 1) return "just now";
+    if (minutes < 60) return minutes + " min ago";
+    const hours = Math.round(minutes / 60);
+    if (hours < 48) return hours + " hour" + (hours === 1 ? "" : "s") + " ago";
+    return Math.round(hours / 24) + " days ago";
+  };
+  const dayLabel = (day) => new Date(day + "T12:00:00").toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
 
   async function api(path, body) {
     const response = await fetch(path, body
@@ -118,10 +155,11 @@ dl{display:grid;grid-template-columns:max-content 1fr;gap:2px 16px;margin:8px 0 
     return data;
   }
 
-  function renderTabs(counts) {
+  function renderTabs(counts, unsentCount) {
     const tabs = $("[data-tabs]");
-    tabs.replaceChildren(...STATUSES.map(([key, label]) => {
-      const n = key === "all" ? Object.values(counts).reduce((a, b) => a + b, 0) : counts[key] || 0;
+    // Not sent exists only for games whose runs are tracked from the start (p(DOOM))
+    tabs.replaceChildren(...STATUSES.filter(([key]) => key !== "unsent" || unsentCount !== null).map(([key, label]) => {
+      const n = key === "unsent" ? unsentCount : key === "all" ? Object.values(counts).reduce((a, b) => a + b, 0) : counts[key] || 0;
       const button = el("button", { type: "button", textContent: label + " (" + n + ")" });
       button.setAttribute("aria-pressed", String(key === status));
       button.addEventListener("click", () => { status = key; load(); });
@@ -167,16 +205,39 @@ dl{display:grid;grid-template-columns:max-content 1fr;gap:2px 16px;margin:8px 0 
     return el("li", { className: "run" }, top, facts, reasons, details, actions);
   }
 
+  function renderUnsent(unsent, total) {
+    const { started, sent, notSent, firstAt } = unsent.totals;
+    const since = firstAt ? new Date(firstAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : null;
+    $("[data-unsent-totals]").replaceChildren(
+      since ? "Since " + since + ": " : "",
+      el("b", { textContent: String(started) }), " started, ",
+      el("b", { textContent: String(sent) }), " sent, ",
+      el("b", { textContent: String(notSent) }), " not sent.");
+    $("[data-unsent-days]").replaceChildren(...unsent.days.map((row) => el("tr", {},
+      el("td", { textContent: dayLabel(row.day) }), el("td", { textContent: String(row.started) }),
+      el("td", { textContent: String(row.sent) }), el("td", { textContent: String(row.notSent) }))));
+    $("[data-unsent-runs]").replaceChildren(...unsent.runs.map((run) => el("li", {},
+      el("span", { className: "when", textContent: "Started " + new Date(run.startedAt).toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) }),
+      el("span", { className: "note", textContent: ago(run.startedAt) }),
+      el("span", { className: "id", textContent: "run " + run.runId.slice(0, 8) }))));
+    return !unsent.runs.length ? "Nothing here: every run started has sent a time."
+      : total > unsent.runs.length ? "Showing the newest " + unsent.runs.length + " of " + total + " not sent."
+      : unsent.runs.length + " not sent.";
+  }
+
   async function load() {
     if (!token) { showGate(); return; }
     const url = new URL(location.href); url.searchParams.set("status", status); url.searchParams.set("slug", slug); history.replaceState(null, "", url);
     $("[data-status]").textContent = "Loading…";
     try {
-      const data = await api("/api/v1/admin/runs?slug=" + encodeURIComponent(slug) + "&status=" + encodeURIComponent(status) + "&limit=300");
+      const data = await api("/api/v1/admin/runs?slug=" + encodeURIComponent(slug) + "&status=" + encodeURIComponent(status) + "&limit=300&tzOffset=" + -new Date().getTimezoneOffset());
       $("[data-gate]").hidden = true; $("[data-app]").hidden = false;
-      renderTabs(data.counts || {});
+      renderTabs(data.counts || {}, data.unsentCount ?? null);
+      const showUnsent = status === "unsent" && !!data.unsent;
+      $("[data-runs]").hidden = showUnsent; $("[data-unsent]").hidden = !showUnsent;
       $("[data-runs]").replaceChildren(...data.runs.map(renderRun));
-      $("[data-status]").textContent = data.runs.length ? data.runs.length + " run" + (data.runs.length === 1 ? "" : "s") + ", newest first." : "No runs here.";
+      $("[data-status]").textContent = showUnsent ? renderUnsent(data.unsent, data.unsentCount)
+        : data.runs.length ? data.runs.length + " run" + (data.runs.length === 1 ? "" : "s") + ", newest first." : "No runs here.";
     } catch (error) { if (error.message !== "signed out") $("[data-status]").textContent = error.message; }
   }
   load();
