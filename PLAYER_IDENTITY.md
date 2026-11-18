@@ -48,6 +48,26 @@ email does not reach the game, unless the game listens in the capture phase.
 
 Leaderboard posts are unchanged and still trust the `playerId` they're given.
 
+### Server-posted win/loss boards (2026-11-18)
+
+A board with `"submitter": "server"` in `games.json` (only `win-loss-rate` boards) refuses every
+`POST /api/v1/leaderboard` with 403. Its outcomes come only from the game's own Worker, through the
+`GameResults` named entrypoint of this Worker (`worker/game-results.js`), which only Workers on this
+Cloudflare account can reach, through a service binding:
+
+```jsonc
+"services": [{ "binding": "MANN_COOL", "service": "mann-cool", "entrypoint": "GameResults" }]
+```
+
+- `await env.MANN_COOL.player(secret)` returns `{ playerId, signedIn }` for a browser's player secret
+  (`mannCool.player.credential()`), or `null`. The game server asks once when a player joins and keeps
+  only the public ID.
+- `await env.MANN_COOL.submitOutcome({ slug, variant, name, playerId, result, submissionId, metadata })`
+  stores one player's `win`/`loss`/`draw`; it returns `{ ok, duplicate }` or `{ ok: false, error }` and is
+  idempotent per `submissionId`.
+
+Metal Gear Huang (`huang`, boards `jensen` and `hawks`) is the first game to use it.
+
 ## Wallet detection
 
 On every game page the shell checks, about 1.5 s after load, whether a crypto wallet extension

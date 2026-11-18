@@ -106,6 +106,8 @@ for (const game of catalog.games || []) {
       if (!["number", "integer", "percent", "time-ms", "record"].includes(board.display)) errors.push(`${game.slug}/${board.variant}: invalid board display`);
       if (!["best", "player-best", "win-loss-rate"].includes(board.aggregation)) errors.push(`${game.slug}/${board.variant}: invalid board aggregation`);
       if (board.aggregation === "win-loss-rate" && board.direction !== "desc") errors.push(`${game.slug}/${board.variant}: win/loss rate must rank descending`);
+      if (board.submitter !== undefined && board.submitter !== "server") errors.push(`${game.slug}/${board.variant}: submitter must be "server" or absent`);
+      if (board.submitter === "server" && board.aggregation !== "win-loss-rate") errors.push(`${game.slug}/${board.variant}: server-submitted boards must be win/loss rate`);
     }
     const legacyVariants = game.leaderboard.variants || [];
     if (JSON.stringify([...boardVariants]) !== JSON.stringify(legacyVariants)) errors.push(`${game.slug}: leaderboard variants must match board order`);

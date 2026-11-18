@@ -51,6 +51,9 @@ function normalizeBoard(board, fallbackDirection) {
     display,
     aggregation,
     minimumMatches: Math.max(1, Math.min(1_000, Math.floor(Number(board?.minimumMatches) || 1))),
+    // "server": only the game's own Worker may post to this board (GameResults in worker/game-results.js);
+    // browser POSTs are refused. Used for multiplayer outcomes a match server decides.
+    ...(board?.submitter === "server" ? { submitter: "server" } : {}),
   };
 }
 

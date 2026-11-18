@@ -175,3 +175,4 @@ export default {
 };
 
 export { games };
+export { GameResults } from "./game-results.js";

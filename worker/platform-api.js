@@ -638,6 +638,8 @@ async function handleLeaderboard(request, env, legacy = false) {
     if (!board && !config.variants.includes("*")) {
       throw new HttpError(400, "Unknown leaderboard variant");
     }
+    // Boards whose outcomes a game's match server decides take no posts from browsers.
+    if (board?.submitter === "server") throw new HttpError(403, "This leaderboard only takes results from the game's own server");
     const name = cleanText(body.name || body.playerName, 30);
     if (!name) throw new HttpError(400, "Player name is required");
     let metadata = leaderboardMetadata(body);
@@ -741,6 +743,40 @@ async function handleLeaderboard(request, env, legacy = false) {
   }
 
   throw new HttpError(405, "Method not allowed");
+}
+
+// One match outcome from a game's own Worker, through the GameResults service binding (worker/game-results.js),
+// never from a browser. Only "submitter": "server" win/loss boards take these. Idempotent per submissionId.
+export async function recordServerOutcome(env, input) {
+  const slug = cleanSlug(input?.slug);
+  if (!slug) throw new HttpError(400, "A valid slug is required");
+  const game = await ensureRegisteredGame(env, slug);
+  const config = getLeaderboardConfig(game);
+  if (!config.enabled) throw new HttpError(404, "Leaderboard is not enabled for this game");
+  const variant = cleanText(input.variant || "", 40);
+  const board = leaderboardBoard(config, variant);
+  if (!board || board.submitter !== "server" || board.aggregation !== "win-loss-rate") {
+    throw new HttpError(400, "That board does not take server results");
+  }
+  const name = cleanText(input.name, 30);
+  if (!name) throw new HttpError(400, "Player name is required");
+  const playerId = cleanText(input.playerId, 100);
+  if (!playerId) throw new HttpError(400, "A stable playerId is required for win/loss leaderboards");
+  const result = String(input.result || "").toLowerCase();
+  const outcomes = { win: 1, draw: 0.5, loss: 0 };
+  if (!(result in outcomes)) throw new HttpError(400, "result must be win, loss, or draw");
+  const submissionId = cleanText(input.submissionId, 100);
+  if (!/^[a-zA-Z0-9._:-]{8,100}$/.test(submissionId)) throw new HttpError(400, "Invalid submission ID");
+  const metadata = { ...parseMetadata(input.metadata), result, source: "server" };
+  parseMetadata(metadata);
+  const stored = await env.DB.prepare(`
+    INSERT INTO leaderboard_entries
+      (submission_id, slug, variant, player_name, player_id, score, metadata,
+       moderation_status, created_at, ip_hash)
+    VALUES (?, ?, ?, ?, ?, ?, ?, 'approved', ?, NULL)
+    ON CONFLICT(submission_id) DO NOTHING
+  `).bind(submissionId, game.slug, variant, name, playerId, outcomes[result], JSON.stringify(metadata), new Date().toISOString()).run();
+  return { ok: true, slug: game.slug, variant, submissionId, duplicate: Number(stored?.meta?.changes || 0) === 0 };
 }
 
 export async function handlePlatformApi(request, env, endpoint, requestOptions = {}) {
