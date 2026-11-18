@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {DatabaseSync} from 'node:sqlite';
 import {randomBytes,randomUUID} from 'node:crypto';
 import {build} from 'esbuild';
+import {cloudflareWorkersStub} from './support/cloudflare-workers-stub.mjs';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -13,7 +14,7 @@ import {generatePrivateKey,privateKeyToAccount} from 'viem/accounts';
 import {parseSiweMessage} from 'viem/siwe';
 
 const temp=await fs.mkdtemp(path.join(os.tmpdir(),'pdoom-api-test-'));
-await build({entryPoints:[fileURLToPath(new URL('../worker/index.js',import.meta.url))],bundle:true,platform:'node',format:'esm',outfile:path.join(temp,'worker.mjs'),logLevel:'silent'});
+await build({entryPoints:[fileURLToPath(new URL('../worker/index.js',import.meta.url))],bundle:true,platform:'node',format:'esm',outfile:path.join(temp,'worker.mjs'),logLevel:'silent',plugins:[cloudflareWorkersStub]});
 const {default:worker}=await import(path.join(temp,'worker.mjs'));
 after(()=>fs.rm(temp,{recursive:true,force:true}));
 const schema=await fs.readFile(new URL('../migrations/0001_platform.sql',import.meta.url),'utf8')

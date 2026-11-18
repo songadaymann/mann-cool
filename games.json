@@ -2016,6 +2016,69 @@
       },
       "status": "published",
       "sourceUrl": "https://github.com/songadaymann/chuck-and-hakeem"
+    },
+    {
+      "id": 44,
+      "slug": "huang",
+      "title": "Metal Gear Huang",
+      "description": "Jensen Huang sneaks through a data-center maze collecting his leather jackets while hawks Marco Rubio and Dario Amodei hunt him. Play online with friends or against the computer. A parody.",
+      "cover": "/covers/huang.webp",
+      "hoverGif": "/game-gifs/huang.gif",
+      "tags": [
+        "political",
+        "multiplayer",
+        "funny"
+      ],
+      "catalogOrder": 44,
+      "publishedAt": "2026-11-18",
+      "deviceSupport": {
+        "mobile": true,
+        "tablet": true,
+        "desktop": true
+      },
+      "leaderboard": {
+        "enabled": true,
+        "direction": "desc",
+        "variants": [
+          "jensen",
+          "hawks"
+        ],
+        "boards": [
+          {
+            "variant": "jensen",
+            "label": "As Jensen",
+            "metric": "winRate",
+            "metricLabel": "Escapes vs captures as Jensen",
+            "direction": "desc",
+            "display": "record",
+            "aggregation": "win-loss-rate",
+            "minimumMatches": 1,
+            "submitter": "server"
+          },
+          {
+            "variant": "hawks",
+            "label": "As Hawks",
+            "metric": "winRate",
+            "metricLabel": "Captures vs escapes as a hawk",
+            "direction": "desc",
+            "display": "record",
+            "aggregation": "win-loss-rate",
+            "minimumMatches": 1,
+            "submitter": "server"
+          }
+        ]
+      },
+      "delivery": {
+        "mode": "worker-route",
+        "origin": "https://mann-cool-huang.novox-robot.workers.dev",
+        "workerName": "mann-cool-huang",
+        "routePatterns": [
+          "mann.cool/huang",
+          "mann.cool/huang/*"
+        ]
+      },
+      "status": "published",
+      "sourceUrl": null
     }
   ]
 }
