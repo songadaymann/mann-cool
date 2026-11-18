@@ -20,6 +20,12 @@ Code is MIT; media retains separate terms. Jonathan Mann original media is CC BY
 - `public/game-gifs/leave.gif`: the time-lapse shot recorded from the game for its launch video (`shots/v2/timelapse.mp4` in the game project), 1.5-6.5 seconds, 8 fps, 360x540, 64 colors. The launch video was not cut yet, so there was no trailer to take the loop from.
 - The game's source is not public. Its credits: https://mann.cool/leave/credits.txt
 
+## Metal Gear Huang, added 2026-11-18
+
+- `public/covers/huang.webp`: no image-generation step. The label is two frames of the game's own footage, rendered frame by frame from the real game for its vertical ad (`ad/clips/b-hunting.mp4` at 3.2 s, the hawks Marco Rubio and Dario Amodei coming down a desert rack aisle; `ad/clips/a-jensen-clean.mp4` at 3.0 s, Jensen Huang), set as two inked panels under a title block in the game's own UI type (Archivo and IBM Plex Mono, both SIL Open Font License 1.1) and colours. The characters are the game's likeness models of public figures; the game is parody. The cartridge is the catalog's `sledding.webp`, its alpha untouched. Exact 800x1200 RGBA.
+- `public/game-gifs/huang.gif`: three shots from the same ad footage (`c-box-clean` 0.4-2.3 s, a box hide; `a-jacket-get` 0-1.6 s, a jacket pickup; `c-rounder-clean` 1.4-3.1 s, pickups making Jensen rounder), top 1080x1620 of the 9:16 frame, 8 fps, 360x540, 96 colors, 5.3 s. No trailer for the game was in GADtrailers yet.
+- The game's source is not public. Its credits: https://mann.cool/huang/credits.txt
+
 ## Paid assets
 
 No paid source pack was added for this publication.
