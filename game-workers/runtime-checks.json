@@ -38,5 +38,5 @@
   "mack": { "paths": ["assets/index-IcULTLts.js", "assets/sound/footsteps-run.ogg", "assets/world/village-kit.glb"] },
   "leave": { "paths": ["og.jpg", "credits.txt", "models/Business_Male_01.glb"] },
   "huang": { "paths": ["credits.txt", "version.json", "models/likeness/huang_rigged.glb"] },
-  "hold-the-line": { "paths": ["vendor/three.module.min.js", "src/main.js", "src/mann-cool-board.js"] }
+  "pnp": { "paths": ["vendor/three.module.min.js", "src/main.js", "src/mann-cool-board.js"] }
 }
