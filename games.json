@@ -2082,11 +2082,11 @@
     },
     {
       "id": 45,
-      "slug": "hold-the-line",
+      "slug": "pnp",
       "title": "Hold The L/ne",
       "description": "P ≠ NP, for now. Run into the AI bots before they pull the slash out of the sign. Ten levels, one verb, and the end of mathematics if you let go.",
-      "cover": "/covers/hold-the-line.webp",
-      "hoverGif": "/game-gifs/hold-the-line.gif",
+      "cover": "/covers/pnp.webp",
+      "hoverGif": "/game-gifs/pnp.gif",
       "tags": [
         "funny",
         "political"
@@ -2130,11 +2130,11 @@
       },
       "delivery": {
         "mode": "worker-route",
-        "origin": "https://mann-cool-hold-the-line.novox-robot.workers.dev",
-        "workerName": "mann-cool-hold-the-line",
+        "origin": "https://mann-cool-pnp.novox-robot.workers.dev",
+        "workerName": "mann-cool-pnp",
         "routePatterns": [
-          "mann.cool/hold-the-line",
-          "mann.cool/hold-the-line/*"
+          "mann.cool/pnp",
+          "mann.cool/pnp/*"
         ]
       },
       "status": "published"
