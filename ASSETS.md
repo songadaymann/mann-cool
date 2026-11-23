@@ -29,7 +29,7 @@ Code is MIT; media retains separate terms. Jonathan Mann original media is CC BY
 ## Hold The L/ne, added 2026-11-23
 
 - `public/covers/hold-the-line.webp`: no image-generation step. The label is drawn in code (`brand/cart.mjs` in the game project): the game's title in a system monospace stack, a frame of the game's own level 1 (Proof Park) from its screenshot set, the game's own Claw'd bot sprite (an original parody caricature drawn in code), its palette, and a DECLINED stamp. The cartridge is the catalog's `sledding.webp`, its alpha untouched. Exact 800x1200 RGBA.
-- No hover GIF yet: no trailer for the game was in GADtrailers.
+- `public/game-gifs/hold-the-line.gif`: recorded from the game itself (`brand/gif.mjs` in the game project): level 2 (Terracotta Flats), seed 3, the game's own scripted pilot idling until the bots reach the slash, then running in; 540x810 frames stepped at 10 fps, 8 fps, 360x540, 112 colors, about 6 s. No trailer for the game was in GADtrailers yet.
 - The game's source is not public.
 
 ## Paid assets

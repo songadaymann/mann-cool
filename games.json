@@ -2086,6 +2086,7 @@
       "title": "Hold The L/ne",
       "description": "P ≠ NP, for now. Run into the AI bots before they pull the slash out of the sign. Ten levels, one verb, and the end of mathematics if you let go.",
       "cover": "/covers/hold-the-line.webp",
+      "hoverGif": "/game-gifs/hold-the-line.gif",
       "tags": [
         "funny",
         "political"
