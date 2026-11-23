@@ -26,6 +26,12 @@ Code is MIT; media retains separate terms. Jonathan Mann original media is CC BY
 - `public/game-gifs/huang.gif`: three shots from the same ad footage (`c-box-clean` 0.4-2.3 s, a box hide; `a-jacket-get` 0-1.6 s, a jacket pickup; `c-rounder-clean` 1.4-3.1 s, pickups making Jensen rounder), top 1080x1620 of the 9:16 frame, 8 fps, 360x540, 96 colors, 5.3 s. No trailer for the game was in GADtrailers yet.
 - The game's source is not public. Its credits: https://mann.cool/huang/credits.txt
 
+## Hold The L/ne, added 2026-11-23
+
+- `public/covers/hold-the-line.webp`: no image-generation step. The label is drawn in code (`brand/cart.mjs` in the game project): the game's title in a system monospace stack, a frame of the game's own level 1 (Proof Park) from its screenshot set, the game's own Claw'd bot sprite (an original parody caricature drawn in code), its palette, and a DECLINED stamp. The cartridge is the catalog's `sledding.webp`, its alpha untouched. Exact 800x1200 RGBA.
+- No hover GIF yet: no trailer for the game was in GADtrailers.
+- The game's source is not public.
+
 ## Paid assets
 
 No paid source pack was added for this publication.

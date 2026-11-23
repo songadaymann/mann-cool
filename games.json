@@ -2079,6 +2079,64 @@
       },
       "status": "published",
       "sourceUrl": null
+    },
+    {
+      "id": 45,
+      "slug": "hold-the-line",
+      "title": "Hold The L/ne",
+      "description": "P ≠ NP, for now. Run into the AI bots before they pull the slash out of the sign. Ten levels, one verb, and the end of mathematics if you let go.",
+      "cover": "/covers/hold-the-line.webp",
+      "tags": [
+        "funny",
+        "political"
+      ],
+      "catalogOrder": 45,
+      "publishedAt": "2026-11-23",
+      "deviceSupport": {
+        "mobile": true,
+        "tablet": true,
+        "desktop": true
+      },
+      "leaderboard": {
+        "enabled": true,
+        "direction": "desc",
+        "variants": [
+          "citations",
+          "fastest-win"
+        ],
+        "boards": [
+          {
+            "variant": "citations",
+            "label": "Citations",
+            "metric": "citations",
+            "metricLabel": "Most citations in one run",
+            "direction": "desc",
+            "display": "integer",
+            "aggregation": "player-best",
+            "minimumMatches": 1
+          },
+          {
+            "variant": "fastest-win",
+            "label": "Fastest reject",
+            "metric": "winTimeMs",
+            "metricLabel": "Fastest run that holds the line to the end",
+            "direction": "asc",
+            "display": "time-ms",
+            "aggregation": "player-best",
+            "minimumMatches": 1
+          }
+        ]
+      },
+      "delivery": {
+        "mode": "worker-route",
+        "origin": "https://mann-cool-hold-the-line.novox-robot.workers.dev",
+        "workerName": "mann-cool-hold-the-line",
+        "routePatterns": [
+          "mann.cool/hold-the-line",
+          "mann.cool/hold-the-line/*"
+        ]
+      },
+      "status": "published"
     }
   ]
 }
